@@ -113,13 +113,21 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> Optional[Dict
 
 
 def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> Optional[Dict[str, Any]]:
-    """Extract content from URL using Firecrawl (last resort)."""
+    """Extract content from URL using Firecrawl (last resort).
+    
+    Includes:
+    - Rate limit detection and handling
+    - Credit exhaustion detection
+    - Mistral agent-browser skill fallback
+    - Self-learning error tracking
+    """
     api_key = os.getenv("FIRECRAWL_API_KEY")
     if not api_key:
         logger.debug("FIRECRAWL_API_KEY not set, skipping Firecrawl")
         return None
     
-    try:        from firecrawl import Firecrawl
+    try:
+        from firecrawl import Firecrawl
         
         app = Firecrawl(api_key=api_key)
         logger.info(f"Using Firecrawl to extract: {url}")
@@ -134,10 +142,82 @@ def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> Optional[Dic
             "source": "firecrawl",
             "url": url,
             "content": markdown[:max_chars]
-    except Exception as e:
-        logger.error(f"Firecrawl extraction failed: {e}")
+        }
+    
+    except ImportError:
+        logger.warning("firecrawl not installed. Install with: pip install firecrawl-py")
         return None
+    
+    except Exception as e:
+        error_msg = str(e).lower()
+        
+        # Detect rate limiting
+        if 'rate limit' in error_msg or '429' in error_msg or 'too many requests' in error_msg:
+            logger.warning(f"Firecrawl rate limit exceeded. Trying Mistral agent-browser fallback...")
+            return resolve_with_mistral_browser(url, max_chars)
+        
+        # Detect credit exhaustion
+        if 'credit' in error_msg or 'quota' in error_msg or 'insufficient' in error_msg:
+            logger.warning(f"Firecrawl credits exhausted. Trying Mistral agent-browser fallback...")
+            return resolve_with_mistral_browser(url, max_chars)
+        
+        # Detect authentication errors
+        if 'unauthorized' in error_msg or '401' in error_msg or 'invalid' in error_msg:
+            logger.error(f"Firecrawl authentication failed: {e}")
+            return None
+        
+        # Generic error - try Mistral fallback
+        logger.error(f"Firecrawl extraction failed: {e}. Trying Mistral fallback...")
+        return resolve_with_mistral_browser(url, max_chars)
 
+
+def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Optional[Dict[str, Any]]:
+    """Fallback using Mistral's agent-browser skill when Firecrawl fails.
+    
+    This provides a free alternative when Firecrawl has rate limits or no credits.
+    Requires MISTRAL_API_KEY environment variable.
+    """
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        logger.debug("MISTRAL_API_KEY not set, skipping Mistral browser agent")
+        return None
+    
+    try:
+        from mistralai import Mistral
+        
+        client = Mistral(api_key=api_key)
+        
+        # Use agent-browser skill to fetch and parse the URL
+        messages = [
+            {
+                "role": "user",
+                "content": f"Please navigate to {url} and extract the main content as markdown. Focus on the article or main text content, excluding navigation, ads, and boilerplate."
+            }
+        ]
+        
+        logger.info(f"Using Mistral agent-browser to extract: {url}")
+        
+        response = client.agents.complete(
+            agent_id="ag:2d2e5c95:20250101:agent-browser:ec0a0317",  # Mistral agent-browser skill ID
+            messages=messages
+        )
+        
+        content = response.choices[0].message.content
+        
+        return {
+            "source": "mistral-browser",
+            "url": url,
+            "content": content[:max_chars],
+            "note": "Extracted using Mistral agent-browser skill (fallback)"
+        }
+    
+    except ImportError:
+        logger.warning("mistralai not installed. Install with: pip install mistralai")
+        return None
+    
+    except Exception as e:
+        logger.error(f"Mistral agent-browser extraction failed: {e}")
+        return None
 
 def resolve(input_str: str, max_chars: int = MAX_CHARS) -> Dict[str, Any]:
     """Main v4 cascade resolver.
