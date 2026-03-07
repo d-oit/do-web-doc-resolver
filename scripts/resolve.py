@@ -119,23 +119,21 @@ def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> Optional[Dic
         logger.debug("FIRECRAWL_API_KEY not set, skipping Firecrawl")
         return None
     
-    try:
-        # This would use the actual Firecrawl SDK
-        # from firecrawl import FirecrawlApp
-        # app = FirecrawlApp(api_key)
-        # result = app.scrape_url(url)
+    try:        from firecrawl import Firecrawl
         
+        app = Firecrawl(api_key=api_key)
         logger.info(f"Using Firecrawl to extract: {url}")
-        # Placeholder - would return actual Firecrawl extraction
+        
+        # Scrape with markdown format
+        result = app.scrape(url, formats=['markdown'])
+        
+        # Extract markdown content from result
+        markdown = result.get('markdown', '')
+        
         return {
             "source": "firecrawl",
             "url": url,
-            "content": f"# Content from: {url}\n\nExtracted content would appear here from Firecrawl API.\n",
-            "note": "FIRECRAWL_API_KEY found but firecrawl-py not installed. Install with: pip install firecrawl-py"
-        }
-    except ImportError:
-        logger.warning("firecrawl-py not installed. Install with: pip install firecrawl-py")
-        return None
+            "content": markdown[:max_chars]
     except Exception as e:
         logger.error(f"Firecrawl extraction failed: {e}")
         return None
