@@ -134,7 +134,7 @@ All API keys are **optional**. The skill degrades gracefully:
 
 - **Exa**: [exa.ai](https://exa.ai/) - 1,000 requests/month free
 - **Tavily**: [tavily.com](https://tavily.com/) - Free tier available
-- **Firecrawl**: [firecrawl.dev](https://firecrawl.dev/) - Free tier available
+- **Firecrawl**: [firecrawl.dev](https://firecrawl.dev/) - 500 credits (one-time), free
 
 ## Contributing
 
