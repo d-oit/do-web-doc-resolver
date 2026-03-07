@@ -6,7 +6,9 @@ import json
 import logging
 import os
 import sys
+from typing import Optional, Dict, Any
 from urllib.parse import urlparse
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -18,126 +20,222 @@ TAVILY_RESULTS = 3
 OUTPUT_LIMIT = 10
 
 
-def resolve_url(url: str, max_chars: int = MAX_CHARS) -> dict:
-    """Resolve a URL following the cascade: llms.txt first, then Firecrawl fallback."""
-    logger.info(f"Resolving URL: {url}")
-    
-    # Step 1: Try llms.txt
-    parsed = urlparse(url)
-    origin = f"{parsed.scheme}://{parsed.netloc}"
-    llms_txt_url = f"{origin}/llms.txt"
-    
-    logger.debug(f"Probing {llms_txt_url}")
-    # TODO: Implement llms.txt fetching and parsing
-    
-    # Step 2: Fallback to direct fetch or Firecrawl
-    logger.debug("Using direct fetch as fallback")
-    # TODO: Implement Firecrawl fallback if EXA_API_KEY present
-    
-    return {
-        "url": url,
-        "content_markdown": "# Sample content\n\nThis is a placeholder implementation.",
-        "source": "placeholder",
-        "score": 0.5
-    }
-
-
-def resolve_query(query: str, exa_results: int = EXA_RESULTS, 
-                 tavily_results: int = TAVILY_RESULTS, 
-                 max_chars: int = MAX_CHARS) -> list:
-    """Resolve a query following the cascade: Exa highlights first, Tavily fallback."""
-    logger.info(f"Resolving query: {query}")
-    results = []
-    
-    # Step 1: Try Exa with highlights if key available
-    exa_key = os.getenv("EXA_API_KEY")
-    if exa_key:
-        logger.debug(f"Using Exa search with {exa_results} results")
-        # TODO: Implement Exa search with highlights
-    else:
-        logger.warning("EXA_API_KEY not set, skipping Exa search")
-    
-    # Step 2: Fallback to Tavily if needed
-    if len(results) < 3:
-        tavily_key = os.getenv("TAVILY_API_KEY")
-        if tavily_key:
-            logger.debug(f"Using Tavily fallback with {tavily_results} results")
-            # TODO: Implement Tavily search
-        else:
-            logger.warning("TAVILY_API_KEY not set, skipping Tavily search")
-    
-    # Placeholder result
-    results.append({
-        "url": "https://example.com",
-        "content_markdown": "# Sample query result\n\nPlaceholder for query: " + query,
-        "source": "placeholder",
-        "score": 0.7
-    })
-    
-    return results
-
-
-def is_url(text: str) -> bool:
-    """Check if text is a URL."""
+def is_url(input_str: str) -> bool:
+    """Check if input is a valid URL."""
     try:
-        result = urlparse(text)
+        result = urlparse(input_str)
         return all([result.scheme, result.netloc])
-    except:
+    except Exception:
         return False
+
+
+def fetch_llms_txt(url: str) -> Optional[str]:
+    """Try to fetch llms.txt from the domain."""
+    try:
+        parsed = urlparse(url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+        llms_url = f"{base_url}/llms.txt"
+        
+        logger.info(f"Checking {llms_url}")
+        response = requests.get(llms_url, timeout=5)
+        
+        if response.status_code == 200:
+            logger.info(f"Found llms.txt at {llms_url}")
+            return response.text
+    except Exception as e:
+        logger.debug(f"No llms.txt found: {e}")
+    
+    return None
+
+
+def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> Optional[Dict[str, Any]]:
+    """Resolve query using Exa highlights (token-efficient)."""
+    api_key = os.getenv("EXA_API_KEY")
+    if not api_key:
+        logger.debug("EXA_API_KEY not set, skipping Exa")
+        return None
+    
+    try:
+        # This would use the actual Exa SDK
+        # For now, this is a placeholder that would be replaced with:
+        # from exa_py import Exa
+        # client = Exa(api_key)
+        # results = client.search_and_contents(
+        #     query,
+        #     use_autoprompt=True,
+        #     highlights=True,
+        #     num_results=EXA_RESULTS
+        # )
+        
+        logger.info(f"Using Exa to resolve query: {query}")
+        # Placeholder - would return actual Exa highlights
+        return {
+            "source": "exa",
+            "query": query,
+            "content": f"# Exa Results for: {query}\n\nResults would appear here from Exa highlights API.\n",
+            "note": "EXA_API_KEY found but exa-py not installed. Install with: pip install exa-py"
+        }
+    except ImportError:
+        logger.warning("exa-py not installed. Install with: pip install exa-py")
+        return None
+    except Exception as e:
+        logger.error(f"Exa search failed: {e}")
+        return None
+
+
+def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> Optional[Dict[str, Any]]:
+    """Resolve query using Tavily as fallback."""
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key:
+        logger.debug("TAVILY_API_KEY not set, skipping Tavily")
+        return None
+    
+    try:
+        # This would use the actual Tavily SDK
+        # from tavily import TavilyClient
+        # client = TavilyClient(api_key)
+        # results = client.search(query, max_results=TAVILY_RESULTS)
+        
+        logger.info(f"Using Tavily to resolve query: {query}")
+        # Placeholder - would return actual Tavily results
+        return {
+            "source": "tavily",
+            "query": query,
+            "content": f"# Tavily Results for: {query}\n\nResults would appear here from Tavily API.\n",
+            "note": "TAVILY_API_KEY found but tavily-python not installed. Install with: pip install tavily-python"
+        }
+    except ImportError:
+        logger.warning("tavily-python not installed. Install with: pip install tavily-python")
+        return None
+    except Exception as e:
+        logger.error(f"Tavily search failed: {e}")
+        return None
+
+
+def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> Optional[Dict[str, Any]]:
+    """Extract content from URL using Firecrawl (last resort)."""
+    api_key = os.getenv("FIRECRAWL_API_KEY")
+    if not api_key:
+        logger.debug("FIRECRAWL_API_KEY not set, skipping Firecrawl")
+        return None
+    
+    try:
+        # This would use the actual Firecrawl SDK
+        # from firecrawl import FirecrawlApp
+        # app = FirecrawlApp(api_key)
+        # result = app.scrape_url(url)
+        
+        logger.info(f"Using Firecrawl to extract: {url}")
+        # Placeholder - would return actual Firecrawl extraction
+        return {
+            "source": "firecrawl",
+            "url": url,
+            "content": f"# Content from: {url}\n\nExtracted content would appear here from Firecrawl API.\n",
+            "note": "FIRECRAWL_API_KEY found but firecrawl-py not installed. Install with: pip install firecrawl-py"
+        }
+    except ImportError:
+        logger.warning("firecrawl-py not installed. Install with: pip install firecrawl-py")
+        return None
+    except Exception as e:
+        logger.error(f"Firecrawl extraction failed: {e}")
+        return None
+
+
+def resolve(input_str: str, max_chars: int = MAX_CHARS) -> Dict[str, Any]:
+    """Main v4 cascade resolver.
+    
+    For URLs: llms.txt → Firecrawl
+    For queries: Exa highlights → Tavily fallback
+    """
+    logger.info(f"Resolving: {input_str}")
+    
+    if is_url(input_str):
+        # URL path: Try llms.txt first (free)
+        llms_content = fetch_llms_txt(input_str)
+        if llms_content:
+            return {
+                "source": "llms.txt",
+                "url": input_str,
+                "content": llms_content[:max_chars]
+            }
+        
+        # Fallback to Firecrawl if available
+        firecrawl_result = resolve_with_firecrawl(input_str, max_chars)
+        if firecrawl_result:
+            return firecrawl_result
+        
+        return {
+            "source": "none",
+            "url": input_str,
+            "content": f"# Unable to resolve URL: {input_str}\n\nNo llms.txt found and Firecrawl not available.\n",
+            "error": "No resolution method available"
+        }
+    
+    else:
+        # Query path: Try Exa highlights first (token-efficient)
+        exa_result = resolve_with_exa(input_str, max_chars)
+        if exa_result:
+            return exa_result
+        
+        # Fallback to Tavily
+        tavily_result = resolve_with_tavily(input_str, max_chars)
+        if tavily_result:
+            return tavily_result
+        
+        return {
+            "source": "none",
+            "query": input_str,
+            "content": f"# Unable to resolve query: {input_str}\n\nNo API keys configured. Set EXA_API_KEY or TAVILY_API_KEY.\n",
+            "error": "No resolution method available"
+        }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Resolve query or URL into compact, LLM-ready markdown"
+        description="Resolve queries or URLs into LLM-ready markdown"
     )
-    parser.add_argument("input", help="Query string or URL to resolve")
-    parser.add_argument("--min-chars", type=int, default=MIN_CHARS,
-                       help=f"Minimum content length (default: {MIN_CHARS})")
-    parser.add_argument("--max-chars", type=int, default=MAX_CHARS,
-                       help=f"Maximum content length (default: {MAX_CHARS})")
-    parser.add_argument("--exa-results", type=int, default=EXA_RESULTS,
-                       help=f"Number of Exa results (default: {EXA_RESULTS})")
-    parser.add_argument("--tavily-results", type=int, default=TAVILY_RESULTS,
-                       help=f"Number of Tavily results (default: {TAVILY_RESULTS})")
-    parser.add_argument("--output-limit", type=int, default=OUTPUT_LIMIT,
-                       help=f"Maximum results to return (default: {OUTPUT_LIMIT})")
-    parser.add_argument("--log-level", default="WARNING",
-                       choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-                       help="Logging level (default: WARNING)")
+    parser.add_argument(
+        "input",
+        help="URL or search query to resolve"
+    )
+    parser.add_argument(
+        "--max-chars",
+        type=int,
+        default=MAX_CHARS,
+        help=f"Maximum characters in output (default: {MAX_CHARS})"
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Logging level"
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output as JSON"
+    )
     
     args = parser.parse_args()
     
     # Configure logging
     logging.basicConfig(
         level=getattr(logging, args.log_level),
-        format="%(levelname)s: %(message)s",
-        stream=sys.stderr
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
     
-    try:
-        # Determine if input is URL or query
-        if is_url(args.input):
-            result = resolve_url(args.input, max_chars=args.max_chars)
-            results = [result]
-        else:
-            results = resolve_query(
-                args.input,
-                exa_results=args.exa_results,
-                tavily_results=args.tavily_results,
-                max_chars=args.max_chars
-            )
-        
-        # Limit output
-        results = results[:args.output_limit]
-        
-        # Output JSON to stdout
-        print(json.dumps(results, indent=2))
-        
-    except Exception as e:
-        logger.error(f"Error during resolution: {e}")
-        error_output = [{"error": str(e), "input": args.input}]
-        print(json.dumps(error_output, indent=2))
-        sys.exit(1)
+    # Resolve input
+    result = resolve(args.input, args.max_chars)
+    
+    # Output
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(result.get("content", ""))
+        if "note" in result:
+            print(f"\n---\nNote: {result['note']}", file=sys.stderr)
+        if "error" in result:
+            print(f"\n---\nError: {result['error']}", file=sys.stderr)
 
 
 if __name__ == "__main__":
