@@ -1,94 +1,105 @@
 ---
 name: web-doc-resolver
-description: Resolve a query or URL into compact, LLM-ready markdown using a low-cost cascade: llms.txt first, Exa highlights first for search, Tavily fallback, Firecrawl last.
+description: Resolve a query or URL into compact, LLM-ready markdown using a low-cost cascade. Prioritizes llms.txt for structured docs, uses Exa highlights for query search, falls back to Tavily, and uses Firecrawl for final extraction. Use when you need to fetch documentation, resolve web URLs to markdown, search for technical content, or build context from web sources.
 license: MIT
-compatibility: Python 3.10+, env: EXA_API_KEY, TAVILY_API_KEY, FIRECRAWL_API_KEY
+compatibility: Python 3.10+, optional env: EXA_API_KEY, TAVILY_API_KEY, FIRECRAWL_API_KEY
 metadata:
   author: Dominik Oswald
   version: "4.0"
-  optimized: low-cost cascade, strict-llms-txt, compact-context, deterministic-ranking
-allowed-tools: Bash(python:*)
+  optimized: low-cost-cascade strict-llms-txt compact-context
+allowed-tools: Bash(python:*) Read
 ---
+
+# Web Documentation Resolver
+
 Resolve query or URL inputs into compact, high-signal markdown for agents and RAG systems.
 
-## Goals
-- Prefer site-provided structured documentation before search
-- Minimize duplicate provider calls
-- Keep context compact for downstream LLM use
-- Return only cleaned, ranked markdown documents
-- Never require billing, quota, or usage logic in the skill itself
+## When to use this skill
+
+Activate this skill when you need to:
+- Fetch and parse documentation from a URL
+- Search for technical information across the web
+- Build context from web sources
+- Extract markdown from websites
+- Query documentation APIs (Exa, Tavily, Firecrawl)
+
+## How it works
+
+### For URL inputs
+
+1. **Check llms.txt first**: Probes `https://origin/llms.txt` to find site-provided structured documentation
+2. **Parse and fetch**: If llms.txt exists, fetches primary linked docs and optional docs
+3. **Fallback extraction**: If no structured docs found, uses Firecrawl to extract markdown
+
+### For query inputs
+
+1. **Exa search**: Uses Exa API with compact highlights for token-efficient results
+2. **Tavily fallback**: Calls Tavily only if Exa returns insufficient results
+3. **URL resolution**: Resolves top candidate URLs through the same URL pipeline
+4. **Firecrawl extraction**: Final fallback when URLs don't yield good markdown
 
 ## Usage
+
+Basic usage:
 ```bash
 python scripts/resolve.py "Rust agent frameworks"
 python scripts/resolve.py "https://docs.rs/tokio/latest/tokio/"
 ```
 
-## Output
-```json
-[
-  {
-    "url": "https://example.com/docs/page",
-    "content_markdown": "# Clean content...",
-    "source": "llms_txt_doc|firecrawl|exa_highlights|tavily_search|llms_txt_index",
-    "score": 0.87
-  }
-]
-```
-
-## Resolution strategy
-
-### URL input
-1. Probe `https://origin/llms.txt`
-2. Parse valid markdown file lists from llms.txt
-3. Fetch primary linked docs first, then a small number of optional docs
-4. If strong markdown docs are found, stop
-5. If not, use Firecrawl as the final fallback
-
-### Query input
-1. Search with Exa first using compact highlights
-2. Keep result count small and use highlights instead of full text for the first pass
-3. Only call Tavily if Exa returns too few usable candidates
-4. Resolve top candidate URLs through the same URL pipeline
-5. Use Firecrawl only when the resolved URLs still do not yield good markdown
-
-## Quality rules
-- Normalize markdown before scoring
-- Reject obvious error, captcha, access-denied, and not-found pages
-- Prefer content in the 200 to 8000 character range
-- Reward headings, lists, and code fences
-- Penalize HTML-heavy pages and link farms
-- Deduplicate by canonical URL and keep the best-scoring version only
-
-## Defaults
-```
-MAX_CHARS=8000
-MIN_CHARS=200
-EXA_RESULTS=5
-TAVILY_RESULTS=3
-OUTPUT_LIMIT=10
-```
-
-## CLI options
+With options:
 ```bash
-python scripts/resolve.py "query or url" \
+python scripts/resolve.py "query" \
   --min-chars 200 \
   --max-chars 8000 \
   --exa-results 5 \
   --tavily-results 3 \
   --output-limit 10 \
-  --log-level WARNING
+  --log-level INFO
 ```
 
-## Operational behavior
-- Exa is the default discovery engine for query inputs
-- Tavily is fallback discovery only, not parallel-by-default
-- Firecrawl is extraction fallback only
-- Provider failures never crash the resolver
-- Errors are emitted as JSON, logs go to stderr
+## Output format
 
-## Notes
-- llms.txt links are parsed from markdown list items, not filtered by file extension
-- Search snippets may be returned when full markdown extraction is unavailable
-- The resolver ranks sources deterministically instead of using an uncomputed semantic threshold
-- All API keys are **optional** — providers are skipped gracefully when keys are absent
+Returns JSON array of results:
+```json
+[
+  {
+    "url": "https://example.com/docs/page",
+    "content_markdown": "# Clean content...",
+    "source": "llms_txt_doc|exa_highlights|tavily_search|firecrawl",
+    "score": 0.87
+  }
+]
+```
+
+## Configuration
+
+### Defaults
+- MAX_CHARS: 8000
+- MIN_CHARS: 200
+- EXA_RESULTS: 5
+- TAVILY_RESULTS: 3
+- OUTPUT_LIMIT: 10
+
+### API Keys (all optional)
+
+Set environment variables for provider access:
+- `EXA_API_KEY`: For Exa search (optional, skipped if absent)
+- `TAVILY_API_KEY`: For Tavily search (optional, skipped if absent)
+- `FIRECRAWL_API_KEY`: For Firecrawl extraction (optional, skipped if absent)
+
+**Important**: All API keys are optional. The script runs without them and provides placeholder results.
+
+## Quality ranking
+
+Results are ranked by:
+- Content length (200-8000 chars preferred)
+- Presence of headings, lists, code fences
+- Low HTML-to-text ratio
+- Canonical URL deduplication
+
+## Error handling
+
+- Provider failures never crash the resolver
+- Errors emitted as JSON to stdout
+- Logs go to stderr
+- Graceful degradation when API keys missing
