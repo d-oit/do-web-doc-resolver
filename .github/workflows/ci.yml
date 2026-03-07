@@ -71,7 +71,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - na                  me: Install dependencies
+      - n me: Install dependencies
       run: |
         pip install -r requirements.txt
       
