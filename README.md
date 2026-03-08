@@ -10,6 +10,7 @@ This agent skill implements a v4 cascade resolver that prioritizes free and low-
 2. **Exa highlights** - Token-efficient query resolution using highlights (low-cost)
 3. **Tavily** - Fallback for comprehensive search (configurable)
 4. **Firecrawl** - Last resort for deep extraction (highest cost)
+5. 5. **Mistral agent-browser** - Free fallback when Firecrawl has rate limits or no credits
 
 ## Features
 
@@ -18,6 +19,8 @@ This agent skill implements a v4 cascade resolver that prioritizes free and low-
 ✅ **Agent-Ready**: Compatible with [agentskills.io](https://agentskills.io/)
 ✅ **Flexible**: All API keys are optional - works with free defaults
 ✅ **Well-Tested**: Includes comprehensive test suite and CI/CD
+✅ **Self-Learning**: Detects rate limits, credit exhaustion, and adapts automatically
+✅ **Error Resilient**: Automatic fallback to Mistral when Firecrawl fails
 
 ## Installation
 
@@ -53,6 +56,7 @@ print(result)
 export EXA_API_KEY="your-exa-key"
 export TAVILY_API_KEY="your-tavily-key"
 export FIRECRAWL_API_KEY="your-firecrawl-key"
+export MISTRAL_API_KEY="your-mistral-key"
 ```
 
 ### Command Line
@@ -135,6 +139,7 @@ All API keys are **optional**. The skill degrades gracefully:
 - **Exa**: [exa.ai](https://exa.ai/) - 1,000 requests/month free
 - **Tavily**: [tavily.com](https://tavily.com/) - Free tier available
 - **Firecrawl**: [firecrawl.dev](https://firecrawl.dev/) - 500 credits (one-time), free
+- - **Mistral**: [mistral.ai](https://mistral.ai/) - Free tier with agent-browser skill access
 
 ## Contributing
 
