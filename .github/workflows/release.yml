@@ -1,0 +1,74 @@
+name: Release
+
+# Trigger on version tags: v1.0.0, v1.2.3, etc.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Update SKILL.md version
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          # Strip leading 'v' for semver field
+          SEMVER=${VERSION#v}
+          sed -i "s/  version: \".*\"/  version: \"${SEMVER}\"/" SKILL.md
+          # Update version comment in AGENTS.md
+          sed -i "s/<!-- skill: web-doc-resolver v.* -->/<!-- skill: web-doc-resolver ${VERSION} -->/" AGENTS.md
+          sed -i "s|tree/v.*"|tree/${VERSION}"|" AGENTS.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add SKILL.md AGENTS.md
+          git diff --staged --quiet || git commit -m "chore: bump version to ${VERSION} in skill files"
+          git push origin HEAD:main
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: "Release ${{ steps.version.outputs.VERSION }}"
+          generate_release_notes: true
+          body: |
+            ## web-doc-resolver ${{ steps.version.outputs.VERSION }}
+
+            ### Install this Agent Skill
+
+            ```bash
+            # Latest
+            claude skills add github:d-oit/web-doc-resolver
+
+            # This exact version
+            claude skills add github:d-oit/web-doc-resolver@${{ steps.version.outputs.VERSION }}
+            ```
+
+            ### Direct SKILL.md URL
+            ```
+            https://raw.githubusercontent.com/d-oit/web-doc-resolver/${{ steps.version.outputs.VERSION }}/SKILL.md
+            ```
