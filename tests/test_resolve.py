@@ -299,12 +299,14 @@ class TestEdgeCases:
         assert result["source"] == "none"
         assert "error" in result
 
+    @patch("scripts.resolve.resolve_with_exa_mcp")
     @patch("scripts.resolve.resolve_with_exa")
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
-    @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_query_all_providers_fail(self, mock_mistral, mock_ddg, mock_tavily, mock_exa):
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
+    def test_query_all_providers_fail(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
         """Test query when all providers fail."""
+        mock_exa_mcp.return_value = None
         mock_exa.return_value = None
         mock_tavily.return_value = None
         mock_ddg.return_value = None
@@ -1014,6 +1016,82 @@ class TestAdditionalEdgeCases:
         from scripts.resolve import MIN_CHARS
         
         assert MIN_CHARS == 200
+
+
+class TestSkipProviders:
+    """Test the skip_providers parameter."""
+
+    @patch("scripts.resolve.resolve_with_exa_mcp")
+    @patch("scripts.resolve.resolve_with_exa")
+    @patch("scripts.resolve.resolve_with_tavily")
+    @patch("scripts.resolve.resolve_with_duckduckgo")
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
+    def test_skip_exa_mcp(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+        """Test skipping Exa MCP."""
+        mock_exa_mcp.return_value = None  # Would be called first, but skipped
+        mock_exa.return_value = ResolvedResult(source="exa", content="Exa result")
+        
+        result = resolve("test query", skip_providers={"exa_mcp"})
+        
+        assert result["source"] == "exa"
+        mock_exa_mcp.assert_not_called()
+        mock_exa.assert_called_once()
+
+    @patch("scripts.resolve.resolve_with_exa_mcp")
+    @patch("scripts.resolve.resolve_with_exa")
+    @patch("scripts.resolve.resolve_with_tavily")
+    @patch("scripts.resolve.resolve_with_duckduckgo")
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
+    def test_skip_multiple_providers(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+        """Test skipping multiple providers."""
+        mock_exa_mcp.return_value = None
+        mock_exa.return_value = None
+        mock_tavily.return_value = None
+        mock_ddg.return_value = ResolvedResult(source="duckduckgo", content="DDG result")
+        
+        result = resolve("test query", skip_providers={"exa_mcp", "exa", "tavily"})
+        
+        assert result["source"] == "duckduckgo"
+        mock_exa_mcp.assert_not_called()
+        mock_exa.assert_not_called()
+        mock_tavily.assert_not_called()
+        mock_ddg.assert_called_once()
+
+    @patch("scripts.resolve.resolve_with_exa_mcp")
+    @patch("scripts.resolve.resolve_with_exa")
+    @patch("scripts.resolve.resolve_with_tavily")
+    @patch("scripts.resolve.resolve_with_duckduckgo")
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
+    def test_skip_all_but_mistral(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+        """Test skipping all providers except Mistral."""
+        mock_mistral.return_value = ResolvedResult(source="mistral-websearch", content="Mistral result")
+        
+        result = resolve("test query", skip_providers={"exa_mcp", "exa", "tavily", "duckduckgo"})
+        
+        assert result["source"] == "mistral-websearch"
+        mock_exa_mcp.assert_not_called()
+        mock_exa.assert_not_called()
+        mock_tavily.assert_not_called()
+        mock_ddg.assert_not_called()
+        mock_mistral.assert_called_once()
+
+    @patch("scripts.resolve.resolve_with_exa_mcp")
+    @patch("scripts.resolve.resolve_with_exa")
+    @patch("scripts.resolve.resolve_with_tavily")
+    @patch("scripts.resolve.resolve_with_duckduckgo")
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
+    def test_skip_none(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+        """Test with no providers skipped (default behavior)."""
+        mock_exa_mcp.return_value = ResolvedResult(source="exa_mcp", content="Exa MCP result")
+        
+        result = resolve("test query")
+        
+        assert result["source"] == "exa_mcp"
+        mock_exa_mcp.assert_called_once()
+        mock_exa.assert_not_called()
+        mock_tavily.assert_not_called()
+        mock_ddg.assert_not_called()
+        mock_mistral.assert_not_called()
 
 
 if __name__ == "__main__":
