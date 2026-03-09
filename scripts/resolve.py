@@ -25,10 +25,11 @@ import re
 import socket
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Optional, Dict, Any, List, Set
+from typing import Any
 from urllib.parse import urlparse
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -38,7 +39,9 @@ logger = logging.getLogger(__name__)
 # Configuration Constants (configurable via environment variables)
 MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
 MIN_CHARS = int(os.getenv("WEB_RESOLVER_MIN_CHARS", "200"))
-MAX_CONTENT_SIZE = int(os.getenv("WEB_RESOLVER_MAX_CONTENT_SIZE", str(10 * 1024 * 1024)))  # 10MB default
+MAX_CONTENT_SIZE = int(
+    os.getenv("WEB_RESOLVER_MAX_CONTENT_SIZE", str(10 * 1024 * 1024))
+)  # 10MB default
 DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
 EXA_RESULTS = int(os.getenv("WEB_RESOLVER_EXA_RESULTS", "5"))
 TAVILY_RESULTS = int(os.getenv("WEB_RESOLVER_TAVILY_RESULTS", "5"))
@@ -49,28 +52,30 @@ CACHE_TTL = int(os.getenv("WEB_RESOLVER_CACHE_TTL", str(3600 * 24)))  # 24 hours
 # HTTP Configuration
 MAX_RETRIES = 3
 RETRY_BACKOFF_FACTOR = 1.0
-USER_AGENT = "Mozilla/5.0 (compatible; WebDocResolver/2.0; +https://github.com/d-oit/web-doc-resolver)"
+USER_AGENT = (
+    "Mozilla/5.0 (compatible; WebDocResolver/2.0; +https://github.com/d-oit/web-doc-resolver)"
+)
 
 # SSRF Protection - Blocked IP ranges
 BLOCKED_NETWORKS = [
-    ipaddress.ip_network("127.0.0.0/8"),      # Localhost
-    ipaddress.ip_network("10.0.0.0/8"),       # Private Class A
-    ipaddress.ip_network("172.16.0.0/12"),    # Private Class B
-    ipaddress.ip_network("192.168.0.0/16"),   # Private Class C
-    ipaddress.ip_network("169.254.0.0/16"),   # Link-local
-    ipaddress.ip_network("::1/128"),          # IPv6 localhost
-    ipaddress.ip_network("fc00::/7"),         # IPv6 private
-    ipaddress.ip_network("fe80::/10"),        # IPv6 link-local
+    ipaddress.ip_network("127.0.0.0/8"),  # Localhost
+    ipaddress.ip_network("10.0.0.0/8"),  # Private Class A
+    ipaddress.ip_network("172.16.0.0/12"),  # Private Class B
+    ipaddress.ip_network("192.168.0.0/16"),  # Private Class C
+    ipaddress.ip_network("169.254.0.0/16"),  # Link-local
+    ipaddress.ip_network("::1/128"),  # IPv6 localhost
+    ipaddress.ip_network("fc00::/7"),  # IPv6 private
+    ipaddress.ip_network("fe80::/10"),  # IPv6 link-local
 ]
 
 # Blocked URL schemes (SSRF protection)
-BLOCKED_SCHEMES: Set[str] = {"file", "javascript", "data", "vbscript"}
+BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
 # Rate limit tracking
-_rate_limits: Dict[str, float] = {}
+_rate_limits: dict[str, float] = {}
 
 # Global session for connection pooling
-_global_session: Optional[requests.Session] = None
+_global_session: requests.Session | None = None
 
 # Module exports
 __all__ = [
@@ -100,6 +105,7 @@ __all__ = [
 
 class ErrorType(Enum):
     """Types of errors that can occur during resolution."""
+
     RATE_LIMIT = "rate_limit"
     AUTH_ERROR = "auth_error"
     QUOTA_EXHAUSTED = "quota_exhausted"
@@ -116,26 +122,28 @@ class ErrorType(Enum):
 @dataclass
 class ValidationResult:
     """Result of URL validation."""
+
     is_valid: bool
-    status_code: Optional[int] = None
-    content_type: Optional[str] = None
-    final_url: Optional[str] = None
-    error: Optional[str] = None
-    redirect_chain: List[str] = field(default_factory=list)
+    status_code: int | None = None
+    content_type: str | None = None
+    final_url: str | None = None
+    error: str | None = None
+    redirect_chain: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ResolvedResult:
     """Result of a successful resolution."""
+
     source: str
     content: str
-    url: Optional[str] = None
-    query: Optional[str] = None
+    url: str | None = None
+    query: str | None = None
     score: float = 0.0
-    validated_links: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    validated_links: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
 
@@ -144,10 +152,11 @@ class ResolvedResult:
 # HTTP Session Management
 # ============================================================================
 
+
 def create_session_with_retry() -> requests.Session:
     """Create a requests session with retry logic."""
     session = requests.Session()
-    
+
     retry_strategy = Retry(
         total=MAX_RETRIES,
         backoff_factor=RETRY_BACKOFF_FACTOR,
@@ -155,17 +164,19 @@ def create_session_with_retry() -> requests.Session:
         allowed_methods=["HEAD", "GET", "OPTIONS"],
         raise_on_status=False,
     )
-    
+
     adapter = HTTPAdapter(max_retries=retry_strategy)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
-    
-    session.headers.update({
-        "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-    })
-    
+
+    session.headers.update(
+        {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        }
+    )
+
     return session
 
 
@@ -189,10 +200,11 @@ def close_session() -> None:
 # SSRF Protection
 # ============================================================================
 
+
 def is_safe_url(url: str) -> bool:
     """
     Check if a URL is safe to fetch (SSRF protection).
-    
+
     Blocks:
     - Localhost and private IP ranges
     - Blocked schemes (file://, javascript:, etc.)
@@ -200,24 +212,30 @@ def is_safe_url(url: str) -> bool:
     """
     try:
         parsed = urlparse(url)
-        
+
         # Check scheme
         if parsed.scheme.lower() in BLOCKED_SCHEMES:
             logger.warning(f"Blocked scheme in URL: {url}")
             return False
-        
-        if parsed.scheme not in ('http', 'https'):
+
+        if parsed.scheme not in ("http", "https"):
             logger.warning(f"Invalid scheme in URL: {url}")
             return False
-        
+
         # Get hostname
-        hostname = parsed.netloc.split(':')[0]  # Remove port if present
-        
+        hostname = parsed.netloc.split(":")[0]  # Remove port if present
+
         # Check for localhost variations
-        if hostname.lower() in ('localhost', 'localhost.localdomain', '127.0.0.1', '::1', '0.0.0.0'):
+        if hostname.lower() in (
+            "localhost",
+            "localhost.localdomain",
+            "127.0.0.1",
+            "::1",
+            "0.0.0.0",
+        ):
             logger.warning(f"Blocked localhost URL: {url}")
             return False
-        
+
         # Resolve hostname to IP and check against blocked networks
         try:
             # Try to parse as IP directly
@@ -232,13 +250,13 @@ def is_safe_url(url: str) -> bool:
                     # Set a timeout for DNS resolution
                     socket.setdefaulttimeout(5)
                     infos = socket.getaddrinfo(hostname, None)
-                    for family, socktype, proto, canonname, sockaddr in infos:
+                    for _family, _socktype, _proto, _canonname, sockaddr in infos:
                         ip_str = sockaddr[0]
                         ip = ipaddress.ip_address(ip_str)
                         if any(ip in network for network in BLOCKED_NETWORKS):
                             logger.warning(f"Blocked resolved private IP in URL: {url}")
                             return False
-                except (socket.gaierror, socket.timeout):
+                except (TimeoutError, socket.gaierror):
                     # DNS resolution failed, allow the request to proceed
                     # The actual fetch will fail if the host is unreachable
                     pass
@@ -248,9 +266,9 @@ def is_safe_url(url: str) -> bool:
             logger.debug(f"Error checking URL safety: {e}")
             # Allow the request to proceed if safety check fails
             pass
-        
+
         return True
-        
+
     except Exception as e:
         logger.warning(f"Error parsing URL for safety check: {e}")
         return False
@@ -259,6 +277,7 @@ def is_safe_url(url: str) -> bool:
 # ============================================================================
 # Rate Limit Management
 # ============================================================================
+
 
 def _is_rate_limited(provider: str, cooldown: int = 60) -> bool:
     """Check if a provider is currently rate-limited."""
@@ -278,12 +297,34 @@ def _set_rate_limit(provider: str, cooldown: int = 60) -> None:
 def _detect_error_type(error: Exception) -> ErrorType:
     """Detect the type of error from an exception."""
     error_msg = str(error).lower()
-    
+
     if any(code in error_msg for code in ["429", "rate limit", "too many requests", "rate_limit"]):
         return ErrorType.RATE_LIMIT
-    if any(code in error_msg for code in ["401", "403", "unauthorized", "forbidden", "invalid api key", "invalid_key", "authentication"]):
+    if any(
+        code in error_msg
+        for code in [
+            "401",
+            "403",
+            "unauthorized",
+            "forbidden",
+            "invalid api key",
+            "invalid_key",
+            "authentication",
+        ]
+    ):
         return ErrorType.AUTH_ERROR
-    if any(code in error_msg for code in ["402", "payment", "credit", "quota", "insufficient", "exhausted", "limit exceeded"]):
+    if any(
+        code in error_msg
+        for code in [
+            "402",
+            "payment",
+            "credit",
+            "quota",
+            "insufficient",
+            "exhausted",
+            "limit exceeded",
+        ]
+    ):
         return ErrorType.QUOTA_EXHAUSTED
     if any(code in error_msg for code in ["timeout", "timed out"]):
         return ErrorType.TIMEOUT
@@ -295,7 +336,7 @@ def _detect_error_type(error: Exception) -> ErrorType:
         return ErrorType.SSRF_BLOCKED
     if any(code in error_msg for code in ["too large", "content size", "exceeds"]):
         return ErrorType.CONTENT_TOO_LARGE
-    
+
     return ErrorType.UNKNOWN
 
 
@@ -303,10 +344,12 @@ def _detect_error_type(error: Exception) -> ErrorType:
 # Cache Management
 # ============================================================================
 
+
 def get_cache():
     """Get cache instance."""
     try:
         import diskcache
+
         os.makedirs(CACHE_DIR, exist_ok=True)
         return diskcache.Cache(CACHE_DIR)
     except ImportError:
@@ -334,7 +377,7 @@ def _cache_key(input_str: str, source: str) -> str:
     return hashlib.sha256(hash_input.encode()).hexdigest()
 
 
-def _get_from_cache(input_str: str, source: str) -> Optional[Dict[str, Any]]:
+def _get_from_cache(input_str: str, source: str) -> dict[str, Any] | None:
     """Get result from cache."""
     cache = _get_cache()
     if not cache:
@@ -344,13 +387,13 @@ def _get_from_cache(input_str: str, source: str) -> Optional[Dict[str, Any]]:
         result = cache.get(key)
         if result and isinstance(result, dict):
             logger.debug(f"Cache hit for {source}:{input_str[:30]}...")
-            return result
+            return result  # type: ignore[no-any-return]
     except Exception as e:
         logger.debug(f"Cache read error: {e}")
     return None
 
 
-def _save_to_cache(input_str: str, source: str, result: Dict[str, Any]):
+def _save_to_cache(input_str: str, source: str, result: dict[str, Any]):
     """Save result to cache."""
     cache = _get_cache()
     if not cache:
@@ -366,13 +409,14 @@ def _save_to_cache(input_str: str, source: str, result: Dict[str, Any]):
 # URL Validation
 # ============================================================================
 
+
 def is_url(input_str: str) -> bool:
     """Check if input string is a valid URL."""
     if not input_str or not input_str.strip():
         return False
     try:
         result = urlparse(input_str)
-        return all([result.scheme in ('http', 'https', 'ftp', 'ftps'), result.netloc])
+        return all([result.scheme in ("http", "https", "ftp", "ftps"), result.netloc])
     except Exception:
         return False
 
@@ -380,41 +424,36 @@ def is_url(input_str: str) -> bool:
 def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> ValidationResult:
     """
     Validate a URL by making a HEAD request.
-    
+
     Args:
         url: URL to validate
         timeout: Request timeout in seconds
         check_ssrf: Whether to check for SSRF vulnerabilities
-    
+
     Returns ValidationResult with status code, content type, and final URL.
     """
     if not url or not url.strip():
         return ValidationResult(is_valid=False, error="Empty URL")
-    
+
     if not is_url(url):
         return ValidationResult(is_valid=False, error="Invalid URL format")
-    
+
     # SSRF protection
     if check_ssrf and not is_safe_url(url):
         return ValidationResult(is_valid=False, error="URL blocked for security (SSRF protection)")
-    
+
     session = get_session()
     redirect_chain = []
-    
+
     try:
         # First try HEAD request to check validity without downloading content
-        response = session.head(
-            url,
-            timeout=timeout,
-            allow_redirects=True,
-            verify=True
-        )
-        
+        response = session.head(url, timeout=timeout, allow_redirects=True, verify=True)
+
         # Track redirects
         for hist in response.history:
             redirect_chain.append(hist.url)
         redirect_chain.append(response.url)
-        
+
         # Check status code
         if response.status_code >= 400:
             return ValidationResult(
@@ -422,19 +461,19 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
                 status_code=response.status_code,
                 final_url=response.url,
                 redirect_chain=redirect_chain,
-                error=f"HTTP {response.status_code}"
+                error=f"HTTP {response.status_code}",
             )
-        
-        content_type = response.headers.get('Content-Type', '')
-        
+
+        content_type = response.headers.get("Content-Type", "")
+
         return ValidationResult(
             is_valid=True,
             status_code=response.status_code,
             content_type=content_type,
             final_url=response.url,
-            redirect_chain=redirect_chain
+            redirect_chain=redirect_chain,
         )
-        
+
     except requests.exceptions.Timeout:
         return ValidationResult(is_valid=False, error="Request timed out")
     except requests.exceptions.SSLError:
@@ -445,26 +484,26 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
         return ValidationResult(is_valid=False, error=f"Validation error: {str(e)[:100]}")
 
 
-def validate_links(links: List[str], timeout: int = 5) -> List[str]:
+def validate_links(links: list[str], timeout: int = 5) -> list[str]:
     """
     Validate a list of links and return only valid ones.
-    
+
     Uses HEAD requests to check each link without downloading content.
     """
     valid_links = []
     session = get_session()
-    
+
     for link in links:
         try:
             # Skip non-HTTP links
             parsed = urlparse(link)
-            if parsed.scheme not in ('http', 'https'):
+            if parsed.scheme not in ("http", "https"):
                 continue
-            
+
             # SSRF check
             if not is_safe_url(link):
                 continue
-            
+
             response = session.head(link, timeout=timeout, allow_redirects=True)
             if response.status_code < 400:
                 valid_links.append(link)
@@ -472,7 +511,7 @@ def validate_links(links: List[str], timeout: int = 5) -> List[str]:
                 logger.debug(f"Link validation failed: {link} - HTTP {response.status_code}")
         except Exception as e:
             logger.debug(f"Link validation error for {link}: {e}")
-    
+
     return valid_links
 
 
@@ -480,60 +519,67 @@ def validate_links(links: List[str], timeout: int = 5) -> List[str]:
 # Content Extraction
 # ============================================================================
 
+
 def extract_text_from_html(html: str, base_url: str = "") -> str:
     """
     Extract clean text content from HTML.
-    
+
     Uses simple regex-based extraction for reliability.
     """
     # Remove script and style elements
-    html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
-    html = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL | re.IGNORECASE)
-    
+    html = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.DOTALL | re.IGNORECASE)
+
     # Remove comments
-    html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
-    
+    html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)
+
     # Convert common elements to markdown-like format
-    html = re.sub(r'<h1[^>]*>(.*?)</h1>', r'# \1\n', html, flags=re.IGNORECASE)
-    html = re.sub(r'<h2[^>]*>(.*?)</h2>', r'## \1\n', html, flags=re.IGNORECASE)
-    html = re.sub(r'<h3[^>]*>(.*?)</h3>', r'### \1\n', html, flags=re.IGNORECASE)
-    html = re.sub(r'<h4[^>]*>(.*?)</h4>', r'#### \1\n', html, flags=re.IGNORECASE)
-    html = re.sub(r'<h5[^>]*>(.*?)</h5>', r'##### \1\n', html, flags=re.IGNORECASE)
-    html = re.sub(r'<h6[^>]*>(.*?)</h6>', r'###### \1\n', html, flags=re.IGNORECASE)
-    
+    html = re.sub(r"<h1[^>]*>(.*?)</h1>", r"# \1\n", html, flags=re.IGNORECASE)
+    html = re.sub(r"<h2[^>]*>(.*?)</h2>", r"## \1\n", html, flags=re.IGNORECASE)
+    html = re.sub(r"<h3[^>]*>(.*?)</h3>", r"### \1\n", html, flags=re.IGNORECASE)
+    html = re.sub(r"<h4[^>]*>(.*?)</h4>", r"#### \1\n", html, flags=re.IGNORECASE)
+    html = re.sub(r"<h5[^>]*>(.*?)</h5>", r"##### \1\n", html, flags=re.IGNORECASE)
+    html = re.sub(r"<h6[^>]*>(.*?)</h6>", r"###### \1\n", html, flags=re.IGNORECASE)
+
     # Convert paragraphs and breaks
-    html = re.sub(r'<p[^>]*>(.*?)</p>', r'\1\n\n', html, flags=re.DOTALL | re.IGNORECASE)
-    html = re.sub(r'<br\s*/?>', '\n', html, flags=re.IGNORECASE)
-    
+    html = re.sub(r"<p[^>]*>(.*?)</p>", r"\1\n\n", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r"<br\s*/?>", "\n", html, flags=re.IGNORECASE)
+
     # Convert links
-    html = re.sub(r'<a[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', r'[\2](\1)', html, flags=re.IGNORECASE)
-    
+    html = re.sub(
+        r'<a[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', r"[\2](\1)", html, flags=re.IGNORECASE
+    )
+
     # Convert lists
-    html = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1\n', html, flags=re.DOTALL | re.IGNORECASE)
-    html = re.sub(r'<ul[^>]*>(.*?)</ul>', r'\1', html, flags=re.DOTALL | re.IGNORECASE)
-    html = re.sub(r'<ol[^>]*>(.*?)</ol>', r'\1', html, flags=re.DOTALL | re.IGNORECASE)
-    
+    html = re.sub(r"<li[^>]*>(.*?)</li>", r"- \1\n", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r"<ul[^>]*>(.*?)</ul>", r"\1", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r"<ol[^>]*>(.*?)</ol>", r"\1", html, flags=re.DOTALL | re.IGNORECASE)
+
     # Convert code blocks
-    html = re.sub(r'<pre[^>]*>(.*?)</pre>', r'```\n\1\n```\n', html, flags=re.DOTALL | re.IGNORECASE)
-    html = re.sub(r'<code[^>]*>(.*?)</code>', r'`\1`', html, flags=re.IGNORECASE)
-    
+    html = re.sub(
+        r"<pre[^>]*>(.*?)</pre>", r"```\n\1\n```\n", html, flags=re.DOTALL | re.IGNORECASE
+    )
+    html = re.sub(r"<code[^>]*>(.*?)</code>", r"`\1`", html, flags=re.IGNORECASE)
+
     # Remove remaining tags
-    html = re.sub(r'<[^>]+>', '', html)
-    
+    html = re.sub(r"<[^>]+>", "", html)
+
     # Decode HTML entities
     html = html_module.unescape(html)
-    
+
     # Clean up whitespace
-    html = re.sub(r'\n{3,}', '\n\n', html)
-    html = re.sub(r' {2,}', ' ', html)
-    
+    html = re.sub(r"\n{3,}", "\n\n", html)
+    html = re.sub(r" {2,}", " ", html)
+
     return html.strip()
 
 
-def fetch_url_content(url: str, timeout: int = DEFAULT_TIMEOUT, max_chars: int = MAX_CHARS) -> Optional[ResolvedResult]:
+def fetch_url_content(
+    url: str, timeout: int = DEFAULT_TIMEOUT, max_chars: int = MAX_CHARS
+) -> ResolvedResult | None:
     """
     Fetch content from a URL directly via HTTP.
-    
+
     Returns ResolvedResult with extracted text content.
     """
     # Validate URL first
@@ -541,43 +587,38 @@ def fetch_url_content(url: str, timeout: int = DEFAULT_TIMEOUT, max_chars: int =
     if not validation.is_valid:
         logger.warning(f"URL validation failed: {url} - {validation.error}")
         return None
-    
+
     session = get_session()
-    
+
     try:
-        response = session.get(
-            url,
-            timeout=timeout,
-            allow_redirects=True,
-            verify=True
-        )
-        
+        response = session.get(url, timeout=timeout, allow_redirects=True, verify=True)
+
         if response.status_code >= 400:
             logger.warning(f"HTTP {response.status_code} for {url}")
             return None
-        
-        content_type = response.headers.get('Content-Type', '')
-        
+
+        content_type = response.headers.get("Content-Type", "")
+
         # Handle different content types
-        if 'application/json' in content_type:
+        if "application/json" in content_type:
             try:
                 data = response.json()
                 content = json.dumps(data, indent=2)
             except json.JSONDecodeError:
                 content = response.text
-        elif 'text/' in content_type or 'application/xml' in content_type:
+        elif "text/" in content_type or "application/xml" in content_type:
             content = response.text
             # Extract text from HTML if needed
-            if 'text/html' in content_type:
+            if "text/html" in content_type:
                 content = extract_text_from_html(content, url)
         else:
             # Binary content - just note the type
             content = f"[Binary content: {content_type}]"
-        
+
         # Extract links for validation
         links = re.findall(r'href=["\']?(https?://[^"\'\s>]+)', response.text)
         validated_links = validate_links(links[:10])  # Validate first 10 links
-        
+
         return ResolvedResult(
             source="direct_fetch",
             content=content[:max_chars],
@@ -586,10 +627,10 @@ def fetch_url_content(url: str, timeout: int = DEFAULT_TIMEOUT, max_chars: int =
             metadata={
                 "status_code": response.status_code,
                 "content_type": content_type,
-                "redirect_count": len(validation.redirect_chain)
-            }
+                "redirect_count": len(validation.redirect_chain),
+            },
         )
-        
+
     except requests.exceptions.Timeout:
         logger.error(f"Timeout fetching {url}")
         return None
@@ -608,10 +649,11 @@ def fetch_url_content(url: str, timeout: int = DEFAULT_TIMEOUT, max_chars: int =
 # llms.txt Support
 # ============================================================================
 
-def fetch_llms_txt(url: str) -> Optional[str]:
+
+def fetch_llms_txt(url: str) -> str | None:
     """
     Check for llms.txt file at the site root.
-    
+
     llms.txt is a proposed standard for LLM-readable documentation.
     """
     try:
@@ -620,14 +662,14 @@ def fetch_llms_txt(url: str) -> Optional[str]:
         llms_url = f"{base_url}/llms.txt"
 
         logger.info(f"Checking for llms.txt at {llms_url}")
-        
+
         session = get_session()
         response = session.get(llms_url, timeout=10, allow_redirects=True)
         # session is managed globally
 
         if response.status_code == 200:
-            content_type = response.headers.get('Content-Type', '')
-            if 'text' in content_type or 'markdown' in content_type:
+            content_type = response.headers.get("Content-Type", "")
+            if "text" in content_type or "markdown" in content_type:
                 logger.info(f"Found llms.txt at {llms_url}")
                 return response.text
     except Exception as e:
@@ -639,13 +681,16 @@ def fetch_llms_txt(url: str) -> Optional[str]:
 # Provider Implementations
 # ============================================================================
 
-def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS, num_results: int = 8) -> Optional[ResolvedResult]:
+
+def resolve_with_exa_mcp(
+    query: str, max_chars: int = MAX_CHARS, num_results: int = 8
+) -> ResolvedResult | None:
     """
     Resolve query using Exa MCP search - FREE, no API key required.
-    
+
     Uses the Model Context Protocol (MCP) endpoint at https://mcp.exa.ai/mcp
     This is a free service that doesn't require authentication.
-    
+
     Based on: https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/tool/websearch.ts
     """
     cached = _get_from_cache(query, "exa_mcp")
@@ -658,12 +703,12 @@ def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS, num_results: in
 
     try:
         logger.info(f"Using Exa MCP to search: {query}")
-        
+
         # MCP endpoint configuration
         MCP_BASE_URL = "https://mcp.exa.ai"
         MCP_ENDPOINT = "/mcp"
         TIMEOUT = 25  # seconds
-        
+
         # Build JSON-RPC 2.0 request
         mcp_request = {
             "jsonrpc": "2.0",
@@ -676,63 +721,62 @@ def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS, num_results: in
                     "numResults": num_results,
                     "type": "auto",
                     "livecrawl": "fallback",
-                    "contextMaxCharacters": max_chars
-                }
-            }
+                    "contextMaxCharacters": max_chars,
+                },
+            },
         }
-        
+
         headers = {
             "accept": "application/json, text/event-stream",
             "content-type": "application/json",
         }
-        
+
         session = get_session()
-        
+
         try:
             response = session.post(
-                f"{MCP_BASE_URL}{MCP_ENDPOINT}",
-                json=mcp_request,
-                headers=headers,
-                timeout=TIMEOUT
+                f"{MCP_BASE_URL}{MCP_ENDPOINT}", json=mcp_request, headers=headers, timeout=TIMEOUT
             )
-            
+
             if response.status_code != 200:
                 logger.warning(f"Exa MCP returned status {response.status_code}")
                 return None
-            
+
             # Parse SSE response
             response_text = response.text
             content_text = None
-            
+
             for line in response_text.split("\n"):
                 if line.startswith("data: "):
                     try:
                         data = json.loads(line[6:])  # Remove "data: " prefix
-                        if (data.get("result") and 
-                            data["result"].get("content") and 
-                            len(data["result"]["content"]) > 0):
+                        if (
+                            data.get("result")
+                            and data["result"].get("content")
+                            and len(data["result"]["content"]) > 0
+                        ):
                             content_text = data["result"]["content"][0].get("text", "")
                             break
                     except json.JSONDecodeError:
                         continue
-            
+
             if not content_text:
                 logger.warning("Exa MCP returned no content")
                 return None
-            
+
             # Extract URLs from the content for validation
             urls = re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', content_text)
             validated_links = validate_links(urls[:5])
-            
+
             result = ResolvedResult(
                 source="exa_mcp",
                 content=content_text[:max_chars],
                 query=query,
-                validated_links=validated_links
+                validated_links=validated_links,
             )
             _save_to_cache(query, "exa_mcp", result.to_dict())
             return result
-            
+
         except requests.exceptions.Timeout:
             logger.warning("Exa MCP request timed out")
             _set_rate_limit("exa_mcp", cooldown=30)
@@ -740,10 +784,10 @@ def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS, num_results: in
         except requests.exceptions.RequestException as e:
             logger.error(f"Exa MCP request failed: {e}")
             return None
-            
+
     except Exception as e:
         error_type = _detect_error_type(e)
-        
+
         if error_type == ErrorType.RATE_LIMIT:
             logger.warning(f"Exa MCP rate limit hit: {e}")
             _set_rate_limit("exa_mcp", cooldown=60)
@@ -753,10 +797,10 @@ def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS, num_results: in
             return None
 
 
-def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> Optional[ResolvedResult]:
+def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     """
     Resolve query using Exa search API.
-    
+
     Exa provides AI-powered search with highlights for token-efficient results.
     Requires EXA_API_KEY environment variable.
     """
@@ -778,10 +822,7 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> Optional[Resolve
 
         client = Exa(api_key)
         results = client.search_and_contents(
-            query,
-            use_autoprompt=True,
-            highlights=True,
-            num_results=EXA_RESULTS
+            query, use_autoprompt=True, highlights=True, num_results=EXA_RESULTS
         )
 
         if not results or not results.results:
@@ -790,23 +831,20 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> Optional[Resolve
         content_parts = []
         urls = []
         for result in results.results:
-            if hasattr(result, 'highlight') and result.highlight:
+            if hasattr(result, "highlight") and result.highlight:
                 content_parts.append(result.highlight)
-            elif hasattr(result, 'text') and result.text:
+            elif hasattr(result, "text") and result.text:
                 content_parts.append(result.text)
-            if hasattr(result, 'url'):
+            if hasattr(result, "url"):
                 urls.append(result.url)
 
         content = "\n\n---\n\n".join(content_parts)[:max_chars]
-        
+
         # Validate returned URLs
         validated_links = validate_links(urls[:5])
 
         result = ResolvedResult(
-            source="exa",
-            content=content,
-            query=query,
-            validated_links=validated_links
+            source="exa", content=content, query=query, validated_links=validated_links
         )
         _save_to_cache(query, "exa", result.to_dict())
         return result
@@ -816,7 +854,7 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> Optional[Resolve
         return None
     except Exception as e:
         error_type = _detect_error_type(e)
-        
+
         if error_type == ErrorType.RATE_LIMIT:
             logger.warning(f"Exa rate limit hit: {e}")
             _set_rate_limit("exa", cooldown=60)
@@ -832,10 +870,10 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> Optional[Resolve
             return None
 
 
-def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> Optional[ResolvedResult]:
+def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     """
     Resolve query using Tavily search API.
-    
+
     Tavily provides comprehensive search results optimized for AI applications.
     Requires TAVILY_API_KEY environment variable.
     """
@@ -872,15 +910,12 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> Optional[Reso
                 urls.append(url)
 
         content = "\n\n---\n\n".join(content_parts)[:max_chars]
-        
+
         # Validate returned URLs
         validated_links = validate_links(urls[:5])
 
         result = ResolvedResult(
-            source="tavily",
-            content=content,
-            query=query,
-            validated_links=validated_links
+            source="tavily", content=content, query=query, validated_links=validated_links
         )
         _save_to_cache(query, "tavily", result.to_dict())
         return result
@@ -890,7 +925,7 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> Optional[Reso
         return None
     except Exception as e:
         error_type = _detect_error_type(e)
-        
+
         if error_type == ErrorType.RATE_LIMIT:
             logger.warning(f"Tavily rate limit hit: {e}")
             _set_rate_limit("tavily", cooldown=60)
@@ -906,13 +941,15 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> Optional[Reso
             return None
 
 
-def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS, retries: int = 2) -> Optional[ResolvedResult]:
+def resolve_with_duckduckgo(
+    query: str, max_chars: int = MAX_CHARS, retries: int = 2
+) -> ResolvedResult | None:
     """
     Resolve query using DuckDuckGo search - FREE, no API key required.
-    
+
     This is the primary fallback when no API keys are available.
     Always available and works without authentication.
-    
+
     Args:
         query: Search query string
         max_chars: Maximum characters in result
@@ -930,12 +967,12 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS, retries: int
     for attempt in range(retries + 1):
         try:
             from ddgs import DDGS
-            
+
             logger.info(f"Using DuckDuckGo to search: {query}")
-            
+
             with DDGS() as ddgs:
                 results = list(ddgs.text(query, max_results=DDG_RESULTS))
-            
+
             if not results:
                 return None
 
@@ -950,26 +987,25 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS, retries: int
                     urls.append(href)
 
             content = "\n\n---\n\n".join(content_parts)[:max_chars]
-            
+
             # Validate returned URLs
             validated_links = validate_links(urls[:5])
 
             result = ResolvedResult(
-                source="duckduckgo",
-                content=content,
-                query=query,
-                validated_links=validated_links
+                source="duckduckgo", content=content, query=query, validated_links=validated_links
             )
             _save_to_cache(query, "duckduckgo", result.to_dict())
             return result
 
         except ImportError:
-            logger.warning("duckduckgo_search not installed. Install with: pip install duckduckgo-search")
+            logger.warning(
+                "duckduckgo_search not installed. Install with: pip install duckduckgo-search"
+            )
             return None
         except Exception as e:
             error_type = _detect_error_type(e)
             last_error = e
-            
+
             if error_type == ErrorType.RATE_LIMIT:
                 logger.warning(f"DuckDuckGo rate limit hit: {e}")
                 _set_rate_limit("duckduckgo", cooldown=30)
@@ -977,8 +1013,10 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS, retries: int
             elif error_type == ErrorType.NETWORK_ERROR or error_type == ErrorType.TIMEOUT:
                 # Retry on transient errors
                 if attempt < retries:
-                    wait_time = 2 ** attempt  # Exponential backoff
-                    logger.warning(f"DuckDuckGo transient error (attempt {attempt + 1}/{retries + 1}): {e}. Retrying in {wait_time}s...")
+                    wait_time = 2**attempt  # Exponential backoff
+                    logger.warning(
+                        f"DuckDuckGo transient error (attempt {attempt + 1}/{retries + 1}): {e}. Retrying in {wait_time}s..."
+                    )
                     time.sleep(wait_time)
                     continue
                 else:
@@ -987,15 +1025,15 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS, retries: int
             else:
                 logger.error(f"DuckDuckGo search failed: {e}")
                 return None
-    
+
     logger.error(f"DuckDuckGo search failed after all retries: {last_error}")
     return None
 
 
-def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> Optional[ResolvedResult]:
+def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     """
     Extract content from URL using Firecrawl API.
-    
+
     Firecrawl provides deep content extraction with markdown output.
     Requires FIRECRAWL_API_KEY environment variable.
     """
@@ -1026,14 +1064,14 @@ def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> Optional[Res
 
         result = app.scrape(url, formats=["markdown"])
         markdown = ""
-        if result and hasattr(result, 'markdown'):
+        if result and hasattr(result, "markdown"):
             markdown = result.markdown or ""
 
         result = ResolvedResult(
             source="firecrawl",
             content=markdown[:max_chars],
             url=validation.final_url or url,
-            metadata={"original_url": url}
+            metadata={"original_url": url},
         )
         _save_to_cache(url, "firecrawl", result.to_dict())
         return result
@@ -1061,10 +1099,10 @@ def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> Optional[Res
         return None
 
 
-def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Optional[ResolvedResult]:
+def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     """
     Extract content from URL using Mistral's agent-browser capability.
-    
+
     Mistral provides AI-powered content extraction as a fallback.
     Requires MISTRAL_API_KEY environment variable.
     """
@@ -1095,23 +1133,25 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Option
 
         # Use Mistral's agent-browser capability for content extraction
         response = client.beta.conversations.start(
-            messages=[{
-                "role": "user",
-                "content": f"Extract and summarize the main content from this URL: {url}. Return the content in markdown format."
-            }],
-            tools=[{"type": "web_search"}],
-        )
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Extract and summarize the main content from this URL: {url}. Return the content in markdown format.",
+                }
+            ],
+            tools=[{"type": "web_search"}],  # type: ignore[arg-type]
+        )  # type: ignore[call-arg]
 
-        if response and hasattr(response, 'outputs') and response.outputs:
-            content = response.outputs[0].content if response.outputs[0] else ""
+        if response and hasattr(response, "outputs") and response.outputs:
+            content = response.outputs[0].content if response.outputs[0] else ""  # type: ignore[union-attr]
         else:
             content = ""
 
         result = ResolvedResult(
             source="mistral-browser",
-            content=content[:max_chars],
+            content=content[:max_chars],  # type: ignore[arg-type]
             url=validation.final_url or url,
-            metadata={"original_url": url}
+            metadata={"original_url": url},
         )
         _save_to_cache(url, "mistral_browser", result.to_dict())
         return result
@@ -1139,10 +1179,10 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Option
         return None
 
 
-def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Optional[ResolvedResult]:
+def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     """
     Search using Mistral's web search capability.
-    
+
     Mistral provides AI-powered web search as a fallback.
     Requires MISTRAL_API_KEY environment variable.
     """
@@ -1168,10 +1208,12 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Op
         # Use Mistral's chat API - the model will use its built-in web search capability
         response = client.chat.complete(
             model="mistral-large-latest",
-            messages=[{
-                "role": "user",
-                "content": f"Search the web for: {query}. Provide comprehensive results with sources and URLs. Format the response as markdown with clear sections."
-            }],
+            messages=[  # type: ignore[arg-type]
+                {
+                    "role": "user",
+                    "content": f"Search the web for: {query}. Provide comprehensive results with sources and URLs. Format the response as markdown with clear sections.",
+                }
+            ],
         )
 
         if response and response.choices and len(response.choices) > 0:
@@ -1181,7 +1223,7 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Op
 
         result = ResolvedResult(
             source="mistral-websearch",
-            content=content[:max_chars],
+            content=content[:max_chars],  # type: ignore[arg-type]
             query=query,
         )
         _save_to_cache(query, "mistral_websearch", result.to_dict())
@@ -1214,12 +1256,13 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Op
 # Main Resolution Functions
 # ============================================================================
 
-def resolve_url(url: str, max_chars: int = MAX_CHARS) -> Dict[str, Any]:
+
+def resolve_url(url: str, max_chars: int = MAX_CHARS) -> dict[str, Any]:
     """
     Resolve a URL using the cascade: llms.txt → Firecrawl → Direct fetch → Mistral browser → DuckDuckGo search.
     """
     logger.info(f"Resolving URL: {url}")
-    
+
     # Step 1: Check for llms.txt
     llms_content = fetch_llms_txt(url)
     if llms_content:
@@ -1260,10 +1303,12 @@ def resolve_url(url: str, max_chars: int = MAX_CHARS) -> Dict[str, Any]:
     }
 
 
-def resolve_query(query: str, max_chars: int = MAX_CHARS, skip_providers: Optional[Set[str]] = None) -> Dict[str, Any]:
+def resolve_query(
+    query: str, max_chars: int = MAX_CHARS, skip_providers: set[str] | None = None
+) -> dict[str, Any]:
     """
     Resolve a search query using the cascade: Exa MCP (free) → Exa SDK → Tavily → DuckDuckGo → Mistral websearch.
-    
+
     Args:
         query: Search query string
         max_chars: Maximum characters in output
@@ -1273,33 +1318,33 @@ def resolve_query(query: str, max_chars: int = MAX_CHARS, skip_providers: Option
     logger.info(f"Resolving query: {query}")
     if skip_providers:
         logger.info(f"Skipping providers: {', '.join(skip_providers)}")
-    
+
     # Step 1: Try Exa MCP (FREE, no API key required)
-    if 'exa_mcp' not in skip_providers:
+    if "exa_mcp" not in skip_providers:
         exa_mcp_result = resolve_with_exa_mcp(query, max_chars)
         if exa_mcp_result:
             return exa_mcp_result.to_dict()
 
     # Step 2: Try Exa SDK (if API key available)
-    if 'exa' not in skip_providers:
+    if "exa" not in skip_providers:
         exa_result = resolve_with_exa(query, max_chars)
         if exa_result:
             return exa_result.to_dict()
 
     # Step 3: Try Tavily (if API key available)
-    if 'tavily' not in skip_providers:
+    if "tavily" not in skip_providers:
         tavily_result = resolve_with_tavily(query, max_chars)
         if tavily_result:
             return tavily_result.to_dict()
 
     # Step 4: DuckDuckGo (always available, no API key required)
-    if 'duckduckgo' not in skip_providers:
+    if "duckduckgo" not in skip_providers:
         ddg_result = resolve_with_duckduckgo(query, max_chars)
         if ddg_result:
             return ddg_result.to_dict()
 
     # Step 5: Try Mistral websearch (if API key available)
-    if 'mistral' not in skip_providers:
+    if "mistral" not in skip_providers:
         mistral_result = resolve_with_mistral_websearch(query, max_chars)
         if mistral_result:
             return mistral_result.to_dict()
@@ -1314,13 +1359,15 @@ def resolve_query(query: str, max_chars: int = MAX_CHARS, skip_providers: Option
     }
 
 
-def resolve(input_str: str, max_chars: int = MAX_CHARS, skip_providers: Optional[Set[str]] = None) -> Dict[str, Any]:
+def resolve(
+    input_str: str, max_chars: int = MAX_CHARS, skip_providers: set[str] | None = None
+) -> dict[str, Any]:
     """
     Main entry point - resolve a URL or query into LLM-ready markdown.
-    
+
     Automatically detects if input is a URL or search query and uses
     the appropriate resolution cascade.
-    
+
     Args:
         input_str: URL or search query to resolve
         max_chars: Maximum characters in output
@@ -1382,7 +1429,10 @@ def main():
                 if "error" in result:
                     print(f"\n---\nError: {result['error']}", file=sys.stderr)
                 if result.get("validated_links"):
-                    print(f"\n---\nValidated links: {', '.join(result['validated_links'])}", file=sys.stderr)
+                    print(
+                        f"\n---\nValidated links: {', '.join(result['validated_links'])}",
+                        file=sys.stderr,
+                    )
             if i < len(inputs) - 1:
                 print("\n" + "=" * 40 + "\n")
     else:
@@ -1395,7 +1445,10 @@ def main():
             if "error" in result:
                 print(f"\n---\nError: {result['error']}", file=sys.stderr)
             if result.get("validated_links"):
-                print(f"\n---\nValidated links: {', '.join(result['validated_links'])}", file=sys.stderr)
+                print(
+                    f"\n---\nValidated links: {', '.join(result['validated_links'])}",
+                    file=sys.stderr,
+                )
 
 
 if __name__ == "__main__":

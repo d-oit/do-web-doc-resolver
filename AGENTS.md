@@ -112,4 +112,3 @@ python scripts/resolve.py "query" --skip exa_mcp --skip exa --skip tavily --skip
 
 This is an [agentskills.io](https://agentskills.io) Agent Skill. Versions are Git tags.
 
-See [CHANGELOG](https://github.com/d-oit/web-doc-resolver/releases) for release history.

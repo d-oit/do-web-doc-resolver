@@ -1,27 +1,27 @@
 """Comprehensive tests for resolve.py with all fallback scenarios."""
 
-import sys
 import os
-import pytest
+import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.resolve import (
-    is_url,
-    fetch_llms_txt,
-    resolve_with_firecrawl,
-    resolve_with_mistral_browser,
-    resolve_with_mistral_websearch,
-    resolve,
     MAX_CHARS,
     ErrorType,
+    ResolvedResult,
     _detect_error_type,
     _is_rate_limited,
     _set_rate_limit,
+    fetch_llms_txt,
+    is_url,
+    resolve,
     resolve_with_duckduckgo,
-    ResolvedResult,
+    resolve_with_firecrawl,
+    resolve_with_mistral_browser,
 )
 
 
@@ -91,7 +91,7 @@ class TestResolveWithFirecrawl:
         mock_validation.is_valid = True
         mock_validation.final_url = "https://example.com"
         mock_validate.return_value = mock_validation
-        
+
         mock_app = Mock()
         mock_result = Mock()
         mock_result.markdown = "# Test Content\nSome text here"
@@ -103,9 +103,7 @@ class TestResolveWithFirecrawl:
         assert result.source == "firecrawl"
         assert "Test Content" in result.content
 
-    @patch.dict(
-        os.environ, {"FIRECRAWL_API_KEY": "test_key", "MISTRAL_API_KEY": "mistral_key"}
-    )
+    @patch.dict(os.environ, {"FIRECRAWL_API_KEY": "test_key", "MISTRAL_API_KEY": "mistral_key"})
     @patch("scripts.resolve.validate_url")
     @patch("firecrawl.Firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
@@ -116,7 +114,7 @@ class TestResolveWithFirecrawl:
         mock_validation.is_valid = True
         mock_validation.final_url = "https://example.com"
         mock_validate.return_value = mock_validation
-        
+
         mock_app = Mock()
         mock_app.scrape.side_effect = Exception("429 rate limit exceeded")
         mock_firecrawl_class.return_value = mock_app
@@ -126,9 +124,7 @@ class TestResolveWithFirecrawl:
         assert result is None  # Returns None, fallback is handled by resolve()
         mock_mistral.assert_not_called()  # Mistral is not called by resolve_with_firecrawl
 
-    @patch.dict(
-        os.environ, {"FIRECRAWL_API_KEY": "test_key", "MISTRAL_API_KEY": "mistral_key"}
-    )
+    @patch.dict(os.environ, {"FIRECRAWL_API_KEY": "test_key", "MISTRAL_API_KEY": "mistral_key"})
     @patch("scripts.resolve.validate_url")
     @patch("firecrawl.Firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
@@ -136,14 +132,15 @@ class TestResolveWithFirecrawl:
         """Test Mistral fallback on credit exhaustion."""
         # Clear rate limits
         from scripts.resolve import _rate_limits
+
         _rate_limits.clear()
-        
+
         # Mock URL validation
         mock_validation = Mock()
         mock_validation.is_valid = True
         mock_validation.final_url = "https://example.com"
         mock_validate.return_value = mock_validation
-        
+
         mock_app = Mock()
         mock_app.scrape.side_effect = Exception("insufficient credits")
         mock_firecrawl_class.return_value = mock_app
@@ -184,7 +181,7 @@ class TestResolveWithMistralBrowser:
         mock_validation.is_valid = True
         mock_validation.final_url = "https://example.com"
         mock_validate.return_value = mock_validation
-        
+
         mock_client = Mock()
         mock_response = Mock()
         mock_response.outputs = [Mock(content="# Extracted Content\nFrom Mistral")]
@@ -243,7 +240,9 @@ class TestResolveIntegration:
     def test_url_fallback_to_firecrawl(self, mock_firecrawl, mock_fetch):
         """Test URL fallback to Firecrawl when no llms.txt."""
         mock_fetch.return_value = None
-        mock_firecrawl.return_value = ResolvedResult(source="firecrawl", content="# Firecrawl content")
+        mock_firecrawl.return_value = ResolvedResult(
+            source="firecrawl", content="# Firecrawl content"
+        )
 
         result = resolve("https://example.com")
         assert result["source"] == "firecrawl"
@@ -287,7 +286,9 @@ class TestEdgeCases:
     @patch("scripts.resolve.fetch_url_content")
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_url_no_llms_firecrawl_unavailable(self, mock_mistral, mock_firecrawl, mock_fetch_url, mock_ddg, mock_fetch_llms):
+    def test_url_no_llms_firecrawl_unavailable(
+        self, mock_mistral, mock_firecrawl, mock_fetch_url, mock_ddg, mock_fetch_llms
+    ):
         """Test URL when both llms.txt and Firecrawl fail."""
         mock_fetch_llms.return_value = None
         mock_firecrawl.return_value = None
@@ -304,7 +305,9 @@ class TestEdgeCases:
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_websearch")
-    def test_query_all_providers_fail(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+    def test_query_all_providers_fail(
+        self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp
+    ):
         """Test query when all providers fail."""
         mock_exa_mcp.return_value = None
         mock_exa.return_value = None
@@ -373,8 +376,9 @@ class TestCacheBehavior:
         mock_get_cache.return_value = mock_cache
 
         from scripts.resolve import _get_from_cache
+
         result = _get_from_cache("test", "exa")
-        
+
         assert result is not None
         assert result["source"] == "cached"
 
@@ -386,8 +390,9 @@ class TestCacheBehavior:
         mock_get_cache.return_value = mock_cache
 
         from scripts.resolve import _get_from_cache
+
         result = _get_from_cache("new_query", "exa")
-        
+
         assert result is None
 
     @patch("scripts.resolve._get_cache")
@@ -396,8 +401,9 @@ class TestCacheBehavior:
         mock_get_cache.return_value = None
 
         from scripts.resolve import _get_from_cache
+
         result = _get_from_cache("test", "exa")
-        
+
         assert result is None
 
 
@@ -408,8 +414,14 @@ class TestSkillSymlink:
         """Get all skill symlink locations to test."""
         root_dir = Path(__file__).parent.parent
         return [
-            (root_dir / ".blackbox" / "skills" / "web-doc-resolver" / "SKILL.md", ".blackbox/skills"),
-            (root_dir / ".opencode" / "skills" / "web-doc-resolver" / "SKILL.md", ".opencode/skills"),
+            (
+                root_dir / ".blackbox" / "skills" / "web-doc-resolver" / "SKILL.md",
+                ".blackbox/skills",
+            ),
+            (
+                root_dir / ".opencode" / "skills" / "web-doc-resolver" / "SKILL.md",
+                ".opencode/skills",
+            ),
         ]
 
     def test_all_skill_symlinks_exist(self):
@@ -443,7 +455,7 @@ class TestSkillSymlink:
         """Test that the root SKILL.md file exists."""
         root_dir = Path(__file__).parent.parent
         root_skill = root_dir / "SKILL.md"
-        
+
         assert root_skill.exists(), f"Root SKILL.md does not exist: {root_skill}"
         assert root_skill.is_file(), f"Root SKILL.md is not a file: {root_skill}"
 
@@ -458,7 +470,7 @@ class TestDuckDuckGoFallback:
         """Test successful DuckDuckGo search."""
         mock_cache.return_value = None
         mock_rate_limited.return_value = False
-        
+
         mock_ddgs = Mock()
         mock_ddgs.__enter__ = Mock(return_value=mock_ddgs)
         mock_ddgs.__exit__ = Mock(return_value=False)
@@ -468,9 +480,8 @@ class TestDuckDuckGoFallback:
         ]
         mock_ddgs_class.return_value = mock_ddgs
 
-        from scripts.resolve import resolve_with_duckduckgo
         result = resolve_with_duckduckgo("test query")
-        
+
         assert result is not None
         assert result.source == "duckduckgo"
         assert "Result 1" in result.content
@@ -482,9 +493,8 @@ class TestDuckDuckGoFallback:
         mock_cache.return_value = None
         mock_rate_limited.return_value = True
 
-        from scripts.resolve import resolve_with_duckduckgo
         result = resolve_with_duckduckgo("test query")
-        
+
         assert result is None
 
     @patch("scripts.resolve._get_from_cache")
@@ -494,16 +504,15 @@ class TestDuckDuckGoFallback:
         """Test DuckDuckGo with empty results."""
         mock_cache.return_value = None
         mock_rate_limited.return_value = False
-        
+
         mock_ddgs = Mock()
         mock_ddgs.__enter__ = Mock(return_value=mock_ddgs)
         mock_ddgs.__exit__ = Mock(return_value=False)
         mock_ddgs.text.return_value = []
         mock_ddgs_class.return_value = mock_ddgs
 
-        from scripts.resolve import resolve_with_duckduckgo
         result = resolve_with_duckduckgo("test query")
-        
+
         assert result is None
 
 
@@ -512,58 +521,53 @@ class TestRateLimitHandling:
 
     def test_detect_rate_limit_error(self):
         """Test detection of rate limit errors."""
-        from scripts.resolve import _detect_error_type
-        
+
         assert _detect_error_type(Exception("429 too many requests")) == ErrorType.RATE_LIMIT
         assert _detect_error_type(Exception("Rate limit exceeded")) == ErrorType.RATE_LIMIT
         assert _detect_error_type(Exception("too many requests")) == ErrorType.RATE_LIMIT
 
     def test_detect_auth_error(self):
         """Test detection of authentication errors."""
-        from scripts.resolve import _detect_error_type
-        
+
         assert _detect_error_type(Exception("401 unauthorized")) == ErrorType.AUTH_ERROR
         assert _detect_error_type(Exception("403 forbidden")) == ErrorType.AUTH_ERROR
         assert _detect_error_type(Exception("Invalid API key")) == ErrorType.AUTH_ERROR
 
     def test_detect_quota_exhausted(self):
         """Test detection of quota exhaustion."""
-        from scripts.resolve import _detect_error_type
-        
+
         assert _detect_error_type(Exception("402 payment required")) == ErrorType.QUOTA_EXHAUSTED
         assert _detect_error_type(Exception("Insufficient credits")) == ErrorType.QUOTA_EXHAUSTED
         assert _detect_error_type(Exception("Quota exceeded")) == ErrorType.QUOTA_EXHAUSTED
 
     def test_detect_network_error(self):
         """Test detection of network errors."""
-        from scripts.resolve import _detect_error_type
-        
+
         assert _detect_error_type(Exception("Network connection error")) == ErrorType.NETWORK_ERROR
         assert _detect_error_type(Exception("Network error")) == ErrorType.NETWORK_ERROR
 
     def test_detect_unknown_error(self):
         """Test detection of unknown errors."""
-        from scripts.resolve import _detect_error_type
-        
+
         assert _detect_error_type(Exception("Something went wrong")) == ErrorType.UNKNOWN
 
     def test_rate_limit_cooldown(self):
         """Test rate limit cooldown mechanism."""
-        from scripts.resolve import _is_rate_limited, _set_rate_limit, _rate_limits
-        import time
-        
+
+        from scripts.resolve import _rate_limits
+
         # Clear any existing rate limits
         _rate_limits.clear()
-        
+
         # Not rate limited initially
         assert not _is_rate_limited("test_provider")
-        
+
         # Set rate limit
         _set_rate_limit("test_provider", cooldown=60)
-        
+
         # Now should be rate limited
         assert _is_rate_limited("test_provider")
-        
+
         # Clean up
         _rate_limits.clear()
 
@@ -576,10 +580,12 @@ class TestQueryCascade:
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_cascade_exa_mcp_first(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+    def test_cascade_exa_mcp_first(
+        self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp
+    ):
         """Test that Exa MCP is tried first."""
         mock_exa_mcp.return_value = ResolvedResult(source="exa_mcp", content="Exa MCP result")
-        
+
         result = resolve("test query")
         assert result["source"] == "exa_mcp"
         mock_exa.assert_not_called()
@@ -592,27 +598,13 @@ class TestQueryCascade:
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_cascade_exa_mcp_first(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
-        """Test that Exa MCP is tried first."""
-        mock_exa_mcp.return_value = ResolvedResult(source="exa_mcp", content="Exa MCP result")
-        
-        result = resolve("test query")
-        assert result["source"] == "exa_mcp"
-        mock_exa.assert_not_called()
-        mock_tavily.assert_not_called()
-        mock_ddg.assert_not_called()
-        mock_mistral.assert_not_called()
-
-    @patch("scripts.resolve.resolve_with_exa_mcp")
-    @patch("scripts.resolve.resolve_with_exa")
-    @patch("scripts.resolve.resolve_with_tavily")
-    @patch("scripts.resolve.resolve_with_duckduckgo")
-    @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_cascade_exa_sdk_second(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+    def test_cascade_exa_sdk_second(
+        self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp
+    ):
         """Test that Exa SDK is tried second."""
         mock_exa_mcp.return_value = None
         mock_exa.return_value = ResolvedResult(source="exa", content="Exa result")
-        
+
         result = resolve("test query")
         assert result["source"] == "exa"
         mock_tavily.assert_not_called()
@@ -624,12 +616,14 @@ class TestQueryCascade:
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_cascade_tavily_third(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+    def test_cascade_tavily_third(
+        self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp
+    ):
         """Test that Tavily is tried third."""
         mock_exa_mcp.return_value = None
         mock_exa.return_value = None
         mock_tavily.return_value = ResolvedResult(source="tavily", content="Tavily result")
-        
+
         result = resolve("test query")
         assert result["source"] == "tavily"
         mock_ddg.assert_not_called()
@@ -640,13 +634,15 @@ class TestQueryCascade:
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_cascade_duckduckgo_fourth(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+    def test_cascade_duckduckgo_fourth(
+        self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp
+    ):
         """Test that DuckDuckGo is tried fourth."""
         mock_exa_mcp.return_value = None
         mock_exa.return_value = None
         mock_tavily.return_value = None
         mock_ddg.return_value = ResolvedResult(source="duckduckgo", content="DDG result")
-        
+
         result = resolve("test query")
         assert result["source"] == "duckduckgo"
         mock_mistral.assert_not_called()
@@ -656,14 +652,18 @@ class TestQueryCascade:
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_websearch")
-    def test_cascade_mistral_last(self, mock_mistral_ws, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+    def test_cascade_mistral_last(
+        self, mock_mistral_ws, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp
+    ):
         """Test that Mistral websearch is tried last."""
         mock_exa_mcp.return_value = None
         mock_exa.return_value = None
         mock_tavily.return_value = None
         mock_ddg.return_value = None
-        mock_mistral_ws.return_value = ResolvedResult(source="mistral-websearch", content="Mistral result")
-        
+        mock_mistral_ws.return_value = ResolvedResult(
+            source="mistral-websearch", content="Mistral result"
+        )
+
         result = resolve("test query")
         assert result["source"] == "mistral-websearch"
 
@@ -851,51 +851,54 @@ class TestAdditionalEdgeCases:
 
     def test_concurrent_rate_limit_tracking(self):
         """Test that rate limit tracking works correctly."""
-        from scripts.resolve import _rate_limits, _set_rate_limit, _is_rate_limited
-        
+        from scripts.resolve import _rate_limits
+
         # Clear any existing rate limits
         _rate_limits.clear()
-        
+
         # Set rate limits for multiple providers
         _set_rate_limit("provider1", cooldown=60)
         _set_rate_limit("provider2", cooldown=30)
-        
+
         # Both should be rate limited
         assert _is_rate_limited("provider1")
         assert _is_rate_limited("provider2")
-        
+
         # Non-rate-limited provider should return False
         assert not _is_rate_limited("provider3")
-        
+
         # Clean up
         _rate_limits.clear()
 
     def test_error_type_detection_edge_cases(self):
         """Test error type detection with various edge cases."""
-        from scripts.resolve import _detect_error_type, ErrorType
-        
+        from scripts.resolve import ErrorType
+
         # Rate limit variations
         assert _detect_error_type(Exception("Error 429: Rate limit")) == ErrorType.RATE_LIMIT
         assert _detect_error_type(Exception("RATE LIMIT EXCEEDED")) == ErrorType.RATE_LIMIT
-        
+
         # Auth error variations
         assert _detect_error_type(Exception("Error 401: Unauthorized")) == ErrorType.AUTH_ERROR
         assert _detect_error_type(Exception("FORBIDDEN: 403")) == ErrorType.AUTH_ERROR
         assert _detect_error_type(Exception("Invalid API key provided")) == ErrorType.AUTH_ERROR
-        
+
         # Quota exhausted variations
-        assert _detect_error_type(Exception("Error 402: Payment Required")) == ErrorType.QUOTA_EXHAUSTED
+        assert (
+            _detect_error_type(Exception("Error 402: Payment Required"))
+            == ErrorType.QUOTA_EXHAUSTED
+        )
         assert _detect_error_type(Exception("Insufficient credits")) == ErrorType.QUOTA_EXHAUSTED
         assert _detect_error_type(Exception("Quota exceeded")) == ErrorType.QUOTA_EXHAUSTED
-        
+
         # Network error variations
         assert _detect_error_type(Exception("Network connection error")) == ErrorType.NETWORK_ERROR
         assert _detect_error_type(Exception("Network error occurred")) == ErrorType.NETWORK_ERROR
         assert _detect_error_type(Exception("Network error")) == ErrorType.NETWORK_ERROR
-        
+
         # Not found
         assert _detect_error_type(Exception("Error 404: Not found")) == ErrorType.NOT_FOUND
-        
+
         # Unknown errors
         assert _detect_error_type(Exception("Something went wrong")) == ErrorType.UNKNOWN
         assert _detect_error_type(Exception("")) == ErrorType.UNKNOWN
@@ -904,31 +907,34 @@ class TestAdditionalEdgeCases:
     @patch("scripts.resolve._is_rate_limited")
     @patch("scripts.resolve._save_to_cache")
     @patch("ddgs.DDGS")
-    def test_duckduckgo_network_error(self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache):
+    def test_duckduckgo_network_error(
+        self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
+    ):
         """Test DuckDuckGo handling of network errors."""
         mock_cache.return_value = None
         mock_rate_limited.return_value = False
-        
+
         mock_ddgs = Mock()
         mock_ddgs.__enter__ = Mock(return_value=mock_ddgs)
         mock_ddgs.__exit__ = Mock(return_value=False)
         mock_ddgs.text.side_effect = Exception("Network connection error")
         mock_ddgs_class.return_value = mock_ddgs
 
-        from scripts.resolve import resolve_with_duckduckgo
         result = resolve_with_duckduckgo("test query")
-        
+
         assert result is None
 
     @patch("scripts.resolve._get_from_cache")
     @patch("scripts.resolve._is_rate_limited")
     @patch("scripts.resolve._save_to_cache")
     @patch("ddgs.DDGS")
-    def test_duckduckgo_with_unicode_query(self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache):
+    def test_duckduckgo_with_unicode_query(
+        self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
+    ):
         """Test DuckDuckGo with Unicode query."""
         mock_cache.return_value = None
         mock_rate_limited.return_value = False
-        
+
         mock_ddgs = Mock()
         mock_ddgs.__enter__ = Mock(return_value=mock_ddgs)
         mock_ddgs.__exit__ = Mock(return_value=False)
@@ -937,9 +943,8 @@ class TestAdditionalEdgeCases:
         ]
         mock_ddgs_class.return_value = mock_ddgs
 
-        from scripts.resolve import resolve_with_duckduckgo
         result = resolve_with_duckduckgo("中文搜索")
-        
+
         assert result is not None
         assert result.source == "duckduckgo"
         assert "结果" in result.content
@@ -950,9 +955,9 @@ class TestAdditionalEdgeCases:
     def test_url_cascade_llms_txt_priority(self, mock_mistral, mock_firecrawl, mock_fetch):
         """Test that llms.txt is checked first before other methods."""
         mock_fetch.return_value = "# llms.txt content"
-        
+
         result = resolve("https://example.com")
-        
+
         assert result["source"] == "llms.txt"
         # Firecrawl and Mistral should not be called
         mock_firecrawl.assert_not_called()
@@ -965,9 +970,9 @@ class TestAdditionalEdgeCases:
         """Test that Firecrawl is tried second when llms.txt not found."""
         mock_fetch.return_value = None
         mock_firecrawl.return_value = ResolvedResult(source="firecrawl", content="content")
-        
+
         result = resolve("https://example.com")
-        
+
         assert result["source"] == "firecrawl"
         # Mistral should not be called since Firecrawl succeeded
         mock_mistral.assert_not_called()
@@ -980,41 +985,41 @@ class TestAdditionalEdgeCases:
         mock_fetch.return_value = None
         mock_firecrawl.return_value = None
         mock_mistral.return_value = ResolvedResult(source="mistral-browser", content="content")
-        
+
         result = resolve("https://example.com")
-        
+
         assert result["source"] == "mistral-browser"
 
     def test_cache_key_consistency(self):
         """Test that cache keys are consistent for same inputs."""
         from scripts.resolve import _cache_key
-        
+
         key1 = _cache_key("test query", "exa")
         key2 = _cache_key("test query", "exa")
-        
+
         assert key1 == key2
 
     def test_cache_key_uniqueness(self):
         """Test that cache keys are unique for different inputs."""
         from scripts.resolve import _cache_key
-        
+
         key1 = _cache_key("query1", "exa")
         key2 = _cache_key("query2", "exa")
         key3 = _cache_key("query1", "tavily")
-        
+
         assert key1 != key2
         assert key1 != key3
 
     def test_max_chars_constant(self):
         """Test that MAX_CHARS is set correctly."""
         from scripts.resolve import MAX_CHARS
-        
+
         assert MAX_CHARS == 8000
 
     def test_min_chars_constant(self):
         """Test that MIN_CHARS is set correctly."""
         from scripts.resolve import MIN_CHARS
-        
+
         assert MIN_CHARS == 200
 
 
@@ -1030,9 +1035,9 @@ class TestSkipProviders:
         """Test skipping Exa MCP."""
         mock_exa_mcp.return_value = None  # Would be called first, but skipped
         mock_exa.return_value = ResolvedResult(source="exa", content="Exa result")
-        
+
         result = resolve("test query", skip_providers={"exa_mcp"})
-        
+
         assert result["source"] == "exa"
         mock_exa_mcp.assert_not_called()
         mock_exa.assert_called_once()
@@ -1042,15 +1047,17 @@ class TestSkipProviders:
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_websearch")
-    def test_skip_multiple_providers(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+    def test_skip_multiple_providers(
+        self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp
+    ):
         """Test skipping multiple providers."""
         mock_exa_mcp.return_value = None
         mock_exa.return_value = None
         mock_tavily.return_value = None
         mock_ddg.return_value = ResolvedResult(source="duckduckgo", content="DDG result")
-        
+
         result = resolve("test query", skip_providers={"exa_mcp", "exa", "tavily"})
-        
+
         assert result["source"] == "duckduckgo"
         mock_exa_mcp.assert_not_called()
         mock_exa.assert_not_called()
@@ -1062,12 +1069,16 @@ class TestSkipProviders:
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_websearch")
-    def test_skip_all_but_mistral(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
+    def test_skip_all_but_mistral(
+        self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp
+    ):
         """Test skipping all providers except Mistral."""
-        mock_mistral.return_value = ResolvedResult(source="mistral-websearch", content="Mistral result")
-        
+        mock_mistral.return_value = ResolvedResult(
+            source="mistral-websearch", content="Mistral result"
+        )
+
         result = resolve("test query", skip_providers={"exa_mcp", "exa", "tavily", "duckduckgo"})
-        
+
         assert result["source"] == "mistral-websearch"
         mock_exa_mcp.assert_not_called()
         mock_exa.assert_not_called()
@@ -1083,9 +1094,9 @@ class TestSkipProviders:
     def test_skip_none(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_exa_mcp):
         """Test with no providers skipped (default behavior)."""
         mock_exa_mcp.return_value = ResolvedResult(source="exa_mcp", content="Exa MCP result")
-        
+
         result = resolve("test query")
-        
+
         assert result["source"] == "exa_mcp"
         mock_exa_mcp.assert_called_once()
         mock_exa.assert_not_called()

@@ -22,6 +22,21 @@ permissions:
   contents: read
 
 jobs:
+  validate-symlink:
+    name: Validate Skill Symlink
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Validate skill symlink
+        run: |
+          python scripts/validate_skill_symlink.py
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -34,9 +49,18 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
       
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-lint-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-lint-
+            ${{ runner.os }}-pip-
+      
       - name: Install dependencies
         run: |
-          pip install ruff black mypy
+          pip install ruff black mypy types-requests
       
       - name: Run ruff
         run: ruff check .
@@ -65,9 +89,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
       
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-
+      
       - name: Install dependencies
         run: |
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov requests ddgs
       
       - name: Run basic tests
         run: |
@@ -84,6 +117,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-sample-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-sample-
+            ${{ runner.os }}-pip-
       
       - name: Install dependencies
         run: |
@@ -112,6 +155,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-mistral-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-mistral-
+            ${{ runner.os }}-pip-
       
       - name: Install dependencies
         run: |
@@ -134,6 +187,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-firecrawl-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-firecrawl-
+            ${{ runner.os }}-pip-
       
       - name: Install dependencies
         run: |

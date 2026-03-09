@@ -2,12 +2,17 @@
   "mcpServers": {
     "web-doc-resolver": {
       "command": "python",
-      "args": ["scripts/resolve.py"],
+      "args": [
+        "scripts/resolve.py"
+      ],
       "env": {
         "EXA_API_KEY": "${EXA_API_KEY}",
         "TAVILY_API_KEY": "${TAVILY_API_KEY}",
         "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
       }
+    },
+    "exa": {
+      "url": "https://mcp.exa.ai/mcp"
     }
   }
 }
