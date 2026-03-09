@@ -13,6 +13,7 @@ from scripts.resolve import (
     resolve_with_firecrawl,
     resolve_with_mistral_browser,
     resolve,
+    MAX_CHARS,
 )
 
 
@@ -72,7 +73,9 @@ class TestResolveWithFirecrawl:
     def test_successful_extraction(self, mock_firecrawl_class):
         """Test successful content extraction."""
         mock_app = Mock()
-        mock_app.scrape.return_value = {"markdown": "# Test Content\nSome text here"}
+        mock_result = Mock()
+        mock_result.markdown = "# Test Content\nSome text here"
+        mock_app.scrape.return_value = mock_result
         mock_firecrawl_class.return_value = mock_app
 
         result = resolve_with_firecrawl("https://example.com")
@@ -84,7 +87,7 @@ class TestResolveWithFirecrawl:
         os.environ, {"FIRECRAWL_API_KEY": "test_key", "MISTRAL_API_KEY": "mistral_key"}
     )
     @patch("firecrawl.Firecrawl")
-    @patch("scripts.resolve.resolve_with_mistral_browser")
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
     def test_rate_limit_fallback(self, mock_mistral, mock_firecrawl_class):
         """Test Mistral fallback on rate limit."""
         mock_app = Mock()
@@ -92,7 +95,7 @@ class TestResolveWithFirecrawl:
         mock_firecrawl_class.return_value = mock_app
 
         mock_mistral.return_value = {
-            "source": "mistral-browser",
+            "source": "mistral-websearch",
             "content": "Mistral content",
         }
 
@@ -103,7 +106,7 @@ class TestResolveWithFirecrawl:
         os.environ, {"FIRECRAWL_API_KEY": "test_key", "MISTRAL_API_KEY": "mistral_key"}
     )
     @patch("firecrawl.Firecrawl")
-    @patch("scripts.resolve.resolve_with_mistral_browser")
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
     def test_credit_exhaustion_fallback(self, mock_mistral, mock_firecrawl_class):
         """Test Mistral fallback on credit exhaustion."""
         mock_app = Mock()
@@ -111,7 +114,7 @@ class TestResolveWithFirecrawl:
         mock_firecrawl_class.return_value = mock_app
 
         mock_mistral.return_value = {
-            "source": "mistral-browser",
+            "source": "mistral-websearch",
             "content": "Mistral content",
         }
 
@@ -145,15 +148,13 @@ class TestResolveWithMistralBrowser:
         """Test successful content extraction with Mistral."""
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.choices = [
-            Mock(message=Mock(content="# Extracted Content\nFrom Mistral"))
-        ]
-        mock_client.agents.complete.return_value = mock_response
+        mock_response.outputs = [Mock(content="# Extracted Content\nFrom Mistral")]
+        mock_client.beta.conversations.start.return_value = mock_response
         mock_mistral_class.return_value = mock_client
 
         result = resolve_with_mistral_browser("https://example.com")
         assert result is not None
-        assert result["source"] == "mistral-browser"
+        assert result["source"] == "mistral-websearch"
         assert "Extracted Content" in result["content"]
 
     @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
@@ -161,7 +162,7 @@ class TestResolveWithMistralBrowser:
     def test_extraction_error(self, mock_mistral_class):
         """Test error handling in Mistral extraction."""
         mock_client = Mock()
-        mock_client.agents.complete.side_effect = Exception("Mistral API error")
+        mock_client.beta.conversations.start.side_effect = Exception("Mistral API error")
         mock_mistral_class.return_value = mock_client
 
         result = resolve_with_mistral_browser("https://example.com")
@@ -210,6 +211,146 @@ class TestResolveIntegration:
 
         result = resolve("https://example.com")
         assert result["source"] == "firecrawl"
+
+
+class TestEdgeCases:
+    """Edge case tests."""
+
+    def test_url_with_special_characters(self):
+        """Test URL with query parameters and fragments."""
+        assert is_url("https://example.com/path?param=value&other=test#anchor")
+        assert is_url("https://example.com/path?foo=bar")
+
+    def test_url_without_scheme(self):
+        """Test invalid URLs without scheme."""
+        assert not is_url("example.com")
+        assert not is_url("www.example.com")
+
+    def test_url_localhost(self):
+        """Test localhost URLs."""
+        assert is_url("http://localhost:8080")
+        assert is_url("http://127.0.0.1:3000/api")
+
+    def test_query_with_special_characters(self):
+        """Test queries with special characters."""
+        assert not is_url("What is Python? It's great!")
+        assert not is_url("Search: + - * / && ||")
+
+    def test_empty_string(self):
+        """Test empty string handling."""
+        assert not is_url("")
+        assert not is_url("   ")
+
+    def test_very_long_query(self):
+        """Test handling of very long queries."""
+        long_query = "a" * 10000
+        assert not is_url(long_query)
+
+    @patch("scripts.resolve.fetch_llms_txt")
+    @patch("scripts.resolve.resolve_with_firecrawl")
+    def test_url_no_llms_firecrawl_unavailable(self, mock_firecrawl, mock_fetch):
+        """Test URL when both llms.txt and Firecrawl fail."""
+        mock_fetch.return_value = None
+        mock_firecrawl.return_value = None
+
+        result = resolve("https://example.com")
+        assert result["source"] == "none"
+        assert "error" in result
+
+    @patch("scripts.resolve.resolve_with_exa")
+    @patch("scripts.resolve.resolve_with_tavily")
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
+    def test_query_all_providers_fail(self, mock_mistral, mock_tavily, mock_exa):
+        """Test query when all providers fail."""
+        mock_exa.return_value = None
+        mock_tavily.return_value = None
+        mock_mistral.return_value = None
+
+        result = resolve("any query")
+        assert result["source"] == "none"
+        assert "error" in result
+
+    @patch("scripts.resolve.resolve_with_exa")
+    @patch("scripts.resolve.resolve_with_tavily")
+    @patch("scripts.resolve.resolve_with_mistral_websearch")
+    def test_query_mistral_fallback(self, mock_mistral, mock_tavily, mock_exa):
+        """Test query fallback to Mistral when Exa and Tavily fail."""
+        mock_exa.return_value = None
+        mock_tavily.return_value = None
+        mock_mistral.return_value = {
+            "source": "mistral-websearch",
+            "content": "Mistral result",
+        }
+
+        result = resolve("test query")
+        assert result["source"] == "mistral-websearch"
+
+    def test_max_chars_truncation(self):
+        """Test that content is truncated to max_chars."""
+        long_content = "x" * 20000
+        truncated = long_content[:MAX_CHARS]
+        assert len(truncated) == MAX_CHARS
+
+    @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
+    @patch("mistralai.Mistral")
+    def test_mistral_401_error(self, mock_mistral_class):
+        """Test handling of Mistral 401 authentication error."""
+        mock_client = Mock()
+        mock_client.beta.conversations.start.side_effect = Exception(
+            'API error occurred: Status 401. Body: {"detail":"Unauthorized"}'
+        )
+        mock_mistral_class.return_value = mock_client
+
+        result = resolve_with_mistral_browser("https://example.com")
+        assert result is None
+
+    @patch("scripts.resolve.fetch_llms_txt")
+    def test_llms_txt_found(self, mock_fetch):
+        """Test when llms.txt is found."""
+        mock_fetch.return_value = "# Documentation\n\nContent here"
+
+        result = resolve("https://docs.example.com")
+        assert result["source"] == "llms.txt"
+        assert "Documentation" in result["content"]
+
+
+class TestCacheBehavior:
+    """Test caching behavior."""
+
+    @patch("scripts.resolve._get_cache")
+    def test_cache_hit(self, mock_get_cache):
+        """Test cache hit returns cached result."""
+        mock_cache = Mock()
+        mock_cache.get.return_value = {"source": "cached", "content": "test"}
+        mock_get_cache.return_value = mock_cache
+
+        from scripts.resolve import _get_from_cache
+        result = _get_from_cache("test", "exa")
+        
+        assert result is not None
+        assert result["source"] == "cached"
+
+    @patch("scripts.resolve._get_cache")
+    def test_cache_miss(self, mock_get_cache):
+        """Test cache miss returns None."""
+        mock_cache = Mock()
+        mock_cache.get.return_value = None
+        mock_get_cache.return_value = mock_cache
+
+        from scripts.resolve import _get_from_cache
+        result = _get_from_cache("new_query", "exa")
+        
+        assert result is None
+
+    @patch("scripts.resolve._get_cache")
+    def test_cache_disabled(self, mock_get_cache):
+        """Test when cache is not available."""
+        mock_get_cache.return_value = None
+
+        from scripts.resolve import _get_from_cache
+        result = _get_from_cache("test", "exa")
+        
+        assert result is None
 
 
 if __name__ == "__main__":
