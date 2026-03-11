@@ -1,7 +1,8 @@
+# tests/test_live_api_integrations.py
 """Live integration tests for providers that require real API keys.
 
-These tests make real network calls and should be run explicitly, e.g.:
-pytest -m live -s tests/test_live_api_integrations.py
+Run explicitly:
+    pytest -m live -s tests/test_live_api_integrations.py
 """
 
 import os
@@ -17,7 +18,9 @@ from scripts.resolve import (  # noqa: E402
     _get_cache,
     _rate_limits,
     resolve_with_exa,
+    resolve_with_exa_mcp,
     resolve_with_firecrawl,
+    resolve_with_jina,
     resolve_with_mistral_browser,
     resolve_with_mistral_websearch,
     resolve_with_tavily,
@@ -25,6 +28,10 @@ from scripts.resolve import (  # noqa: E402
 
 pytestmark = pytest.mark.live
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _require_env(name: str) -> str:
     value = os.getenv(name)
@@ -42,6 +49,41 @@ def _clear_cached_result(input_value: str, source: str, rate_limit_key: str | No
             pass
     _rate_limits.pop(rate_limit_key or source, None)
 
+
+# ---------------------------------------------------------------------------
+# Free providers (no API key required)
+# ---------------------------------------------------------------------------
+
+def test_live_exa_mcp_no_api_key():
+    """Exa MCP is free — no key needed, should always return results."""
+    query = f"Rust async runtime overview {uuid.uuid4().hex[:8]}"
+    _clear_cached_result(query, "exa_mcp")
+
+    result = resolve_with_exa_mcp(query)
+
+    assert result is not None, "Exa MCP returned None — check network or MCP endpoint"
+    assert result.source == "exa_mcp"
+    assert isinstance(result.content, str)
+    assert len(result.content.strip()) > 0
+
+
+def test_live_jina_no_api_key():
+    """Jina Reader is free (20 RPM) — no key needed."""
+    url = "https://example.com"
+    _clear_cached_result(url, "jina")
+
+    result = resolve_with_jina(url)
+
+    assert result is not None, "Jina Reader returned None — check network or rate limit"
+    assert result.source == "jina"
+    assert result.url == url
+    assert isinstance(result.content, str)
+    assert len(result.content.strip()) > 0
+
+
+# ---------------------------------------------------------------------------
+# API-key providers
+# ---------------------------------------------------------------------------
 
 def test_live_exa_sdk_with_real_api_key():
     _require_env("EXA_API_KEY")
