@@ -1,0 +1,194 @@
+name: Live API Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_exa:
+        description: 'Run Exa SDK live test'
+        required: false
+        default: 'false'
+        type: boolean
+      run_tavily:
+        description: 'Run Tavily live test'
+        required: false
+        default: 'false'
+        type: boolean
+      run_firecrawl:
+        description: 'Run Firecrawl live test'
+        required: false
+        default: 'false'
+        type: boolean
+      run_mistral:
+        description: 'Run Mistral live tests (browser + websearch)'
+        required: false
+        default: 'false'
+        type: boolean
+      run_free:
+        description: 'Run free provider tests (Exa MCP + Jina - no API keys needed)'
+        required: false
+        default: 'true'
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  free-providers:
+    name: Free Providers (Exa MCP + Jina)
+    runs-on: ubuntu-latest
+    if: inputs.run_free == true || inputs.run_free == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-live-free-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-live-free-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run free provider live tests
+        run: |
+          pytest -m live -s -v \
+            tests/test_live_api_integrations.py::test_live_exa_mcp_no_api_key \
+            tests/test_live_api_integrations.py::test_live_jina_no_api_key
+
+  exa-live:
+    name: Exa SDK Live Test
+    runs-on: ubuntu-latest
+    if: inputs.run_exa == true || inputs.run_exa == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-live-exa-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-live-exa-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Exa SDK live test
+        run: |
+          pytest -m live -s -v \
+            tests/test_live_api_integrations.py::test_live_exa_sdk_with_real_api_key
+        env:
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+
+  tavily-live:
+    name: Tavily Live Test
+    runs-on: ubuntu-latest
+    if: inputs.run_tavily == true || inputs.run_tavily == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-live-tavily-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-live-tavily-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Tavily live test
+        run: |
+          pytest -m live -s -v \
+            tests/test_live_api_integrations.py::test_live_tavily_with_real_api_key
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+
+  firecrawl-live:
+    name: Firecrawl Live Test
+    runs-on: ubuntu-latest
+    if: inputs.run_firecrawl == true || inputs.run_firecrawl == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-live-firecrawl-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-live-firecrawl-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Firecrawl live test
+        run: |
+          pytest -m live -s -v \
+            tests/test_live_api_integrations.py::test_live_firecrawl_with_real_api_key
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+
+  mistral-live:
+    name: Mistral Live Tests (Browser + Websearch)
+    runs-on: ubuntu-latest
+    if: inputs.run_mistral == true || inputs.run_mistral == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-live-mistral-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-live-mistral-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Mistral live tests
+        run: |
+          pytest -m live -s -v \
+            tests/test_live_api_integrations.py::test_live_mistral_browser_with_real_api_key \
+            tests/test_live_api_integrations.py::test_live_mistral_websearch_with_real_api_key
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
