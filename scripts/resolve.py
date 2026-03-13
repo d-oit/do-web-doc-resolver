@@ -754,7 +754,9 @@ def fetch_llms_txt(url: str) -> str | None:
             content_type = response.headers.get("Content-Type", "")
             if "text" in content_type or "markdown" in content_type:
                 logger.info(f"Found llms.txt at {llms_url}")
-                _save_to_cache(base_url, "llms_txt", {"found": True, "content": response.text}, ttl=3600)
+                _save_to_cache(
+                    base_url, "llms_txt", {"found": True, "content": response.text}, ttl=3600
+                )
                 return response.text
 
         # Cache the miss so we don't probe again for 1 hour

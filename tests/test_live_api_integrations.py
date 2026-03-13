@@ -30,6 +30,7 @@ pytestmark = pytest.mark.live
 # Stable public URL that works reliably in CI (no SSL issues)
 _TEST_URL = "https://docs.python.org/3/"
 
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

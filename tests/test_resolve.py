@@ -68,6 +68,11 @@ class TestFetchLlmsTxt:
         mock_session.get.return_value = mock_response
         mock_get_session.return_value = mock_session
 
+        # Clear cache to ensure fresh test
+        import scripts.resolve
+
+        scripts.resolve._cache = None
+
         result = fetch_llms_txt("https://example.com")
         assert result is None
 
