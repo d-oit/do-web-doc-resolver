@@ -174,6 +174,7 @@ impl Config {
         let key_name = match provider {
             "exa" | "exa_mcp" => "EXA_API_KEY",
             "tavily" => "TAVILY_API_KEY",
+            "serper" => "SERPER_API_KEY",
             "firecrawl" => "FIRECRAWL_API_KEY",
             "mistral" | "mistral_browser" | "mistral_websearch" => "MISTRAL_API_KEY",
             _ => return None,

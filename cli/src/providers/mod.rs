@@ -11,6 +11,7 @@ pub mod jina;
 pub mod llms_txt;
 pub mod mistral_browser;
 pub mod mistral_websearch;
+pub mod serper;
 pub mod tavily;
 
 pub use self::direct_fetch::DirectFetchProvider;
@@ -22,6 +23,7 @@ pub use self::jina::JinaProvider;
 pub use self::llms_txt::LlmsTxtProvider;
 pub use self::mistral_browser::MistralBrowserProvider;
 pub use self::mistral_websearch::MistralWebSearchProvider;
+pub use self::serper::SerperProvider;
 pub use self::tavily::TavilyProvider;
 
 use crate::error::ResolverError;

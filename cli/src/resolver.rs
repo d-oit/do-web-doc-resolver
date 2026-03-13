@@ -6,7 +6,8 @@ use crate::config::Config;
 use crate::error::ResolverError;
 use crate::providers::{
     DuckDuckGoProvider, ExaMcpProvider, ExaSdkProvider, FirecrawlProvider, JinaProvider,
-    LlmsTxtProvider, MistralBrowserProvider, MistralWebSearchProvider, QueryProvider, UrlProvider,
+    LlmsTxtProvider, MistralBrowserProvider, MistralWebSearchProvider, QueryProvider,
+    SerperProvider, UrlProvider,
 };
 use crate::types::{ProviderType, ResolvedResult};
 use std::result::Result;
@@ -18,6 +19,7 @@ pub struct Resolver {
     exa_mcp: ExaMcpProvider,
     exa_sdk: ExaSdkProvider,
     tavily: crate::providers::TavilyProvider,
+    serper: SerperProvider,
     duckduckgo: DuckDuckGoProvider,
     mistral_ws: MistralWebSearchProvider,
     // URL providers
@@ -41,6 +43,7 @@ impl Resolver {
             exa_mcp: ExaMcpProvider::new(),
             exa_sdk: ExaSdkProvider::new(),
             tavily: crate::providers::TavilyProvider::new(),
+            serper: SerperProvider::new(),
             duckduckgo: DuckDuckGoProvider::new(),
             mistral_ws: MistralWebSearchProvider::new(),
             llms_txt: LlmsTxtProvider::new(),
@@ -109,6 +112,7 @@ impl Resolver {
                 ProviderType::ExaMcp,
                 ProviderType::Exa,
                 ProviderType::Tavily,
+                ProviderType::Serper,
                 ProviderType::DuckDuckGo,
                 ProviderType::MistralWebSearch,
             ]
@@ -223,6 +227,13 @@ impl Resolver {
                     self.tavily.search(query, self.config.tavily_results).await
                 } else {
                     Err(ResolverError::Provider("tavily unavailable".to_string()))
+                }
+            }
+            ProviderType::Serper => {
+                if self.serper.is_available() {
+                    self.serper.search(query, limit).await
+                } else {
+                    Err(ResolverError::Provider("serper unavailable".to_string()))
                 }
             }
             ProviderType::DuckDuckGo => {

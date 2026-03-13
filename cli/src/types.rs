@@ -51,6 +51,8 @@ pub enum ProviderType {
     Exa,
     /// Tavily (requires API key)
     Tavily,
+    /// Serper Google Search (requires API key, 2500 free credits)
+    Serper,
     /// DuckDuckGo (free)
     DuckDuckGo,
     /// Mistral web search (requires API key)
@@ -74,6 +76,7 @@ impl ProviderType {
             ProviderType::ExaMcp => "exa_mcp",
             ProviderType::Exa => "exa",
             ProviderType::Tavily => "tavily",
+            ProviderType::Serper => "serper",
             ProviderType::DuckDuckGo => "duckduckgo",
             ProviderType::MistralWebSearch => "mistral_websearch",
             ProviderType::LlmsTxt => "llms_txt",
@@ -91,6 +94,7 @@ impl ProviderType {
             ProviderType::ExaMcp
                 | ProviderType::Exa
                 | ProviderType::Tavily
+                | ProviderType::Serper
                 | ProviderType::DuckDuckGo
                 | ProviderType::MistralWebSearch
         )
@@ -123,6 +127,7 @@ impl std::str::FromStr for ProviderType {
             "exa_mcp" => Ok(ProviderType::ExaMcp),
             "exa" => Ok(ProviderType::Exa),
             "tavily" => Ok(ProviderType::Tavily),
+            "serper" => Ok(ProviderType::Serper),
             "duckduckgo" => Ok(ProviderType::DuckDuckGo),
             "mistral_websearch" => Ok(ProviderType::MistralWebSearch),
             "llms_txt" => Ok(ProviderType::LlmsTxt),
