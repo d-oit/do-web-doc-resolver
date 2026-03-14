@@ -29,6 +29,7 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 from urllib.parse import urlparse
+from html.parser import HTMLParser
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -600,9 +601,43 @@ def extract_text_from_html(html: str, base_url: str = "") -> str:
 
     Uses simple regex-based extraction for reliability.
     """
-    # Remove script and style elements
-    html = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
-    html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.DOTALL | re.IGNORECASE)
+    # Remove script and style elements using a tolerant HTML parser
+    class ScriptStyleStripper(HTMLParser):
+        def __init__(self) -> None:
+            super().__init__(convert_charrefs=False)
+            self.result: list[str] = []
+            self._skip_depth = 0
+
+        def handle_starttag(self, tag, attrs):
+            if tag.lower() in ("script", "style"):
+                self._skip_depth += 1
+                return
+            if self._skip_depth == 0:
+                self.result.append(self.get_starttag_text() or "")
+
+        def handle_endtag(self, tag):
+            if tag.lower() in ("script", "style"):
+                if self._skip_depth > 0:
+                    self._skip_depth -= 1
+                return
+            if self._skip_depth == 0:
+                self.result.append(f"</{tag}>")
+
+        def handle_startendtag(self, tag, attrs):
+            if self._skip_depth == 0 and tag.lower() not in ("script", "style"):
+                self.result.append(self.get_starttag_text() or "")
+
+        def handle_data(self, data):
+            if self._skip_depth == 0:
+                self.result.append(data)
+
+        def handle_comment(self, data):
+            if self._skip_depth == 0:
+                self.result.append(f"<!--{data}-->")
+
+    stripper = ScriptStyleStripper()
+    stripper.feed(html)
+    html = "".join(stripper.result)
 
     # Remove comments
     html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)
