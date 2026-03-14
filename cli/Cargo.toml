@@ -40,3 +40,9 @@ path = "src/main.rs"
 [lib]
 name = "wdr_lib"
 path = "src/lib.rs"
+
+# Security patch: CVE-2025-47736 / GHSA-8m95-fffc-h4c5
+# libsql-sqlite3-parser <= 0.13.0 crashes on invalid UTF-8 input.
+# No patched release on crates.io yet; pin to the upstream fix commit.
+[patch.crates-io]
+libsql-sqlite3-parser = { git = "https://github.com/tursodatabase/libsql", rev = "14f422a" }
