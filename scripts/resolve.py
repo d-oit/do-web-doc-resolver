@@ -1350,7 +1350,11 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
         # Use Mistral's chat API - the model will use its built-in web search capability
         response = client.chat.complete(
             model="mistral-large-latest",
-            messages=[UserMessage(content=f"Search the web for: {query}. Provide comprehensive results with sources and URLs. Format the response as markdown with clear sections.")],
+            messages=[
+                UserMessage(
+                    content=f"Search the web for: {query}. Provide comprehensive results with sources and URLs. Format the response as markdown with clear sections."
+                )
+            ],
         )
 
         if response and response.choices and len(response.choices) > 0:
