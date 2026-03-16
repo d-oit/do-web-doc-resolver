@@ -21,8 +21,14 @@ use std::sync::LazyLock;
 static INJECTION_PATTERNS: LazyLock<Vec<regex::Regex>> = LazyLock::new(|| {
     vec![
         // Common instruction override attempts
-        regex::Regex::new(r"(?i)(ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|rules?|directives?))").unwrap(),
-        regex::Regex::new(r"(?i)(forget\s+(everything|all)\s+(you|the\s+model)\s+(know|have\s+learned))").unwrap(),
+        regex::Regex::new(
+            r"(?i)(ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|rules?|directives?))",
+        )
+        .unwrap(),
+        regex::Regex::new(
+            r"(?i)(forget\s+(everything|all)\s+(you|the\s+model)\s+(know|have\s+learned))",
+        )
+        .unwrap(),
         regex::Regex::new(r"(?i)(new\s+(system\s+)?(instructions?|rules?|prompt))").unwrap(),
         regex::Regex::new(r"(?i)(override\s+(your\s+)?(safety|guidelines|constraints?))").unwrap(),
         // Role manipulation
@@ -31,33 +37,38 @@ static INJECTION_PATTERNS: LazyLock<Vec<regex::Regex>> = LazyLock::new(|| {
         // Code execution attempts
         regex::Regex::new(r"(?i)(execute|run\s+(this|that)\s+(code|command|script))").unwrap(),
         // Prompt leaking attempts
-        regex::Regex::new(r"(?i)(tell\s+(me|us)\s+(your|the)\s+(system\s+)?(prompt|instructions?|rules?))").unwrap(),
+        regex::Regex::new(
+            r"(?i)(tell\s+(me|us)\s+(your|the)\s+(system\s+)?(prompt|instructions?|rules?))",
+        )
+        .unwrap(),
     ]
 });
 
 /// Sanitize untrusted document content to reduce prompt injection risks
 fn sanitize_content(content: &str) -> String {
     let mut sanitized = content.to_string();
-    
+
     // Remove null bytes and other control characters that could cause issues
     sanitized = sanitized
         .chars()
         .filter(|c| !c.is_control() || *c == '\n' || *c == '\t')
         .collect();
-    
+
     // Truncate to a reasonable length to prevent context overflow attacks
     const MAX_CONTENT_LENGTH: usize = 50000;
     if sanitized.len() > MAX_CONTENT_LENGTH {
         sanitized.truncate(MAX_CONTENT_LENGTH);
         sanitized.push_str("\n\n[Content truncated for safety]");
     }
-    
+
     sanitized
 }
 
 /// Check if content contains potential injection patterns
 fn contains_injection_pattern(content: &str) -> bool {
-    INJECTION_PATTERNS.iter().any(|pattern| pattern.is_match(content))
+    INJECTION_PATTERNS
+        .iter()
+        .any(|pattern| pattern.is_match(content))
 }
 
 /// Synthesize multiple results into a single cohesive response
@@ -76,12 +87,12 @@ pub async fn synthesize_results(
     // Build context from results, sanitizing each piece of untrusted content
     let mut context = String::new();
     let mut has_suspicious_content = false;
-    
+
     for (i, res) in results.iter().enumerate() {
         if let Some(content) = &res.content {
             // Sanitize untrusted document content
             let sanitized = sanitize_content(content);
-            
+
             // Check for potential injection patterns
             if contains_injection_pattern(&sanitized) {
                 has_suspicious_content = true;
@@ -91,7 +102,7 @@ pub async fn synthesize_results(
                     res.url
                 );
             }
-            
+
             context.push_str(&format!(
                 "\n[Source {}: {}]\n{}\n---\n",
                 i + 1,
