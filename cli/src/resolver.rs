@@ -85,14 +85,6 @@ impl Resolver {
     pub async fn resolve_url(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
         let mut metrics = ResolveMetrics::new();
 
-        // Check for document or image format first
-        if url.ends_with(".pdf") || url.ends_with(".docx") || url.ends_with(".pptx") {
-            return self.resolve_direct(url, ProviderType::Docling).await;
-        }
-        if url.ends_with(".png") || url.ends_with(".jpg") || url.ends_with(".jpeg") {
-            return self.resolve_direct(url, ProviderType::Ocr).await;
-        }
-
         if let Some(cache) = &self.cache {
             if let Ok(Some(res)) = cache.query(url).await {
                 let mut res = res.into_iter().next().unwrap();
@@ -103,13 +95,25 @@ impl Resolver {
         }
         // Default URL cascade order
         let providers_order: Vec<ProviderType> = if self.config.providers_order.is_empty() {
-            vec![
+            let mut order = Vec::new();
+
+            // Document/Image formats first
+            if url.ends_with(".pdf") || url.ends_with(".docx") || url.ends_with(".pptx") {
+                order.push(ProviderType::Docling);
+            }
+            if url.ends_with(".png") || url.ends_with(".jpg") || url.ends_with(".jpeg") {
+                order.push(ProviderType::Ocr);
+            }
+
+            order.extend(vec![
                 ProviderType::LlmsTxt,
                 ProviderType::Jina,
                 ProviderType::Firecrawl,
                 ProviderType::DirectFetch,
                 ProviderType::MistralBrowser,
-            ]
+                ProviderType::DuckDuckGo,
+            ]);
+            order
         } else {
             let mut result = Vec::new();
             for p in &self.config.providers_order {
@@ -361,6 +365,20 @@ impl Resolver {
                 } else {
                     Err(ResolverError::Provider(
                         "mistral_browser unavailable".to_string(),
+                    ))
+                }
+            }
+            ProviderType::DuckDuckGo => {
+                if self.duckduckgo.is_available() {
+                    // Use search to find the URL content
+                    let results = self.duckduckgo.search(url, 1).await?;
+                    results
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| ResolverError::Provider("DuckDuckGo failed to extract content".to_string()))
+                } else {
+                    Err(ResolverError::Provider(
+                        "duckduckgo unavailable".to_string(),
                     ))
                 }
             }

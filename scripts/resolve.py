@@ -1808,11 +1808,15 @@ def resolve_with_ocr(url: str, max_chars: int) -> ResolvedResult | None:
 
 
 def resolve_url(
-    url: str, max_chars: int = MAX_CHARS, profile: Profile = Profile.BALANCED
+    url: str,
+    max_chars: int = MAX_CHARS,
+    skip_providers: set[str] | None = None,
+    profile: Profile = Profile.BALANCED,
 ) -> dict[str, Any]:
     """
     Resolve a URL using the cascade: llms.txt → Jina Reader → Firecrawl → Direct fetch → Mistral browser → DuckDuckGo search.
     """
+    skip_providers = skip_providers or set()
     logger.info(f"Resolving URL: {url}")
     hops = 0
     max_hops = profile.max_hops()
@@ -1820,14 +1824,14 @@ def resolve_url(
 
     # Document/Image format check first
     lower_url = url.lower()
-    if any(lower_url.endswith(ext) for ext in [".pdf", ".docx", ".pptx"]):
+    if any(lower_url.endswith(ext) for ext in [".pdf", ".docx", ".pptx"]) and "docling" not in skip_providers:
         doc_res = resolve_with_docling(url, max_chars)
         if doc_res:
             metrics.record_provider(ProviderType.DOCLING, 0, True)
             doc_res.metrics = metrics
             return doc_res.to_dict()
 
-    if any(lower_url.endswith(ext) for ext in [".png", ".jpg", ".jpeg"]):
+    if any(lower_url.endswith(ext) for ext in [".png", ".jpg", ".jpeg"]) and "ocr" not in skip_providers:
         ocr_res = resolve_with_ocr(url, max_chars)
         if ocr_res:
             metrics.record_provider(ProviderType.OCR, 0, True)
@@ -1843,7 +1847,7 @@ def resolve_url(
     latency = 0
 
     # Step 1: Check for llms.txt
-    if profile.is_provider_allowed(ProviderType.LLMS_TXT):
+    if "llms_txt" not in skip_providers and profile.is_provider_allowed(ProviderType.LLMS_TXT):
         hops += 1
         metrics.cascade_depth = hops
         start = time.time()
@@ -1864,7 +1868,7 @@ def resolve_url(
             metrics.record_provider(ProviderType.LLMS_TXT, latency, False)
 
     # Step 2: Try Jina Reader (FREE, no API key required)
-    if hops < max_hops and profile.is_provider_allowed(ProviderType.JINA):
+    if "jina" not in skip_providers and hops < max_hops and profile.is_provider_allowed(ProviderType.JINA):
         hops += 1
         metrics.cascade_depth = hops
         start = time.time()
@@ -1880,7 +1884,7 @@ def resolve_url(
             metrics.record_provider(ProviderType.JINA, latency, False)
 
     # Step 3: Try Firecrawl (if API key available)
-    if hops < max_hops and profile.is_provider_allowed(ProviderType.FIRECRAWL):
+    if "firecrawl" not in skip_providers and hops < max_hops and profile.is_provider_allowed(ProviderType.FIRECRAWL):
         hops += 1
         metrics.cascade_depth = hops
         start = time.time()
@@ -1896,7 +1900,7 @@ def resolve_url(
             metrics.record_provider(ProviderType.FIRECRAWL, latency, False)
 
     # Step 4: Try direct HTTP fetch
-    if hops < max_hops and profile.is_provider_allowed(ProviderType.DIRECT_FETCH):
+    if "direct_fetch" not in skip_providers and hops < max_hops and profile.is_provider_allowed(ProviderType.DIRECT_FETCH):
         hops += 1
         metrics.cascade_depth = hops
         start = time.time()
@@ -1912,7 +1916,7 @@ def resolve_url(
             metrics.record_provider(ProviderType.DIRECT_FETCH, latency, False)
 
     # Step 5: Try Mistral browser (if API key available)
-    if hops < max_hops and profile.is_provider_allowed(ProviderType.MISTRAL_BROWSER):
+    if "mistral_browser" not in skip_providers and hops < max_hops and profile.is_provider_allowed(ProviderType.MISTRAL_BROWSER):
         hops += 1
         metrics.cascade_depth = hops
         start = time.time()
@@ -1928,7 +1932,7 @@ def resolve_url(
             metrics.record_provider(ProviderType.MISTRAL_BROWSER, latency, False)
 
     # Step 6: Fall back to DuckDuckGo search for the URL
-    if hops < max_hops and profile.is_provider_allowed(ProviderType.DUCKDUCKGO):
+    if "duckduckgo" not in skip_providers and hops < max_hops and profile.is_provider_allowed(ProviderType.DUCKDUCKGO):
         hops += 1
         metrics.cascade_depth = hops
         start = time.time()
@@ -2126,7 +2130,7 @@ def resolve(
         profile: Execution profile for resource management
     """
     if is_url(input_str):
-        return resolve_url(input_str, max_chars, profile=profile)
+        return resolve_url(input_str, max_chars, skip_providers=skip_providers, profile=profile)
     else:
         return resolve_query(input_str, max_chars, skip_providers, profile=profile)
 
@@ -2254,6 +2258,44 @@ def resolve_direct(
             "source": "none",
             "url": input_str,
             "error": "Mistral browser failed or API key not set",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.DOCLING:
+        if not is_url(input_str):
+            return {
+                "source": "none",
+                "error": "docling provider requires a URL input",
+                "content": "",
+                "validated_links": [],
+            }
+        result = resolve_with_docling(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "url": input_str,
+            "error": "Docling extraction failed",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.OCR:
+        if not is_url(input_str):
+            return {
+                "source": "none",
+                "error": "ocr provider requires a URL input",
+                "content": "",
+                "validated_links": [],
+            }
+        result = resolve_with_ocr(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "url": input_str,
+            "error": "OCR extraction failed",
             "content": "",
             "validated_links": [],
         }
@@ -2414,7 +2456,9 @@ def resolve_url_with_order(
         ProviderType.FIRECRAWL,
         ProviderType.DIRECT_FETCH,
         ProviderType.MISTRAL_BROWSER,
-        ProviderType.DUCKDUCKGO,  # Can search for URLs too
+        ProviderType.DUCKDUCKGO,
+        ProviderType.DOCLING,
+        ProviderType.OCR,
     }
     valid_providers = [p for p in providers_order if p in url_providers]
     return resolve_with_order(url, valid_providers, max_chars)
@@ -2441,6 +2485,7 @@ def resolve_query_with_order(
         ProviderType.EXA_MCP,
         ProviderType.EXA,
         ProviderType.TAVILY,
+        ProviderType.SERPER,
         ProviderType.DUCKDUCKGO,
         ProviderType.MISTRAL_WEBSEARCH,
     }
@@ -2473,8 +2518,8 @@ def main():
     parser.add_argument(
         "--skip",
         action="append",
-        choices=["exa_mcp", "exa", "tavily", "serper", "duckduckgo", "mistral"],
-        help="Skip specific providers (can be used multiple times). Options: exa_mcp, exa, tavily, serper, duckduckgo, mistral",
+        choices=[p.value for p in ProviderType],
+        help=f"Skip specific providers (can be used multiple times). Options: {', '.join(p.value for p in ProviderType)}",
     )
     parser.add_argument(
         "--provider",
@@ -2534,7 +2579,7 @@ def main():
             # Simple aggregation for Python script
             results = []
             if is_url(inp):
-                results.append(resolve_url(inp, args.max_chars, profile=profile))
+                results.append(resolve_url(inp, args.max_chars, skip_providers=skip_providers, profile=profile))
             else:
                 # Aggregate from multiple query providers
                 for pt in [ProviderType.EXA_MCP, ProviderType.EXA, ProviderType.TAVILY]:
