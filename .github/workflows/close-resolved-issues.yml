@@ -1,0 +1,135 @@
+name: Close Resolved Issues
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      issue_numbers:
+        description: 'Comma-separated issue numbers to close (e.g. 60,43,44)'
+        required: true
+        type: string
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  # Case 1: PR merged — scan body for informal/formal issue references and close them
+  close-on-pr-merge:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract and close referenced issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const title = context.payload.pull_request.title || '';
+            const text = body + ' ' + title;
+
+            // Match closing keywords AND informal mentions: "issue #N", "closes #N", etc.
+            const pattern = /(?:closes?|fixes?|resolves?|issue|issue[s]?)\s+#(\d+)/gi;
+            const matches = [...text.matchAll(pattern)];
+            const issueNumbers = [...new Set(matches.map(m => parseInt(m[1])))];
+
+            if (issueNumbers.length === 0) {
+              core.info('No issue references found in PR title or body.');
+              return;
+            }
+
+            core.info(`Found issue references: ${issueNumbers.join(', ')}`);
+
+            for (const num of issueNumbers) {
+              try {
+                // Check issue exists and is open
+                const issue = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: num
+                });
+
+                if (issue.data.state === 'closed') {
+                  core.info(`Issue #${num} is already closed, skipping.`);
+                  continue;
+                }
+
+                // Skip if it's a pull request (not a plain issue)
+                if (issue.data.pull_request) {
+                  core.info(`#${num} is a PR, not an issue — skipping.`);
+                  continue;
+                }
+
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: num,
+                  state: 'closed',
+                  state_reason: 'completed'
+                });
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: num,
+                  body: `✅ Closed automatically via [PR #${context.payload.pull_request.number}](${context.payload.pull_request.html_url}) (merged by @${context.payload.pull_request.merged_by?.login || 'unknown'}).`
+                });
+
+                core.info(`Successfully closed issue #${num}`);
+              } catch (e) {
+                core.warning(`Could not process issue #${num}: ${e.message}`);
+              }
+            }
+
+  # Case 2: Manual trigger — close specific issues that were already fixed without a PR reference
+  close-manually:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close specified issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const input = '${{ github.event.inputs.issue_numbers }}';
+            const nums = input.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+
+            if (nums.length === 0) {
+              core.setFailed('No valid issue numbers provided.');
+              return;
+            }
+
+            core.info(`Closing issues: ${nums.join(', ')}`);
+
+            for (const num of nums) {
+              try {
+                const issue = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: num
+                });
+
+                if (issue.data.state === 'closed') {
+                  core.info(`Issue #${num} already closed.`);
+                  continue;
+                }
+
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: num,
+                  state: 'closed',
+                  state_reason: 'completed'
+                });
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: num,
+                  body: `✅ Closed manually via workflow dispatch by @${{ github.actor }}.`
+                });
+
+                core.info(`Closed issue #${num}`);
+              } catch (e) {
+                core.warning(`Could not close issue #${num}: ${e.message}`);
+              }
+            }
