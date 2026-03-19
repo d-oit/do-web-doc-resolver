@@ -106,5 +106,5 @@ Pass flags directly on the command line or set env vars before calling:
 ```bash
 export EXA_API_KEY=xxx
 export TAVILY_API_KEY=yyy
-python scripts/resolve.py "query" --skip mistral
+python -m scripts.resolve "query" --skip mistral
 ```

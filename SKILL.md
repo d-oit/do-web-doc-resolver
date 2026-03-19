@@ -47,13 +47,13 @@ See [cascade details](references/CASCADE.md) for the full fallback decision tree
 
 Basic usage:
 ```bash
-python scripts/resolve.py "Rust agent frameworks"
-python scripts/resolve.py "https://docs.rs/tokio/latest/tokio/"
+python -m scripts.resolve "Rust agent frameworks"
+python -m scripts.resolve "https://docs.rs/tokio/latest/tokio/"
 ```
 
 With options:
 ```bash
-python scripts/resolve.py "query" \
+python -m scripts.resolve "query" \
   --min-chars 200 \
   --max-chars 8000 \
   --exa-results 5 \
@@ -65,13 +65,13 @@ python scripts/resolve.py "query" \
 Skip specific providers (useful for testing or forcing fallback):
 ```bash
 # Skip Exa MCP to test Tavily/DuckDuckGo/Mistral
-python scripts/resolve.py "query" --skip exa_mcp --skip exa
+python -m scripts.resolve "query" --skip exa_mcp --skip exa
 
 # Use only Mistral
-python scripts/resolve.py "query" --skip exa_mcp --skip exa --skip tavily --skip duckduckgo
+python -m scripts.resolve "query" --skip exa_mcp --skip exa --skip tavily --skip duckduckgo
 
 # Use only DuckDuckGo
-python scripts/resolve.py "query" --skip exa_mcp --skip exa --skip tavily --skip mistral
+python -m scripts.resolve "query" --skip exa_mcp --skip exa --skip tavily --skip mistral
 ```
 
 Available skip options: `exa_mcp`, `exa`, `tavily`, `duckduckgo`, `mistral`

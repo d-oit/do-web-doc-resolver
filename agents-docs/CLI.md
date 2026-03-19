@@ -7,6 +7,13 @@ Complete usage reference for both the Python skill and the Rust `wdr` CLI.
 ### Synopsis
 
 ```bash
+# Recommended (works with package imports):
+python -m scripts.resolve <query_or_url> [OPTIONS]
+
+# Installed via pip:
+wdr <query_or_url> [OPTIONS]
+
+# Legacy (only works if scripts/ has no package imports):
 python scripts/resolve.py <query_or_url> [OPTIONS]
 ```
 
@@ -30,25 +37,25 @@ python scripts/resolve.py <query_or_url> [OPTIONS]
 
 ```bash
 # Basic query
-python scripts/resolve.py "rust async book"
+python -m scripts.resolve "rust async book"
 
 # Resolve a URL
-python scripts/resolve.py "https://example.com"
+python -m scripts.resolve "https://example.com"
 
 # Skip paid providers
-python scripts/resolve.py "query" --skip exa --skip tavily --skip mistral
+python -m scripts.resolve "query" --skip exa --skip tavily --skip mistral
 
 # Skip Exa MCP, use SDK path
-python scripts/resolve.py "query" --skip exa_mcp
+python -m scripts.resolve "query" --skip exa_mcp
 
 # Custom provider order
-python scripts/resolve.py "query" --providers-order "llms_txt,jina,direct_fetch"
+python -m scripts.resolve "query" --providers-order "llms_txt,jina,direct_fetch"
 
 # Single provider
-python scripts/resolve.py "https://example.com" --provider jina
+python -m scripts.resolve "https://example.com" --provider jina
 
 # JSON output
-python scripts/resolve.py "query" --json
+python -m scripts.resolve "query" --json
 ```
 
 ## Rust CLI (wdr)

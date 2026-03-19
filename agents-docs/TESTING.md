@@ -7,10 +7,11 @@ Test structure and guidelines for `web-doc-resolver` (Python skill + Rust `wdr` 
 ### Location
 ```
 tests/
-├── test_resolve.py       # Unit tests for resolve logic
-├── test_providers.py     # Per-provider mock tests
-├── test_cascade.py       # Cascade order + skip logic
-└── conftest.py           # Fixtures, mock HTTP server
+├── test_resolve.py             # Unit tests for resolve logic
+├── test_routing_foundation.py  # Tests for #59: routing, budget, negative cache, circuit breakers
+├── test_providers.py           # Per-provider mock tests
+├── test_cascade.py             # Cascade order + skip logic
+└── conftest.py                 # Fixtures, mock HTTP server
 ```
 
 ### Running
