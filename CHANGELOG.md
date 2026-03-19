@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-03-19
+
+### Added
+- GitHub Release workflow with automated PyPI publish and multi-platform binary builds
+- SKILL.md version tracking for agent skill integration
+
+### Fixed
+- CI integration test invocations (use `python -m scripts.resolve` instead of `python scripts/resolve.py`)
+
+### Changed
+- Updated ADR-001 status to Implemented
+
 ## [0.1.0] - 2026-03-14
 
 ### Added
