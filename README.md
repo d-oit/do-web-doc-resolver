@@ -34,13 +34,33 @@ This agent skill implements a v4 cascade resolver that prioritizes free and low-
 
 ## Installation
 
+### PyPI (Recommended)
+
 ```bash
-# Clone the repository
+pip install web-doc-resolver
+# or isolated install
+pipx install web-doc-resolver
+```
+
+### Prebuilt Binary
+
+```bash
+# Linux
+curl -L https://github.com/d-oit/web-doc-resolver/releases/latest/download/wdr-linux-x86_64 -o wdr && chmod +x wdr
+
+# macOS (Apple Silicon)
+curl -L https://github.com/d-oit/web-doc-resolver/releases/latest/download/wdr-macos-aarch64 -o wdr && chmod +x wdr
+
+# Windows (PowerShell)
+Invoke-WebRequest -Uri "https://github.com/d-oit/web-doc-resolver/releases/latest/download/wdr-windows-x86_64.exe" -OutFile wdr.exe
+```
+
+### From Source
+
+```bash
 git clone https://github.com/d-oit/web-doc-resolver.git
 cd web-doc-resolver
-
-# Install dependencies
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## API Keys Configuration
