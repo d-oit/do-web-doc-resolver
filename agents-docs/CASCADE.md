@@ -90,10 +90,10 @@ Use `--skip <provider>` to remove a provider from the cascade:
 
 ```bash
 # Skip Exa MCP, force SDK path
-python scripts/resolve.py "query" --skip exa_mcp
+python -m scripts.resolve "query" --skip exa_mcp
 
 # Skip all paid, use only free
-python scripts/resolve.py "query" --skip exa --skip tavily --skip mistral
+python -m scripts.resolve "query" --skip exa --skip tavily --skip mistral
 ```
 
 ## Custom order
@@ -101,8 +101,8 @@ python scripts/resolve.py "query" --skip exa --skip tavily --skip mistral
 Use `--providers-order` to fully override the cascade:
 
 ```bash
-python scripts/resolve.py "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
-python scripts/resolve.py "query" --providers-order "exa_mcp,duckduckgo"
+python -m scripts.resolve "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
+python -m scripts.resolve "query" --providers-order "exa_mcp,duckduckgo"
 ```
 
 ## Error handling

@@ -175,32 +175,32 @@ result = resolve_with_order(
 
 ```bash
 # Resolve a URL
-python scripts/resolve.py "https://example.com"
+python -m scripts.resolve "https://example.com"
 
 # Resolve a query (uses Exa MCP - free!)
-python scripts/resolve.py "machine learning tutorials"
+python -m scripts.resolve "machine learning tutorials"
 
 # With specific options
-python scripts/resolve.py "query" \
+python -m scripts.resolve "query" \
   --max-chars 8000 \
   --log-level INFO \
   --json
 
 # Skip specific providers
-python scripts/resolve.py "query" --skip exa_mcp --skip exa
+python -m scripts.resolve "query" --skip exa_mcp --skip exa
 
 # Use only Mistral
-python scripts/resolve.py "query" \
+python -m scripts.resolve "query" \
   --skip exa_mcp --skip exa --skip tavily --skip duckduckgo \
   --log-level INFO --json
 
 # Use a specific provider directly
-python scripts/resolve.py "https://example.com" --provider jina
-python scripts/resolve.py "python tutorials" --provider exa_mcp
+python -m scripts.resolve "https://example.com" --provider jina
+python -m scripts.resolve "python tutorials" --provider exa_mcp
 
 # Use a custom provider order
-python scripts/resolve.py "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
-python scripts/resolve.py "python tutorials" --providers-order "exa_mcp,duckduckgo"
+python -m scripts.resolve "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
+python -m scripts.resolve "python tutorials" --providers-order "exa_mcp,duckduckgo"
 ```
 
 ## How It Works
