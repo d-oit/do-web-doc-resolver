@@ -1,0 +1,118 @@
+/* ==========================================================================
+   Card — web-doc-resolver
+   Content containers: result panels, config sections, provider cards
+   ========================================================================== */
+
+:root {
+  --wdr-card-bg:            var(--wdr-surface-bg-elevated);
+  --wdr-card-border:        var(--wdr-border-default);
+  --wdr-card-radius:        var(--wdr-radius-lg);
+  --wdr-card-shadow:        var(--wdr-shadow-sm);
+  --wdr-card-shadow-hover:  var(--wdr-shadow-md);
+  --wdr-card-padding:       var(--wdr-space-4);
+  --wdr-card-gap:           var(--wdr-space-3);
+
+  --wdr-card-header-gap:    var(--wdr-space-2);
+  --wdr-card-header-padding-bottom: var(--wdr-space-3);
+  --wdr-card-header-border: var(--wdr-border-subtle);
+
+  --wdr-card-title-size:    var(--wdr-text-md);
+  --wdr-card-title-weight:  var(--wdr-weight-semibold);
+  --wdr-card-title-color:   var(--wdr-text-primary);
+
+  --wdr-card-desc-size:     var(--wdr-text-sm);
+  --wdr-card-desc-color:    var(--wdr-text-secondary);
+
+  --wdr-card-footer-border: var(--wdr-border-subtle);
+  --wdr-card-footer-padding-top: var(--wdr-space-3);
+}
+
+.wdr-card {
+  background: var(--wdr-card-bg);
+  border: 1px solid var(--wdr-card-border);
+  border-radius: var(--wdr-card-radius);
+  box-shadow: var(--wdr-card-shadow);
+  padding: var(--wdr-card-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--wdr-card-gap);
+  transition: var(--wdr-transition-shadow);
+}
+
+.wdr-card--interactive {
+  cursor: pointer;
+}
+
+.wdr-card--interactive:hover {
+  box-shadow: var(--wdr-card-shadow-hover);
+}
+
+.wdr-card--flat {
+  box-shadow: none;
+}
+
+.wdr-card--outlined {
+  box-shadow: none;
+  border-width: 1px;
+}
+
+/* Compact variant for data-dense layouts */
+.wdr-card--compact {
+  padding: var(--wdr-space-2);
+  gap: var(--wdr-space-2);
+}
+
+/* Header */
+.wdr-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--wdr-card-header-gap);
+  padding-bottom: var(--wdr-card-header-padding-bottom);
+  border-bottom: 1px solid var(--wdr-card-header-border);
+}
+
+.wdr-card__title {
+  font-size: var(--wdr-card-title-size);
+  font-weight: var(--wdr-card-title-weight);
+  color: var(--wdr-card-title-color);
+  line-height: var(--wdr-leading-tight);
+}
+
+.wdr-card__description {
+  font-size: var(--wdr-card-desc-size);
+  color: var(--wdr-card-desc-color);
+  margin-top: var(--wdr-space-1);
+}
+
+/* Body */
+.wdr-card__body {
+  flex: 1;
+}
+
+/* Footer */
+.wdr-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--wdr-space-2);
+  padding-top: var(--wdr-card-footer-padding-top);
+  border-top: 1px solid var(--wdr-card-footer-border);
+}
+
+/* Status indicator on card edge */
+.wdr-card--status-success { border-left: 3px solid var(--wdr-signal-success); }
+.wdr-card--status-warning { border-left: 3px solid var(--wdr-signal-warning); }
+.wdr-card--status-error   { border-left: 3px solid var(--wdr-signal-error); }
+.wdr-card--status-info    { border-left: 3px solid var(--wdr-signal-info); }
+
+/* Provider card variant */
+.wdr-card--provider {
+  position: relative;
+}
+
+.wdr-card--provider__badge {
+  position: absolute;
+  top: var(--wdr-space-2);
+  right: var(--wdr-space-2);
+}

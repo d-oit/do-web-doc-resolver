@@ -1,0 +1,204 @@
+/* ==========================================================================
+   Input — web-doc-resolver
+   Text, search, URL, textarea, select, input-group
+   ========================================================================== */
+
+:root {
+  /* Base input */
+  --wdr-input-font:       var(--wdr-font-mono);
+  --wdr-input-font-size:  var(--wdr-text-sm);
+  --wdr-input-line-height: var(--wdr-leading-data);
+  --wdr-input-radius:     var(--wdr-radius-md);
+  --wdr-input-transition: var(--wdr-transition-colors), var(--wdr-transition-shadow);
+
+  /* Sizes */
+  --wdr-input-sm-h:  1.75rem;
+  --wdr-input-sm-px: var(--wdr-space-2);
+
+  --wdr-input-md-h:  2.25rem;
+  --wdr-input-md-px: var(--wdr-space-3);
+
+  --wdr-input-lg-h:  2.75rem;
+  --wdr-input-lg-px: var(--wdr-space-4);
+
+  /* Colors */
+  --wdr-input-bg:            var(--wdr-surface-bg);
+  --wdr-input-bg-disabled:   var(--wdr-surface-bg-subtle);
+  --wdr-input-border:        var(--wdr-border-default);
+  --wdr-input-border-hover:  var(--wdr-border-strong);
+  --wdr-input-border-focus:  var(--wdr-border-focus);
+  --wdr-input-border-error:  var(--wdr-border-error);
+  --wdr-input-text:          var(--wdr-text-primary);
+  --wdr-input-placeholder:   var(--wdr-text-tertiary);
+  --wdr-input-caret:         var(--wdr-interactive-bg);
+
+  /* Label */
+  --wdr-input-label-font:    var(--wdr-font-sans);
+  --wdr-input-label-size:    var(--wdr-text-label);
+  --wdr-input-label-weight:  var(--wdr-weight-medium);
+  --wdr-input-label-color:   var(--wdr-text-secondary);
+  --wdr-input-label-gap:     var(--wdr-space-1);
+
+  /* Helper / error text */
+  --wdr-input-helper-size:   var(--wdr-text-caption);
+  --wdr-input-helper-color:  var(--wdr-text-tertiary);
+  --wdr-input-error-color:   var(--wdr-signal-error);
+}
+
+/* Input group */
+.wdr-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wdr-input-label-gap);
+}
+
+/* Label */
+.wdr-input-label {
+  font-family: var(--wdr-input-label-font);
+  font-size: var(--wdr-input-label-size);
+  font-weight: var(--wdr-input-label-weight);
+  color: var(--wdr-input-label-color);
+  letter-spacing: var(--wdr-tracking-wide);
+  text-transform: uppercase;
+}
+
+.wdr-input-label--required::after {
+  content: ' *';
+  color: var(--wdr-signal-error);
+}
+
+/* Base input */
+.wdr-input {
+  font-family: var(--wdr-input-font);
+  font-size: var(--wdr-input-font-size);
+  line-height: var(--wdr-input-line-height);
+  color: var(--wdr-input-text);
+  background: var(--wdr-input-bg);
+  border: 1px solid var(--wdr-input-border);
+  border-radius: var(--wdr-input-radius);
+  caret-color: var(--wdr-input-caret);
+  transition: var(--wdr-input-transition);
+  width: 100%;
+}
+
+.wdr-input::placeholder {
+  color: var(--wdr-input-placeholder);
+}
+
+.wdr-input:hover:not(:disabled) {
+  border-color: var(--wdr-input-border-hover);
+}
+
+.wdr-input:focus {
+  outline: none;
+  border-color: var(--wdr-input-border-focus);
+  box-shadow: 0 0 0 3px oklch(0.57 0.10 230 / 0.15);
+}
+
+.wdr-input:disabled {
+  background: var(--wdr-input-bg-disabled);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+.wdr-input--sm {
+  height: var(--wdr-input-sm-h);
+  padding: 0 var(--wdr-input-sm-px);
+}
+
+.wdr-input--md {
+  height: var(--wdr-input-md-h);
+  padding: 0 var(--wdr-input-md-px);
+}
+
+.wdr-input--lg {
+  height: var(--wdr-input-lg-h);
+  padding: 0 var(--wdr-input-lg-px);
+}
+
+/* States */
+.wdr-input--error {
+  border-color: var(--wdr-input-border-error);
+}
+
+.wdr-input--error:focus {
+  box-shadow: 0 0 0 3px oklch(0.60 0.20 25 / 0.15);
+}
+
+/* Helper text */
+.wdr-input-helper {
+  font-size: var(--wdr-input-helper-size);
+  color: var(--wdr-input-helper-color);
+}
+
+.wdr-input-helper--error {
+  color: var(--wdr-input-error-color);
+}
+
+/* Textarea */
+.wdr-textarea {
+  font-family: var(--wdr-input-font);
+  font-size: var(--wdr-input-font-size);
+  line-height: var(--wdr-leading-normal);
+  color: var(--wdr-input-text);
+  background: var(--wdr-input-bg);
+  border: 1px solid var(--wdr-input-border);
+  border-radius: var(--wdr-input-radius);
+  padding: var(--wdr-space-2) var(--wdr-input-md-px);
+  resize: vertical;
+  min-height: 5rem;
+  width: 100%;
+}
+
+/* Select */
+.wdr-select {
+  font-family: var(--wdr-input-font);
+  font-size: var(--wdr-input-font-size);
+  color: var(--wdr-input-text);
+  background: var(--wdr-input-bg);
+  border: 1px solid var(--wdr-input-border);
+  border-radius: var(--wdr-input-radius);
+  padding-right: var(--wdr-space-8);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  cursor: pointer;
+}
+
+/* Search input with prefix icon */
+.wdr-input-search {
+  position: relative;
+}
+
+.wdr-input-search .wdr-input {
+  padding-left: var(--wdr-space-8);
+}
+
+.wdr-input-search__icon {
+  position: absolute;
+  left: var(--wdr-space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--wdr-text-tertiary);
+  pointer-events: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Inline input group (label + input + button) */
+.wdr-input-inline {
+  display: flex;
+  align-items: stretch;
+  gap: var(--wdr-space-1);
+}
+
+.wdr-input-inline > .wdr-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.wdr-input-inline > .wdr-button {
+  flex-shrink: 0;
+}

@@ -1,0 +1,181 @@
+/* ==========================================================================
+   Button — web-doc-resolver
+   5 variants: primary, secondary, ghost, danger, icon
+   3 sizes: sm, md, lg
+   ========================================================================== */
+
+/* Component tokens */
+:root {
+  /* Base button */
+  --wdr-button-font:       var(--wdr-font-sans);
+  --wdr-button-font-size:  var(--wdr-text-button);
+  --wdr-button-weight:     var(--wdr-weight-medium);
+  --wdr-button-line-height: 1;
+  --wdr-button-radius:     var(--wdr-radius-md);
+  --wdr-button-transition: var(--wdr-transition-button);
+  --wdr-button-gap:        var(--wdr-space-2);
+
+  /* Sizes */
+  --wdr-button-sm-h:       1.75rem;  /* 28px */
+  --wdr-button-sm-px:      var(--wdr-space-2);
+  --wdr-button-sm-font:    var(--wdr-text-xs);
+
+  --wdr-button-md-h:       2.25rem;  /* 36px */
+  --wdr-button-md-px:      var(--wdr-space-3);
+  --wdr-button-md-font:    var(--wdr-text-sm);
+
+  --wdr-button-lg-h:       2.75rem;  /* 44px */
+  --wdr-button-lg-px:      var(--wdr-space-4);
+  --wdr-button-lg-font:    var(--wdr-text-base);
+
+  /* Primary */
+  --wdr-button-primary-bg:       var(--wdr-interactive-bg);
+  --wdr-button-primary-bg-hover: var(--wdr-interactive-bg-hover);
+  --wdr-button-primary-bg-active: var(--wdr-interactive-bg-active);
+  --wdr-button-primary-text:     var(--wdr-interactive-text);
+  --wdr-button-primary-border:   transparent;
+
+  /* Secondary */
+  --wdr-button-secondary-bg:       var(--wdr-surface-bg);
+  --wdr-button-secondary-bg-hover: var(--wdr-surface-bg-subtle);
+  --wdr-button-secondary-bg-active: var(--wdr-surface-bg-muted);
+  --wdr-button-secondary-text:     var(--wdr-text-primary);
+  --wdr-button-secondary-border:   var(--wdr-border-default);
+
+  /* Ghost */
+  --wdr-button-ghost-bg:       transparent;
+  --wdr-button-ghost-bg-hover: var(--wdr-interactive-bg-subtle);
+  --wdr-button-ghost-text:     var(--wdr-text-secondary);
+  --wdr-button-ghost-text-hover: var(--wdr-text-primary);
+
+  /* Danger */
+  --wdr-button-danger-bg:       var(--wdr-color-error);
+  --wdr-button-danger-bg-hover: oklch(0.55 0.22 25);
+  --wdr-button-danger-text:     var(--wdr-color-neutral-0);
+
+  /* Icon button */
+  --wdr-button-icon-size:  1.5rem;  /* 24px touch target */
+  --wdr-button-icon-radius: var(--wdr-radius-md);
+}
+
+/* Base styles */
+.wdr-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wdr-button-gap);
+  font-family: var(--wdr-button-font);
+  font-weight: var(--wdr-button-weight);
+  line-height: var(--wdr-button-line-height);
+  border: 1px solid transparent;
+  border-radius: var(--wdr-button-radius);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: var(--wdr-button-transition);
+  text-decoration: none;
+}
+
+.wdr-button:focus-visible {
+  outline: 2px solid var(--wdr-border-focus);
+  outline-offset: 2px;
+}
+
+.wdr-button:disabled,
+.wdr-button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Sizes */
+.wdr-button--sm {
+  height: var(--wdr-button-sm-h);
+  padding: 0 var(--wdr-button-sm-px);
+  font-size: var(--wdr-button-sm-font);
+}
+
+.wdr-button--md {
+  height: var(--wdr-button-md-h);
+  padding: 0 var(--wdr-button-md-px);
+  font-size: var(--wdr-button-md-font);
+}
+
+.wdr-button--lg {
+  height: var(--wdr-button-lg-h);
+  padding: 0 var(--wdr-button-lg-px);
+  font-size: var(--wdr-button-lg-font);
+}
+
+/* Variants */
+.wdr-button--primary {
+  background: var(--wdr-button-primary-bg);
+  color: var(--wdr-button-primary-text);
+  border-color: var(--wdr-button-primary-border);
+}
+
+.wdr-button--primary:hover  { background: var(--wdr-button-primary-bg-hover); }
+.wdr-button--primary:active { background: var(--wdr-button-primary-bg-active); }
+
+.wdr-button--secondary {
+  background: var(--wdr-button-secondary-bg);
+  color: var(--wdr-button-secondary-text);
+  border-color: var(--wdr-button-secondary-border);
+}
+
+.wdr-button--secondary:hover  { background: var(--wdr-button-secondary-bg-hover); }
+.wdr-button--secondary:active { background: var(--wdr-button-secondary-bg-active); }
+
+.wdr-button--ghost {
+  background: var(--wdr-button-ghost-bg);
+  color: var(--wdr-button-ghost-text);
+}
+
+.wdr-button--ghost:hover  { background: var(--wdr-button-ghost-bg-hover); color: var(--wdr-button-ghost-text-hover); }
+.wdr-button--ghost:active { background: var(--wdr-interactive-bg-subtle-hover); }
+
+.wdr-button--danger {
+  background: var(--wdr-button-danger-bg);
+  color: var(--wdr-button-danger-text);
+}
+
+.wdr-button--danger:hover  { background: var(--wdr-button-danger-bg-hover); }
+
+/* Icon button */
+.wdr-button--icon {
+  width: var(--wdr-button-icon-size);
+  height: var(--wdr-button-icon-size);
+  padding: 0;
+  border-radius: var(--wdr-button-icon-radius);
+  background: transparent;
+  color: var(--wdr-text-secondary);
+}
+
+.wdr-button--icon:hover { background: var(--wdr-interactive-bg-subtle); color: var(--wdr-text-primary); }
+
+.wdr-button--icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Loading state */
+.wdr-button--loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.wdr-button--loading::after {
+  content: '';
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--wdr-radius-full);
+  animation: wdr-spin 0.6s linear infinite;
+}
+
+@keyframes wdr-spin {
+  to { transform: rotate(360deg); }
+}

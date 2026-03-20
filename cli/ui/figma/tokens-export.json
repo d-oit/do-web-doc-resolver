@@ -1,0 +1,154 @@
+{
+  "$schema": "https://figma.com/variables-export-schema",
+  "version": "1.0.0",
+  "exportedAt": "2026-03-20T00:00:00.000Z",
+  "source": "Figma Variables",
+  "targetFormat": "style-dictionary/4",
+  "description": "web-doc-resolver design tokens — Figma Variables export for Style Dictionary transformation",
+
+  "collections": {
+    "web-doc-resolver": {
+      "modes": ["light", "dark"],
+      "variableScopes": ["ALL_SCOPES"],
+
+      "primitive": {
+        "color": {
+          "ocean": {
+            "50":  { "light": "oklch(0.97 0.01 230)", "dark": "oklch(0.97 0.01 230)" },
+            "100": { "light": "oklch(0.93 0.02 230)", "dark": "oklch(0.93 0.02 230)" },
+            "200": { "light": "oklch(0.87 0.04 230)", "dark": "oklch(0.87 0.04 230)" },
+            "300": { "light": "oklch(0.77 0.06 230)", "dark": "oklch(0.77 0.06 230)" },
+            "400": { "light": "oklch(0.67 0.08 230)", "dark": "oklch(0.67 0.08 230)" },
+            "500": { "light": "oklch(0.57 0.10 230)", "dark": "oklch(0.57 0.10 230)" },
+            "600": { "light": "oklch(0.47 0.12 230)", "dark": "oklch(0.47 0.12 230)" },
+            "700": { "light": "oklch(0.37 0.10 230)", "dark": "oklch(0.37 0.10 230)" },
+            "800": { "light": "oklch(0.27 0.08 230)", "dark": "oklch(0.27 0.08 230)" },
+            "900": { "light": "oklch(0.18 0.06 230)", "dark": "oklch(0.18 0.06 230)" },
+            "950": { "light": "oklch(0.10 0.04 230)", "dark": "oklch(0.10 0.04 230)" }
+          },
+          "deep": {
+            "500": { "light": "oklch(0.52 0.12 260)", "dark": "oklch(0.52 0.12 260)" },
+            "600": { "light": "oklch(0.42 0.14 260)", "dark": "oklch(0.42 0.14 260)" },
+            "700": { "light": "oklch(0.32 0.12 260)", "dark": "oklch(0.32 0.12 260)" }
+          },
+          "foam": {
+            "400": { "light": "oklch(0.67 0.11 185)", "dark": "oklch(0.67 0.11 185)" },
+            "500": { "light": "oklch(0.58 0.12 185)", "dark": "oklch(0.58 0.12 185)" }
+          },
+          "neutral": {
+            "0":   { "light": "oklch(1.00 0 0)",     "dark": "oklch(1.00 0 0)" },
+            "50":  { "light": "oklch(0.97 0.005 240)", "dark": "oklch(0.97 0.005 240)" },
+            "100": { "light": "oklch(0.93 0.008 240)", "dark": "oklch(0.93 0.008 240)" },
+            "200": { "light": "oklch(0.87 0.010 240)", "dark": "oklch(0.87 0.010 240)" },
+            "900": { "light": "oklch(0.18 0.004 240)", "dark": "oklch(0.18 0.004 240)" },
+            "950": { "light": "oklch(0.12 0.003 240)", "dark": "oklch(0.12 0.003 240)" }
+          },
+          "signal": {
+            "success": { "light": "oklch(0.65 0.18 155)", "dark": "oklch(0.65 0.18 155)" },
+            "warning": { "light": "oklch(0.75 0.14 85)",  "dark": "oklch(0.75 0.14 85)" },
+            "error":   { "light": "oklch(0.60 0.20 25)",  "dark": "oklch(0.60 0.20 25)" },
+            "info":    { "light": "oklch(0.70 0.10 230)", "dark": "oklch(0.70 0.10 230)" }
+          }
+        },
+        "spacing": {
+          "0":  { "value": "0" },
+          "1":  { "value": "0.25rem" },
+          "2":  { "value": "0.5rem" },
+          "3":  { "value": "0.75rem" },
+          "4":  { "value": "1rem" },
+          "6":  { "value": "1.5rem" },
+          "8":  { "value": "2rem" },
+          "12": { "value": "3rem" },
+          "16": { "value": "4rem" }
+        },
+        "radius": {
+          "none": { "value": "0" },
+          "sm":   { "value": "0.25rem" },
+          "md":   { "value": "0.5rem" },
+          "lg":   { "value": "0.75rem" },
+          "xl":   { "value": "1rem" },
+          "full": { "value": "9999px" }
+        }
+      },
+
+      "semantic": {
+        "surface": {
+          "bg":          { "light": "{primitive.color.neutral.0}",   "dark": "{primitive.color.neutral.950}" },
+          "bg-subtle":   { "light": "{primitive.color.neutral.50}",  "dark": "{primitive.color.neutral.900}" },
+          "bg-muted":    { "light": "{primitive.color.neutral.100}", "dark": "{primitive.color.neutral.800}" },
+          "bg-elevated": { "light": "{primitive.color.neutral.0}",   "dark": "{primitive.color.neutral.900}" }
+        },
+        "text": {
+          "primary":   { "light": "{primitive.color.neutral.900}", "dark": "{primitive.color.neutral.100}" },
+          "secondary": { "light": "{primitive.color.neutral.600}", "dark": "{primitive.color.neutral.400}" },
+          "tertiary":  { "light": "{primitive.color.neutral.400}", "dark": "{primitive.color.neutral.600}" }
+        },
+        "border": {
+          "default": { "light": "{primitive.color.neutral.200}", "dark": "{primitive.color.neutral.700}" },
+          "focus":   { "light": "{primitive.color.ocean.500}",   "dark": "{primitive.color.ocean.400}" }
+        },
+        "interactive": {
+          "bg":        { "light": "{primitive.color.ocean.600}", "dark": "{primitive.color.ocean.500}" },
+          "bg-hover":  { "light": "{primitive.color.ocean.700}", "dark": "{primitive.color.ocean.400}" },
+          "text":      { "light": "{primitive.color.neutral.0}",  "dark": "{primitive.color.neutral.0}" }
+        }
+      },
+
+      "component": {
+        "button": {
+          "primary-bg":       { "light": "{semantic.interactive.bg}",       "dark": "{semantic.interactive.bg}" },
+          "primary-bg-hover": { "light": "{semantic.interactive.bg-hover}", "dark": "{semantic.interactive.bg-hover}" },
+          "primary-text":     { "light": "{semantic.interactive.text}",     "dark": "{semantic.interactive.text}" },
+          "radius":           { "value": "{primitive.radius.md}" },
+          "sm-height":        { "value": "1.75rem" },
+          "md-height":        { "value": "2.25rem" },
+          "lg-height":        { "value": "2.75rem" }
+        },
+        "stepper": {
+          "running-color":  { "light": "{primitive.color.foam.500}",  "dark": "{primitive.color.foam.500}" },
+          "complete-color": { "light": "{primitive.color.signal.success}", "dark": "{primitive.color.signal.success}" },
+          "failed-color":   { "light": "{primitive.color.signal.error}",   "dark": "{primitive.color.signal.error}" }
+        },
+        "sidebar": {
+          "bg":          { "light": "oklch(0.10 0.04 230)",  "dark": "oklch(0.10 0.04 230)" },
+          "text":        { "light": "{primitive.color.ocean.200}", "dark": "{primitive.color.ocean.200)" },
+          "text-active": { "light": "{primitive.color.neutral.0}",  "dark": "{primitive.color.neutral.0}" },
+          "accent":      { "light": "{primitive.color.foam.400}",   "dark": "{primitive.color.foam.400}" }
+        }
+      }
+    }
+  },
+
+  "styleDictionaryConfig": {
+    "source": ["cli/ui/tokens/**/*.css"],
+    "platforms": {
+      "css": {
+        "transformGroup": "css",
+        "buildPath": "cli/ui/dist/",
+        "files": [{
+          "destination": "tokens.css",
+          "format": "css/variables",
+          "options": {
+            "outputReferences": true
+          }
+        }]
+      },
+      "json": {
+        "transformGroup": "js",
+        "buildPath": "cli/ui/dist/",
+        "files": [{
+          "destination": "tokens.json",
+          "format": "json/nested"
+        }]
+      },
+      "rust": {
+        "transformGroup": "js",
+        "buildPath": "cli/src/tokens/",
+        "files": [{
+          "destination": "tokens.rs",
+          "format": "custom/rust-constants"
+        }]
+      }
+    }
+  }
+}

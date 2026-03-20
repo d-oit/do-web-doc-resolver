@@ -1,0 +1,38 @@
+/* web-doc-resolver — Dark mode token overrides */
+/* This file is imported after globals.css to override semantic tokens */
+
+/* OS preference sync */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* Manual override via data-theme attribute */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Light mode forced */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  :root {
+    --wdr-interactive-bg: Highlight;
+    --wdr-interactive-text: HighlightText;
+    --wdr-border-default: CanvasText;
+    --wdr-signal-success: LinkText;
+    --wdr-signal-error: Mark;
+  }
+
+  * {
+    forced-color-adjust: none;
+  }
+
+  button, a, input, select, textarea {
+    forced-color-adjust: auto;
+  }
+}

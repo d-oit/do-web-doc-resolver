@@ -1,0 +1,200 @@
+/* ==========================================================================
+   Tooltip — web-doc-resolver
+   Hover/focus supplementary info. CSS-only, no JS.
+   4 positions: top, bottom, left, right
+   ========================================================================== */
+
+:root {
+  --wdr-tooltip-bg:       var(--wdr-surface-bg-elevated);
+  --wdr-tooltip-text:     var(--wdr-text-primary);
+  --wdr-tooltip-border:   var(--wdr-border-default);
+  --wdr-tooltip-font:     var(--wdr-font-sans);
+  --wdr-tooltip-font-size: var(--wdr-text-sm);
+  --wdr-tooltip-radius:   var(--wdr-radius-md);
+  --wdr-tooltip-shadow:   var(--wdr-shadow-md);
+  --wdr-tooltip-max-width: 320px;
+  --wdr-tooltip-padding-x: var(--wdr-space-2);
+  --wdr-tooltip-padding-y: var(--wdr-space-1);
+  --wdr-tooltip-offset:   8px;
+  --wdr-tooltip-arrow-size: 6px;
+  --wdr-tooltip-z:        200;
+  --wdr-tooltip-show-delay: 300ms;
+  --wdr-tooltip-hide-delay: 100ms;
+  --wdr-tooltip-transition: opacity var(--wdr-duration-fast) var(--wdr-ease-out);
+}
+
+.wdr-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+.wdr-tooltip__content {
+  position: absolute;
+  z-index: var(--wdr-tooltip-z);
+  max-width: var(--wdr-tooltip-max-width);
+  padding: var(--wdr-tooltip-padding-y) var(--wdr-tooltip-padding-x);
+  background: var(--wdr-tooltip-bg);
+  color: var(--wdr-tooltip-text);
+  font-family: var(--wdr-tooltip-font);
+  font-size: var(--wdr-tooltip-font-size);
+  line-height: var(--wdr-leading-normal, 1.5);
+  border: 1px solid var(--wdr-tooltip-border);
+  border-radius: var(--wdr-tooltip-radius);
+  box-shadow: var(--wdr-tooltip-shadow);
+  pointer-events: none;
+  opacity: 0;
+  transition: var(--wdr-tooltip-transition);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.wdr-tooltip__trigger:hover + .wdr-tooltip__content,
+.wdr-tooltip__trigger:focus + .wdr-tooltip__content,
+.wdr-tooltip__trigger:focus-visible + .wdr-tooltip__content {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.wdr-tooltip__trigger:hover + .wdr-tooltip__content,
+.wdr-tooltip__trigger:focus + .wdr-tooltip__content {
+  transition-delay: var(--wdr-tooltip-show-delay);
+}
+
+.wdr-tooltip__trigger:not(:hover):not(:focus) + .wdr-tooltip__content {
+  transition-delay: var(--wdr-tooltip-hide-delay);
+}
+
+.wdr-tooltip__trigger:focus-visible + .wdr-tooltip__content {
+  transition-delay: 0ms;
+}
+
+.wdr-tooltip__content:has(.wdr-tooltip__trigger:focus-visible) {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 0ms;
+}
+
+/* Arrow */
+.wdr-tooltip__content::before,
+.wdr-tooltip__content::after {
+  content: '';
+  position: absolute;
+  border: var(--wdr-tooltip-arrow-size) solid transparent;
+}
+
+.wdr-tooltip__content::before {
+  border-color: var(--wdr-tooltip-border);
+}
+
+.wdr-tooltip__content::after {
+  border-color: var(--wdr-tooltip-bg);
+}
+
+/* Top */
+.wdr-tooltip--top .wdr-tooltip__content {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: var(--wdr-tooltip-offset);
+}
+
+.wdr-tooltip--top .wdr-tooltip__content::before {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: var(--wdr-tooltip-border);
+  border-bottom: none;
+}
+
+.wdr-tooltip--top .wdr-tooltip__content::after {
+  top: calc(100% - 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: var(--wdr-tooltip-bg);
+  border-bottom: none;
+}
+
+/* Bottom */
+.wdr-tooltip--bottom .wdr-tooltip__content {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: var(--wdr-tooltip-offset);
+}
+
+.wdr-tooltip--bottom .wdr-tooltip__content::before {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: var(--wdr-tooltip-border);
+  border-top: none;
+}
+
+.wdr-tooltip--bottom .wdr-tooltip__content::after {
+  bottom: calc(100% - 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: var(--wdr-tooltip-bg);
+  border-top: none;
+}
+
+/* Left */
+.wdr-tooltip--left .wdr-tooltip__content {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: var(--wdr-tooltip-offset);
+}
+
+.wdr-tooltip--left .wdr-tooltip__content::before {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: var(--wdr-tooltip-border);
+  border-right: none;
+}
+
+.wdr-tooltip--left .wdr-tooltip__content::after {
+  left: calc(100% - 1px);
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: var(--wdr-tooltip-bg);
+  border-right: none;
+}
+
+/* Right */
+.wdr-tooltip--right .wdr-tooltip__content {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: var(--wdr-tooltip-offset);
+}
+
+.wdr-tooltip--right .wdr-tooltip__content::before {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: var(--wdr-tooltip-border);
+  border-left: none;
+}
+
+.wdr-tooltip--right .wdr-tooltip__content::after {
+  right: calc(100% - 1px);
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: var(--wdr-tooltip-bg);
+  border-left: none;
+}
+
+/* Escape key dismiss via focus-within fallback */
+.wdr-tooltip:has(.wdr-tooltip__trigger:focus-visible) .wdr-tooltip__content {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wdr-tooltip__content {
+    transition: none;
+  }
+}

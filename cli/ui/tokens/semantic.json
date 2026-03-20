@@ -1,0 +1,114 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "$name": "web-doc-resolver semantic tokens",
+  "$description": "Intent-based aliases referencing primitives. Components reference these, never raw values.",
+  "surface": {
+    "bg": {
+      "$value": "{color.neutral.50}",
+      "$type": "color",
+      "$description": "Primary surface background"
+    },
+    "bg-elevated": {
+      "$value": "{color.neutral.100}",
+      "$type": "color",
+      "$description": "Elevated surfaces: cards, popovers, modals"
+    },
+    "bg-sunken": {
+      "$value": "{color.neutral.200}",
+      "$type": "color",
+      "$description": "Sunken surfaces: inputs, code blocks"
+    },
+    "bg-overlay": {
+      "$value": "oklch(0 0 0 / 0.5)",
+      "$type": "color",
+      "$description": "Modal overlay backdrop"
+    }
+  },
+  "text": {
+    "primary": {
+      "$value": "{color.neutral.900}",
+      "$type": "color"
+    },
+    "secondary": {
+      "$value": "{color.neutral.600}",
+      "$type": "color"
+    },
+    "tertiary": {
+      "$value": "{color.neutral.400}",
+      "$type": "color"
+    },
+    "inverse": {
+      "$value": "{color.neutral.50}",
+      "$type": "color"
+    },
+    "link": {
+      "$value": "{color.ocean.600}",
+      "$type": "color"
+    }
+  },
+  "interactive": {
+    "bg": {
+      "$value": "{color.ocean.600}",
+      "$type": "color",
+      "$description": "Primary interactive background: buttons, active nav"
+    },
+    "bg-hover": {
+      "$value": "{color.ocean.700}",
+      "$type": "color"
+    },
+    "bg-active": {
+      "$value": "{color.ocean.800}",
+      "$type": "color"
+    },
+    "bg-disabled": {
+      "$value": "{color.neutral.200}",
+      "$type": "color"
+    },
+    "text": {
+      "$value": "{color.neutral.50}",
+      "$type": "color",
+      "$description": "Text on interactive backgrounds"
+    },
+    "border": {
+      "$value": "{color.ocean.400}",
+      "$type": "color"
+    },
+    "border-focus": {
+      "$value": "{color.ocean.500}",
+      "$type": "color",
+      "$description": "Focus ring color"
+    }
+  },
+  "border": {
+    "default": {
+      "$value": "{color.neutral.200}",
+      "$type": "color"
+    },
+    "subtle": {
+      "$value": "{color.neutral.100}",
+      "$type": "color"
+    },
+    "strong": {
+      "$value": "{color.neutral.300}",
+      "$type": "color"
+    }
+  },
+  "signal": {
+    "success": { "$value": "{color.success.500}", "$type": "color" },
+    "warning": { "$value": "{color.warning.500}", "$type": "color" },
+    "error":   { "$value": "{color.error.500}", "$type": "color" },
+    "info":    { "$value": "{color.ocean.500}", "$type": "color" }
+  },
+  "data": {
+    "row-hover":    { "$value": "{color.neutral.100}", "$type": "color" },
+    "row-selected": { "$value": "oklch(0.95 0.02 230)", "$type": "color" },
+    "row-stripe":   { "$value": "oklch(0.97 0.005 230)", "$type": "color" }
+  },
+  "pipeline": {
+    "pending":   { "$value": "{color.neutral.400}", "$type": "color" },
+    "running":   { "$value": "{color.ocean.500}", "$type": "color" },
+    "streaming": { "$value": "{color.foam.500}", "$type": "color" },
+    "complete":  { "$value": "{color.success.500}", "$type": "color" },
+    "failed":    { "$value": "{color.error.500}", "$type": "color" }
+  }
+}

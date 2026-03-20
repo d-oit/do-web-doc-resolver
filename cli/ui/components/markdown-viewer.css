@@ -1,0 +1,209 @@
+/* ==========================================================================
+   MarkdownViewer — web-doc-resolver
+   Rendered markdown output pane
+   Optimized for technical docs: code, tables, inline code, headings
+   ========================================================================== */
+
+:root {
+  --wdr-md-font:          var(--wdr-font-sans);
+  --wdr-md-font-size:     var(--wdr-text-base);
+  --wdr-md-line-height:   var(--wdr-leading-loose);
+  --wdr-md-color:         var(--wdr-text-primary);
+  --wdr-md-max-width:     50rem; /* 800px — optimal reading width */
+
+  --wdr-md-heading-weight: var(--wdr-weight-semibold);
+  --wdr-md-heading-color:  var(--wdr-text-primary);
+  --wdr-md-heading-border: var(--wdr-border-subtle);
+
+  --wdr-md-link-color:     var(--wdr-text-link);
+  --wdr-md-link-hover:     var(--wdr-text-link-hover);
+
+  --wdr-md-code-bg:        var(--wdr-surface-bg-sunken);
+  --wdr-md-code-color:     var(--wdr-text-primary);
+  --wdr-md-code-radius:    var(--wdr-radius-sm);
+  --wdr-code-block-bg:     oklch(0.14 0.01 240);
+
+  --wdr-md-blockquote-border: var(--wdr-color-ocean-400);
+  --wdr-md-blockquote-color:  var(--wdr-text-secondary);
+
+  --wdr-md-table-border:   var(--wdr-border-default);
+  --wdr-md-table-header-bg: var(--wdr-surface-bg-subtle);
+
+  --wdr-md-hr-color:       var(--wdr-border-subtle);
+
+  --wdr-md-img-radius:     var(--wdr-radius-md);
+
+  --wdr-md-list-indent:    var(--wdr-space-6);
+  --wdr-md-list-gap:       var(--wdr-space-1);
+}
+
+.wdr-markdown {
+  font-family: var(--wdr-md-font);
+  font-size: var(--wdr-md-font-size);
+  line-height: var(--wdr-md-line-height);
+  color: var(--wdr-md-color);
+  max-width: var(--wdr-md-max-width);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Headings */
+.wdr-markdown h1,
+.wdr-markdown h2,
+.wdr-markdown h3,
+.wdr-markdown h4,
+.wdr-markdown h5,
+.wdr-markdown h6 {
+  font-weight: var(--wdr-md-heading-weight);
+  color: var(--wdr-md-heading-color);
+  margin-top: var(--wdr-stack-lg);
+  margin-bottom: var(--wdr-stack-sm);
+  line-height: var(--wdr-leading-tight);
+}
+
+.wdr-markdown h1 { font-size: var(--wdr-text-2xl); border-bottom: 1px solid var(--wdr-md-heading-border); padding-bottom: var(--wdr-space-2); }
+.wdr-markdown h2 { font-size: var(--wdr-text-xl); border-bottom: 1px solid var(--wdr-md-heading-border); padding-bottom: var(--wdr-space-1); }
+.wdr-markdown h3 { font-size: var(--wdr-text-lg); }
+.wdr-markdown h4 { font-size: var(--wdr-text-md); }
+
+.wdr-markdown h1:first-child,
+.wdr-markdown h2:first-child {
+  margin-top: 0;
+}
+
+/* Paragraphs */
+.wdr-markdown p {
+  margin-bottom: var(--wdr-stack-md);
+}
+
+/* Links */
+.wdr-markdown a {
+  color: var(--wdr-md-link-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: var(--wdr-transition-colors);
+}
+
+.wdr-markdown a:hover {
+  color: var(--wdr-md-link-hover);
+}
+
+/* Inline code */
+.wdr-markdown code {
+  font-family: var(--wdr-font-mono);
+  font-size: 0.9em;
+  background: var(--wdr-md-code-bg);
+  color: var(--wdr-md-code-color);
+  padding: 0.15em 0.4em;
+  border-radius: var(--wdr-md-code-radius);
+}
+
+/* Code blocks */
+.wdr-markdown pre {
+  background: var(--wdr-code-block-bg);
+  border-radius: var(--wdr-radius-md);
+  padding: var(--wdr-space-4);
+  overflow-x: auto;
+  margin-bottom: var(--wdr-stack-md);
+  border: 1px solid var(--wdr-border-subtle);
+}
+
+.wdr-markdown pre code {
+  background: none;
+  padding: 0;
+  font-size: var(--wdr-text-code);
+  line-height: var(--wdr-leading-data);
+  color: var(--wdr-color-ocean-200);
+}
+
+/* Blockquote */
+.wdr-markdown blockquote {
+  border-left: 3px solid var(--wdr-md-blockquote-border);
+  color: var(--wdr-md-blockquote-color);
+  padding: var(--wdr-space-2) var(--wdr-space-4);
+  margin: 0 0 var(--wdr-stack-md) 0;
+}
+
+.wdr-markdown blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Lists */
+.wdr-markdown ul,
+.wdr-markdown ol {
+  padding-left: var(--wdr-md-list-indent);
+  margin-bottom: var(--wdr-stack-md);
+}
+
+.wdr-markdown li {
+  margin-bottom: var(--wdr-md-list-gap);
+}
+
+.wdr-markdown li > ul,
+.wdr-markdown li > ol {
+  margin-bottom: 0;
+}
+
+/* Tables */
+.wdr-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--wdr-text-sm);
+  margin-bottom: var(--wdr-stack-md);
+}
+
+.wdr-markdown th,
+.wdr-markdown td {
+  border: 1px solid var(--wdr-md-table-border);
+  padding: var(--wdr-space-1_5) var(--wdr-space-3);
+  text-align: left;
+}
+
+.wdr-markdown th {
+  background: var(--wdr-md-table-header-bg);
+  font-weight: var(--wdr-weight-semibold);
+}
+
+.wdr-markdown tbody tr:nth-child(even) {
+  background: var(--wdr-data-row-alt);
+}
+
+/* Horizontal rule */
+.wdr-markdown hr {
+  border: none;
+  border-top: 1px solid var(--wdr-md-hr-color);
+  margin: var(--wdr-stack-lg) 0;
+}
+
+/* Images */
+.wdr-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--wdr-md-img-radius);
+}
+
+/* Definition lists */
+.wdr-markdown dt {
+  font-weight: var(--wdr-weight-semibold);
+  margin-top: var(--wdr-space-3);
+}
+
+.wdr-markdown dd {
+  padding-left: var(--wdr-space-4);
+  color: var(--wdr-text-secondary);
+}
+
+/* Task lists */
+.wdr-markdown input[type="checkbox"] {
+  margin-right: var(--wdr-space-2);
+  accent-color: var(--wdr-interactive-bg);
+}
+
+/* Footnotes (if rendered) */
+.wdr-markdown .footnotes {
+  font-size: var(--wdr-text-sm);
+  border-top: 1px solid var(--wdr-md-hr-color);
+  padding-top: var(--wdr-space-4);
+  margin-top: var(--wdr-stack-lg);
+  color: var(--wdr-text-secondary);
+}

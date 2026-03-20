@@ -1,0 +1,66 @@
+/* web-doc-resolver — Global styles */
+@import "tailwindcss";
+@import "../tokens/semantic.css";
+
+@theme {
+  /* Colors — reference CSS custom properties */
+  --color-interactive: var(--wdr-interactive-bg);
+  --color-interactive-hover: var(--wdr-interactive-bg-hover);
+  --color-interactive-active: var(--wdr-interactive-bg-active);
+  --color-interactive-disabled: var(--wdr-interactive-bg-disabled);
+
+  --color-surface: var(--wdr-surface-bg);
+  --color-surface-elevated: var(--wdr-surface-bg-elevated);
+  --color-surface-sunken: var(--wdr-surface-bg-sunken);
+
+  --color-text: var(--wdr-text-primary);
+  --color-text-secondary: var(--wdr-text-secondary);
+  --color-text-tertiary: var(--wdr-text-tertiary);
+
+  --color-border: var(--wdr-border-default);
+  --color-border-focus: var(--wdr-interactive-border-focus);
+
+  --color-success: var(--wdr-signal-success);
+  --color-warning: var(--wdr-signal-warning);
+  --color-error: var(--wdr-signal-error);
+
+  --color-pipeline-pending: var(--wdr-pipeline-pending);
+  --color-pipeline-running: var(--wdr-pipeline-running);
+  --color-pipeline-streaming: var(--wdr-pipeline-streaming);
+  --color-pipeline-complete: var(--wdr-pipeline-complete);
+  --color-pipeline-failed: var(--wdr-pipeline-failed);
+
+  /* Spacing */
+  --spacing-xs: var(--wdr-space-1);
+  --spacing-sm: var(--wdr-space-2);
+  --spacing-md: var(--wdr-space-3);
+  --spacing-lg: var(--wdr-space-4);
+  --spacing-xl: var(--wdr-space-6);
+  --spacing-2xl: var(--wdr-space-8);
+
+  /* Typography */
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+}
+
+/* Base styles */
+html {
+  color-scheme: light dark;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

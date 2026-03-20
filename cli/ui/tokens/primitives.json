@@ -1,0 +1,83 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "$name": "web-doc-resolver primitives",
+  "$description": "Figma-exported raw values. Do not edit manually — export from Figma Variables.",
+  "color": {
+    "ocean": {
+      "50":  { "$value": "oklch(0.97 0.01 230)", "$type": "color" },
+      "100": { "$value": "oklch(0.93 0.03 230)", "$type": "color" },
+      "200": { "$value": "oklch(0.86 0.06 230)", "$type": "color" },
+      "300": { "$value": "oklch(0.75 0.09 230)", "$type": "color" },
+      "400": { "$value": "oklch(0.65 0.11 230)", "$type": "color" },
+      "500": { "$value": "oklch(0.57 0.10 230)", "$type": "color" },
+      "600": { "$value": "oklch(0.47 0.12 230)", "$type": "color" },
+      "700": { "$value": "oklch(0.40 0.11 230)", "$type": "color" },
+      "800": { "$value": "oklch(0.33 0.09 230)", "$type": "color" },
+      "900": { "$value": "oklch(0.25 0.07 230)", "$type": "color" },
+      "950": { "$value": "oklch(0.18 0.05 230)", "$type": "color" }
+    },
+    "neutral": {
+      "50":  { "$value": "oklch(0.98 0.00 0)", "$type": "color" },
+      "100": { "$value": "oklch(0.95 0.00 0)", "$type": "color" },
+      "200": { "$value": "oklch(0.90 0.00 0)", "$type": "color" },
+      "300": { "$value": "oklch(0.82 0.00 0)", "$type": "color" },
+      "400": { "$value": "oklch(0.70 0.00 0)", "$type": "color" },
+      "500": { "$value": "oklch(0.55 0.00 0)", "$type": "color" },
+      "600": { "$value": "oklch(0.45 0.00 0)", "$type": "color" },
+      "700": { "$value": "oklch(0.37 0.00 0)", "$type": "color" },
+      "800": { "$value": "oklch(0.27 0.00 0)", "$type": "color" },
+      "900": { "$value": "oklch(0.20 0.00 0)", "$type": "color" },
+      "950": { "$value": "oklch(0.14 0.00 0)", "$type": "color" }
+    },
+    "success": {
+      "500": { "$value": "oklch(0.65 0.18 155)", "$type": "color" },
+      "600": { "$value": "oklch(0.55 0.16 155)", "$type": "color" }
+    },
+    "warning": {
+      "500": { "$value": "oklch(0.75 0.14 85)", "$type": "color" },
+      "600": { "$value": "oklch(0.65 0.12 85)", "$type": "color" }
+    },
+    "error": {
+      "500": { "$value": "oklch(0.60 0.20 25)", "$type": "color" },
+      "600": { "$value": "oklch(0.50 0.18 25)", "$type": "color" }
+    },
+    "foam": {
+      "500": { "$value": "oklch(0.70 0.10 195)", "$type": "color" },
+      "600": { "$value": "oklch(0.60 0.09 195)", "$type": "color" }
+    }
+  },
+  "spacing": {
+    "0":  { "$value": "0px", "$type": "dimension" },
+    "1":  { "$value": "4px", "$type": "dimension" },
+    "2":  { "$value": "8px", "$type": "dimension" },
+    "3":  { "$value": "12px", "$type": "dimension" },
+    "4":  { "$value": "16px", "$type": "dimension" },
+    "5":  { "$value": "20px", "$type": "dimension" },
+    "6":  { "$value": "24px", "$type": "dimension" },
+    "8":  { "$value": "32px", "$type": "dimension" },
+    "10": { "$value": "40px", "$type": "dimension" },
+    "12": { "$value": "48px", "$type": "dimension" },
+    "16": { "$value": "64px", "$type": "dimension" }
+  },
+  "radius": {
+    "none": { "$value": "0px", "$type": "dimension" },
+    "sm":   { "$value": "4px", "$type": "dimension" },
+    "md":   { "$value": "6px", "$type": "dimension" },
+    "lg":   { "$value": "8px", "$type": "dimension" },
+    "xl":   { "$value": "12px", "$type": "dimension" }
+  },
+  "shadow": {
+    "sm":   { "$value": "0 1px 2px oklch(0 0 0 / 0.05)", "$type": "shadow" },
+    "md":   { "$value": "0 4px 6px oklch(0 0 0 / 0.07)", "$type": "shadow" },
+    "lg":   { "$value": "0 10px 15px oklch(0 0 0 / 0.10)", "$type": "shadow" }
+  },
+  "font": {
+    "sans":  { "$value": "Inter, system-ui, -apple-system, sans-serif", "$type": "fontFamily" },
+    "mono":  { "$value": "JetBrains Mono, ui-monospace, monospace", "$type": "fontFamily" }
+  },
+  "motion": {
+    "fast":    { "$value": "100ms", "$type": "duration" },
+    "normal":  { "$value": "200ms", "$type": "duration" },
+    "slow":    { "$value": "300ms", "$type": "duration" }
+  }
+}

@@ -1,0 +1,229 @@
+/* ==========================================================================
+   DataTable — web-doc-resolver
+   Dense tabular data: provider lists, cache entries, result metadata
+   Optimized for scanning, not aesthetics
+   ========================================================================== */
+
+:root {
+  --wdr-table-font:       var(--wdr-font-mono);
+  --wdr-table-font-size:  var(--wdr-text-table);
+  --wdr-table-line-height: var(--wdr-leading-data);
+
+  --wdr-table-row-h:      var(--wdr-compact-row);     /* 24px default */
+  --wdr-table-row-h-dense: var(--wdr-dense-row);       /* 20px dense */
+
+  --wdr-table-cell-px:    var(--wdr-space-2);
+  --wdr-table-cell-py:    var(--wdr-space-1);
+
+  --wdr-table-header-bg:      var(--wdr-data-header-bg);
+  --wdr-table-header-weight:  var(--wdr-weight-semibold);
+  --wdr-table-header-color:   var(--wdr-text-secondary);
+  --wdr-table-header-border:  var(--wdr-border-default);
+
+  --wdr-table-row-bg:         var(--wdr-surface-bg);
+  --wdr-table-row-alt-bg:     var(--wdr-data-row-alt);
+  --wdr-table-row-hover-bg:   var(--wdr-data-row-hover);
+  --wdr-table-row-selected-bg: var(--wdr-data-row-selected);
+
+  --wdr-table-border:         var(--wdr-data-grid-line);
+  --wdr-table-radius:         var(--wdr-radius-md);
+  --wdr-table-transition:     var(--wdr-transition-colors);
+
+  --wdr-table-sort-icon-size: 0.75rem;
+  --wdr-table-sort-active:    var(--wdr-text-primary);
+  --wdr-table-sort-inactive:  var(--wdr-text-tertiary);
+
+  --wdr-table-cell-color:     var(--wdr-text-primary);
+  --wdr-table-cell-muted:     var(--wdr-text-tertiary);
+  --wdr-table-cell-mono:      var(--wdr-font-mono);
+}
+
+.wdr-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--wdr-table-border);
+  border-radius: var(--wdr-table-radius);
+  background: var(--wdr-table-row-bg);
+}
+
+.wdr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--wdr-table-font);
+  font-size: var(--wdr-table-font-size);
+  line-height: var(--wdr-table-line-height);
+}
+
+/* Header */
+.wdr-table thead {
+  background: var(--wdr-table-header-bg);
+  border-bottom: 1px solid var(--wdr-table-header-border);
+}
+
+.wdr-table th {
+  padding: var(--wdr-table-cell-py) var(--wdr-table-cell-px);
+  font-weight: var(--wdr-table-header-weight);
+  color: var(--wdr-table-header-color);
+  text-align: left;
+  white-space: nowrap;
+  user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--wdr-table-header-bg);
+}
+
+/* Sortable column header */
+.wdr-table th[role="columnheader"] {
+  cursor: pointer;
+}
+
+.wdr-table th[role="columnheader"]:hover {
+  color: var(--wdr-text-primary);
+}
+
+.wdr-table th[aria-sort="ascending"]::after,
+.wdr-table th[aria-sort="descending"]::after {
+  content: '';
+  display: inline-block;
+  margin-left: var(--wdr-space-1);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  vertical-align: middle;
+}
+
+.wdr-table th[aria-sort="ascending"]::after {
+  border-bottom: 5px solid var(--wdr-table-sort-active);
+}
+
+.wdr-table th[aria-sort="descending"]::after {
+  border-top: 5px solid var(--wdr-table-sort-active);
+}
+
+/* Body rows */
+.wdr-table td {
+  padding: var(--wdr-table-cell-py) var(--wdr-table-cell-px);
+  color: var(--wdr-table-cell-color);
+  border-bottom: 1px solid var(--wdr-table-border);
+  white-space: nowrap;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wdr-table tbody tr {
+  transition: var(--wdr-table-transition);
+}
+
+.wdr-table tbody tr:nth-child(even) {
+  background: var(--wdr-table-row-alt-bg);
+}
+
+.wdr-table tbody tr:hover {
+  background: var(--wdr-table-row-hover-bg);
+}
+
+.wdr-table tbody tr[aria-selected="true"] {
+  background: var(--wdr-table-row-selected-bg);
+}
+
+/* Dense mode */
+.wdr-table--dense th,
+.wdr-table--dense td {
+  padding: var(--wdr-space-0_5) var(--wdr-space-1_5);
+}
+
+/* Compact mode — no vertical padding, even tighter */
+.wdr-table--compact th,
+.wdr-table--compact td {
+  padding: 2px var(--wdr-space-1);
+}
+
+/* Cell content variants */
+.wdr-table__cell-mono {
+  font-family: var(--wdr-table-cell-mono);
+}
+
+.wdr-table__cell-muted {
+  color: var(--wdr-table-cell-muted);
+}
+
+.wdr-table__cell-right {
+  text-align: right;
+}
+
+.wdr-table__cell-center {
+  text-align: center;
+}
+
+/* Status cell */
+.wdr-table__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wdr-space-1);
+}
+
+.wdr-table__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--wdr-radius-full);
+}
+
+.wdr-table__status-dot--success { background: var(--wdr-signal-success); }
+.wdr-table__status-dot--warning { background: var(--wdr-signal-warning); }
+.wdr-table__status-dot--error   { background: var(--wdr-signal-error); }
+.wdr-table__status-dot--info    { background: var(--wdr-signal-info); }
+.wdr-table__status-dot--neutral { background: var(--wdr-text-tertiary); }
+
+/* Duration / latency cell */
+.wdr-table__latency {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--wdr-table-cell-mono);
+}
+
+.wdr-table__latency--fast   { color: var(--wdr-signal-success); }
+.wdr-table__latency--medium { color: var(--wdr-signal-warning); }
+.wdr-table__latency--slow   { color: var(--wdr-signal-error); }
+
+/* Empty state */
+.wdr-table__empty {
+  text-align: center;
+  padding: var(--wdr-space-8) var(--wdr-space-4);
+  color: var(--wdr-text-tertiary);
+  font-family: var(--wdr-font-sans);
+  font-size: var(--wdr-text-sm);
+}
+
+/* Pagination */
+.wdr-table__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--wdr-space-2) var(--wdr-space-3);
+  border-top: 1px solid var(--wdr-table-border);
+  font-size: var(--wdr-text-xs);
+  color: var(--wdr-text-secondary);
+}
+
+/* Scroll shadow for horizontal overflow */
+.wdr-table-wrapper {
+  position: relative;
+}
+
+.wdr-table-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2rem;
+  background: linear-gradient(to right, transparent, var(--wdr-surface-bg-elevated));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--wdr-duration-fast);
+}
+
+.wdr-table-wrapper[data-scrollable]::after {
+  opacity: 1;
+}

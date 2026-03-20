@@ -1,0 +1,181 @@
+/* ==========================================================================
+   Stepper — web-doc-resolver
+   Cascade progress: shows provider fallback chain during SSE resolution
+   States: pending → running → complete | failed
+   ========================================================================== */
+
+:root {
+  --wdr-stepper-gap:           var(--wdr-space-1);
+  --wdr-stepper-step-gap:      var(--wdr-space-3);
+  --wdr-stepper-track-width:   2px;
+  --wdr-stepper-track-color:   var(--wdr-border-subtle);
+
+  /* Step indicator */
+  --wdr-stepper-indicator-size:       1.5rem;  /* 24px */
+  --wdr-stepper-indicator-font-size:  var(--wdr-text-xs);
+  --wdr-stepper-indicator-radius:     var(--wdr-radius-full);
+
+  /* Step label */
+  --wdr-stepper-label-size:   var(--wdr-text-sm);
+  --wdr-stepper-label-weight: var(--wdr-weight-medium);
+  --wdr-stepper-detail-size:  var(--wdr-text-xs);
+  --wdr-stepper-detail-color: var(--wdr-text-tertiary);
+
+  /* State colors */
+  --wdr-stepper-pending-bg:     var(--wdr-surface-bg-muted);
+  --wdr-stepper-pending-border: var(--wdr-border-default);
+  --wdr-stepper-pending-text:   var(--wdr-text-tertiary);
+
+  --wdr-stepper-running-bg:     var(--wdr-interactive-bg-subtle);
+  --wdr-stepper-running-border: var(--wdr-pipeline-running);
+  --wdr-stepper-running-text:   var(--wdr-pipeline-running);
+
+  --wdr-stepper-complete-bg:     oklch(0.95 0.04 155);
+  --wdr-stepper-complete-border: var(--wdr-pipeline-complete);
+  --wdr-stepper-complete-text:   var(--wdr-pipeline-complete);
+
+  --wdr-stepper-failed-bg:     var(--wdr-signal-error-bg);
+  --wdr-stepper-failed-border: var(--wdr-pipeline-failed);
+  --wdr-stepper-failed-text:   var(--wdr-pipeline-failed);
+
+  --wdr-stepper-streaming-bg:     var(--wdr-interactive-bg-subtle);
+  --wdr-stepper-streaming-border: var(--wdr-pipeline-streaming);
+  --wdr-stepper-streaming-text:   var(--wdr-pipeline-streaming);
+}
+
+.wdr-stepper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wdr-stepper-gap);
+}
+
+/* Individual step */
+.wdr-stepper__step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--wdr-stepper-step-gap);
+  position: relative;
+  padding-bottom: var(--wdr-stepper-gap);
+}
+
+/* Vertical track line */
+.wdr-stepper__step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--wdr-stepper-indicator-size) / 2 - var(--wdr-stepper-track-width) / 2);
+  top: var(--wdr-stepper-indicator-size);
+  bottom: 0;
+  width: var(--wdr-stepper-track-width);
+  background: var(--wdr-stepper-track-color);
+}
+
+.wdr-stepper__step--complete:not(:last-child)::before {
+  background: var(--wdr-stepper-complete-border);
+}
+
+/* Indicator circle */
+.wdr-stepper__indicator {
+  width: var(--wdr-stepper-indicator-size);
+  height: var(--wdr-stepper-indicator-size);
+  border-radius: var(--wdr-stepper-indicator-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--wdr-stepper-indicator-font-size);
+  font-weight: var(--wdr-weight-bold);
+  flex-shrink: 0;
+  border: 2px solid var(--wdr-stepper-pending-border);
+  background: var(--wdr-stepper-pending-bg);
+  color: var(--wdr-stepper-pending-text);
+  transition: var(--wdr-transition-colors);
+}
+
+/* Step states */
+.wdr-stepper__step--pending .wdr-stepper__indicator {
+  border-color: var(--wdr-stepper-pending-border);
+  background: var(--wdr-stepper-pending-bg);
+  color: var(--wdr-stepper-pending-text);
+}
+
+.wdr-stepper__step--running .wdr-stepper__indicator {
+  border-color: var(--wdr-stepper-running-border);
+  background: var(--wdr-stepper-running-bg);
+  color: var(--wdr-stepper-running-text);
+  animation: wdr-pulse-stream 1.5s ease-in-out infinite;
+}
+
+.wdr-stepper__step--complete .wdr-stepper__indicator {
+  border-color: var(--wdr-stepper-complete-border);
+  background: var(--wdr-stepper-complete-bg);
+  color: var(--wdr-stepper-complete-text);
+}
+
+.wdr-stepper__step--failed .wdr-stepper__indicator {
+  border-color: var(--wdr-stepper-failed-border);
+  background: var(--wdr-stepper-failed-bg);
+  color: var(--wdr-stepper-failed-text);
+}
+
+.wdr-stepper__step--streaming .wdr-stepper__indicator {
+  border-color: var(--wdr-stepper-streaming-border);
+  background: var(--wdr-stepper-streaming-bg);
+  color: var(--wdr-stepper-streaming-text);
+  animation: wdr-pulse-stream 1s ease-in-out infinite;
+}
+
+/* Step content */
+.wdr-stepper__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.wdr-stepper__label {
+  font-size: var(--wdr-stepper-label-size);
+  font-weight: var(--wdr-stepper-label-weight);
+  color: var(--wdr-text-primary);
+  line-height: var(--wdr-leading-tight);
+}
+
+.wdr-stepper__detail {
+  font-size: var(--wdr-stepper-detail-size);
+  color: var(--wdr-stepper-detail-color);
+  margin-top: var(--wdr-space-0_5);
+  font-family: var(--wdr-font-mono);
+}
+
+/* Token counter (SSE streaming) */
+.wdr-stepper__token-count {
+  font-family: var(--wdr-font-mono);
+  font-size: var(--wdr-text-xs);
+  color: var(--wdr-text-tertiary);
+  margin-top: var(--wdr-space-1);
+}
+
+/* Duration display */
+.wdr-stepper__duration {
+  font-family: var(--wdr-font-mono);
+  font-size: var(--wdr-text-xs);
+  color: var(--wdr-text-tertiary);
+}
+
+/* Horizontal variant */
+.wdr-stepper--horizontal {
+  flex-direction: row;
+  align-items: center;
+}
+
+.wdr-stepper--horizontal .wdr-stepper__step {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--wdr-space-1);
+  flex: 1;
+}
+
+.wdr-stepper--horizontal .wdr-stepper__step:not(:last-child)::before {
+  left: var(--wdr-stepper-indicator-size);
+  right: calc(-50% + var(--wdr-stepper-indicator-size) / 2);
+  top: calc(var(--wdr-stepper-indicator-size) / 2 - var(--wdr-stepper-track-width) / 2);
+  bottom: auto;
+  width: auto;
+  height: var(--wdr-stepper-track-width);
+}
