@@ -1,7 +1,6 @@
 {
   "rules": {
     "block-no-empty": true,
-    "no-duplicate-selectors": true,
     "no-invalid-double-slash-comments": true,
     "property-no-unknown": true,
     "selector-pseudo-element-no-unknown": true,
