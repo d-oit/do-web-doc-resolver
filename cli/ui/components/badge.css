@@ -1,8 +1,3 @@
-/* ==========================================================================
-   Badge — web-doc-resolver
-   Status indicators, provider labels, count pills, dot indicators
-   ========================================================================== */
-
 :root {
   --wdr-badge-font:        var(--wdr-font-sans);
   --wdr-badge-font-size:   var(--wdr-text-xs);

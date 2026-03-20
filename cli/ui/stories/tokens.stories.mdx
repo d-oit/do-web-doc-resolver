@@ -1,0 +1,112 @@
+import { Meta, ColorPalette, ColorItem } from '@storybook/blocks';
+import '../tokens/design_tokens.css';
+import '../tokens/typography.css';
+import '../tokens/spacing.css';
+import '../tokens/motion.css';
+
+<Meta title="Documentation/Tokens" />
+
+# Design Tokens
+
+Three-layer token system: **Primitives** → **Semantic** → **Component**.
+
+Components reference semantic tokens only — never raw primitives.
+
+## Surface Colors
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+  <div style={{ background: 'var(--wdr-surface-bg)', border: '1px solid var(--wdr-border-default)', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
+    <code>--wdr-surface-bg</code>
+  </div>
+  <div style={{ background: 'var(--wdr-surface-bg-elevated)', border: '1px solid var(--wdr-border-default)', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
+    <code>--wdr-surface-bg-elevated</code>
+  </div>
+  <div style={{ background: 'var(--wdr-surface-bg-sunken)', border: '1px solid var(--wdr-border-default)', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
+    <code>--wdr-surface-bg-sunken</code>
+  </div>
+</div>
+
+## Interactive Colors
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+  <div style={{ background: 'var(--wdr-interactive-bg)', color: 'var(--wdr-interactive-text)', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
+    <code>--wdr-interactive-bg</code>
+  </div>
+  <div style={{ background: 'var(--wdr-interactive-bg-hover)', color: 'var(--wdr-interactive-text)', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
+    <code>--wdr-interactive-bg-hover</code>
+  </div>
+  <div style={{ background: 'var(--wdr-interactive-bg-active)', color: 'var(--wdr-interactive-text)', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
+    <code>--wdr-interactive-bg-active</code>
+  </div>
+</div>
+
+## Signal Colors
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+  <div style={{ background: 'var(--wdr-signal-success-bg)', color: 'var(--wdr-signal-success)', borderRadius: '8px', padding: '1rem', textAlign: 'center', border: '1px solid var(--wdr-signal-success)' }}>
+    Success
+  </div>
+  <div style={{ background: 'var(--wdr-signal-warning-bg)', color: 'var(--wdr-signal-warning)', borderRadius: '8px', padding: '1rem', textAlign: 'center', border: '1px solid var(--wdr-signal-warning)' }}>
+    Warning
+  </div>
+  <div style={{ background: 'var(--wdr-signal-error-bg)', color: 'var(--wdr-signal-error)', borderRadius: '8px', padding: '1rem', textAlign: 'center', border: '1px solid var(--wdr-signal-error)' }}>
+    Error
+  </div>
+  <div style={{ background: 'var(--wdr-signal-info-bg)', color: 'var(--wdr-signal-info)', borderRadius: '8px', padding: '1rem', textAlign: 'center', border: '1px solid var(--wdr-signal-info)' }}>
+    Info
+  </div>
+</div>
+
+## Text Colors
+
+| Token | Usage |
+|-------|-------|
+| `--wdr-text-primary` | Headings, body text |
+| `--wdr-text-secondary` | Labels, captions |
+| `--wdr-text-tertiary` | Placeholders, disabled |
+| `--wdr-text-inverse` | Text on dark surfaces |
+| `--wdr-text-link` | Hyperlinks |
+
+## Typography
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--wdr-font-sans` | Inter, system-ui | UI text |
+| `--wdr-font-mono` | JetBrains Mono, monospace | Code, data |
+| `--wdr-text-xs` | 0.75rem | Badges, captions |
+| `--wdr-text-sm` | 0.875rem | Body, inputs |
+| `--wdr-text-md` | 1rem | Headings |
+| `--wdr-text-lg` | 1.125rem | Section titles |
+
+## Spacing Scale
+
+| Token | px | Usage |
+|-------|----|-------|
+| `--wdr-space-1` | 4 | Inline gaps |
+| `--wdr-space-2` | 8 | Tight padding |
+| `--wdr-space-3` | 12 | Default padding |
+| `--wdr-space-4` | 16 | Card padding |
+| `--wdr-space-6` | 24 | Section gaps |
+| `--wdr-space-8` | 32 | Layout margins |
+
+## Border Radius
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--wdr-radius-sm` | 4px | Badges |
+| `--wdr-radius-md` | 6px | Buttons, inputs |
+| `--wdr-radius-lg` | 8px | Cards |
+| `--wdr-radius-full` | 9999px | Pills, dots |
+
+## Motion
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--wdr-duration-fast` | 100ms | Micro-interactions |
+| `--wdr-duration-normal` | 200ms | Transitions |
+| `--wdr-duration-slow` | 300ms | Layout changes |
+| `--wdr-easing-default` | ease | General easing |
+
+## Dark Mode
+
+Toggle via Storybook toolbar. All tokens automatically invert through semantic layer — no component changes needed.

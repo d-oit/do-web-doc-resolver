@@ -1,8 +1,3 @@
-/* ==========================================================================
-   Card — web-doc-resolver
-   Content containers: result panels, config sections, provider cards
-   ========================================================================== */
-
 :root {
   --wdr-card-bg:            var(--wdr-surface-bg-elevated);
   --wdr-card-border:        var(--wdr-border-default);
@@ -56,13 +51,11 @@
   border-width: 1px;
 }
 
-/* Compact variant for data-dense layouts */
 .wdr-card--compact {
   padding: var(--wdr-space-2);
   gap: var(--wdr-space-2);
 }
 
-/* Header */
 .wdr-card__header {
   display: flex;
   align-items: center;
@@ -85,12 +78,10 @@
   margin-top: var(--wdr-space-1);
 }
 
-/* Body */
 .wdr-card__body {
   flex: 1;
 }
 
-/* Footer */
 .wdr-card__footer {
   display: flex;
   align-items: center;
@@ -100,13 +91,11 @@
   border-top: 1px solid var(--wdr-card-footer-border);
 }
 
-/* Status indicator on card edge */
 .wdr-card--status-success { border-left: 3px solid var(--wdr-signal-success); }
 .wdr-card--status-warning { border-left: 3px solid var(--wdr-signal-warning); }
 .wdr-card--status-error   { border-left: 3px solid var(--wdr-signal-error); }
 .wdr-card--status-info    { border-left: 3px solid var(--wdr-signal-info); }
 
-/* Provider card variant */
 .wdr-card--provider {
   position: relative;
 }

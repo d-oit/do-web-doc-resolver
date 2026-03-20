@@ -1,27 +1,18 @@
-/* ==========================================================================
-   Stepper — web-doc-resolver
-   Cascade progress: shows provider fallback chain during SSE resolution
-   States: pending → running → complete | failed
-   ========================================================================== */
-
 :root {
   --wdr-stepper-gap:           var(--wdr-space-1);
   --wdr-stepper-step-gap:      var(--wdr-space-3);
   --wdr-stepper-track-width:   2px;
   --wdr-stepper-track-color:   var(--wdr-border-subtle);
 
-  /* Step indicator */
-  --wdr-stepper-indicator-size:       1.5rem;  /* 24px */
+  --wdr-stepper-indicator-size:       1.5rem;
   --wdr-stepper-indicator-font-size:  var(--wdr-text-xs);
   --wdr-stepper-indicator-radius:     var(--wdr-radius-full);
 
-  /* Step label */
   --wdr-stepper-label-size:   var(--wdr-text-sm);
   --wdr-stepper-label-weight: var(--wdr-weight-medium);
   --wdr-stepper-detail-size:  var(--wdr-text-xs);
   --wdr-stepper-detail-color: var(--wdr-text-tertiary);
 
-  /* State colors */
   --wdr-stepper-pending-bg:     var(--wdr-surface-bg-muted);
   --wdr-stepper-pending-border: var(--wdr-border-default);
   --wdr-stepper-pending-text:   var(--wdr-text-tertiary);
@@ -49,7 +40,6 @@
   gap: var(--wdr-stepper-gap);
 }
 
-/* Individual step */
 .wdr-stepper__step {
   display: flex;
   align-items: flex-start;
@@ -58,7 +48,6 @@
   padding-bottom: var(--wdr-stepper-gap);
 }
 
-/* Vertical track line */
 .wdr-stepper__step:not(:last-child)::before {
   content: '';
   position: absolute;
@@ -73,7 +62,6 @@
   background: var(--wdr-stepper-complete-border);
 }
 
-/* Indicator circle */
 .wdr-stepper__indicator {
   width: var(--wdr-stepper-indicator-size);
   height: var(--wdr-stepper-indicator-size);
@@ -90,7 +78,6 @@
   transition: var(--wdr-transition-colors);
 }
 
-/* Step states */
 .wdr-stepper__step--pending .wdr-stepper__indicator {
   border-color: var(--wdr-stepper-pending-border);
   background: var(--wdr-stepper-pending-bg);
@@ -123,7 +110,6 @@
   animation: wdr-pulse-stream 1s ease-in-out infinite;
 }
 
-/* Step content */
 .wdr-stepper__content {
   flex: 1;
   min-width: 0;
@@ -143,7 +129,6 @@
   font-family: var(--wdr-font-mono);
 }
 
-/* Token counter (SSE streaming) */
 .wdr-stepper__token-count {
   font-family: var(--wdr-font-mono);
   font-size: var(--wdr-text-xs);
@@ -151,14 +136,12 @@
   margin-top: var(--wdr-space-1);
 }
 
-/* Duration display */
 .wdr-stepper__duration {
   font-family: var(--wdr-font-mono);
   font-size: var(--wdr-text-xs);
   color: var(--wdr-text-tertiary);
 }
 
-/* Horizontal variant */
 .wdr-stepper--horizontal {
   flex-direction: row;
   align-items: center;

@@ -25,7 +25,7 @@ Data-dense, developer-first component library. No chat bubbles. No whimsy.
 | Component | File | Purpose |
 |-----------|------|---------|
 | Card | `card.css` | Content grouping, result panels, config sections |
-| Sidebar | `sidebar.css` | Left navigation: provider tree, session history, config |
+| Sidebar | `sidebar.css` + `sidebar-collapsed.css` | Left navigation: provider tree, session history, config |
 | Panel | `panel.css` | Resizable split pane, collapsible sections |
 | Modal | `modal.css` | Confirmation dialogs, provider key entry |
 
@@ -33,7 +33,7 @@ Data-dense, developer-first component library. No chat bubbles. No whimsy.
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| DataTable | `datatable.css` | Dense tabular data: providers, cache entries, results |
+| DataTable | `datatable.css` + `datatable-extended.css` | Dense tabular data: providers, cache entries, results |
 | MarkdownViewer | `markdown-viewer.css` | Rendered markdown output pane |
 | CodeBlock | `codeblock.css` | Syntax-highlighted code with line numbers |
 | KeyValue | `keyvalue.css` | Key-value pair display for metadata/config |

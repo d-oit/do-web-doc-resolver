@@ -1,10 +1,3 @@
-/* ==========================================================================
-   ProgressBar — web-doc-resolver
-   Determinate (0–100%) & indeterminate shimmer
-   Sizes: sm (4px), md (8px), lg (12px)
-   Variants: default, success, warning, error
-   ========================================================================== */
-
 :root {
   --wdr-progress-track-bg:       var(--wdr-border-default);
   --wdr-progress-track-radius:   var(--wdr-radius-full);
@@ -33,8 +26,6 @@
   --wdr-progress-transition:      var(--wdr-transition-colors);
 }
 
-/* ── Track ─────────────────────────────────────────────────────── */
-
 .wdr-progress {
   position: relative;
   width: 100%;
@@ -44,13 +35,9 @@
   overflow: hidden;
 }
 
-/* ── Sizes ─────────────────────────────────────────────────────── */
-
 .wdr-progress--sm { height: var(--wdr-progress-sm-height); }
 .wdr-progress--md { height: var(--wdr-progress-md-height); }
 .wdr-progress--lg { height: var(--wdr-progress-lg-height); }
-
-/* ── Fill (determinate) ────────────────────────────────────────── */
 
 .wdr-progress__fill {
   height: 100%;
@@ -61,13 +48,9 @@
   will-change: width;
 }
 
-/* ── Color variants ────────────────────────────────────────────── */
-
 .wdr-progress--success .wdr-progress__fill { background: var(--wdr-progress-success-bg); }
 .wdr-progress--warning .wdr-progress__fill { background: var(--wdr-progress-warning-bg); }
 .wdr-progress--error   .wdr-progress__fill { background: var(--wdr-progress-error-bg); }
-
-/* ── Indeterminate (shimmer) ───────────────────────────────────── */
 
 .wdr-progress--indeterminate .wdr-progress__fill {
   width: 40%;
@@ -87,8 +70,6 @@
   background-size: 200% 100%;
   animation: wdr-shimmer 1.5s linear infinite;
 }
-
-/* ── Label overlay ─────────────────────────────────────────────── */
 
 .wdr-progress--labeled {
   height: auto;
@@ -112,8 +93,6 @@
   mix-blend-mode: difference;
   pointer-events: none;
 }
-
-/* ── Multi-segment ─────────────────────────────────────────────── */
 
 .wdr-progress__segments {
   display: flex;
@@ -150,8 +129,6 @@
 .wdr-progress__segment--success { background: var(--wdr-progress-success-bg); }
 .wdr-progress__segment--warning { background: var(--wdr-progress-warning-bg); }
 .wdr-progress__segment--error   { background: var(--wdr-progress-error-bg); }
-
-/* ── Reduced motion ────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
   .wdr-progress__fill,

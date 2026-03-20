@@ -1,9 +1,3 @@
-/* ==========================================================================
-   KeyValue — web-doc-resolver
-   Metadata & config pair display: URLs, tokens, settings, env vars
-   Uses semantic dl/dt/dd with role=term/role=definition
-   ========================================================================== */
-
 :root {
   --wdr-kv-font-key:        var(--wdr-font-sans);
   --wdr-kv-font-value:      var(--wdr-font-mono);

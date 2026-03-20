@@ -1,17 +1,10 @@
-/* ==========================================================================
-   Input — web-doc-resolver
-   Text, search, URL, textarea, select, input-group
-   ========================================================================== */
-
 :root {
-  /* Base input */
   --wdr-input-font:       var(--wdr-font-mono);
   --wdr-input-font-size:  var(--wdr-text-sm);
   --wdr-input-line-height: var(--wdr-leading-data);
   --wdr-input-radius:     var(--wdr-radius-md);
   --wdr-input-transition: var(--wdr-transition-colors), var(--wdr-transition-shadow);
 
-  /* Sizes */
   --wdr-input-sm-h:  1.75rem;
   --wdr-input-sm-px: var(--wdr-space-2);
 
@@ -21,7 +14,6 @@
   --wdr-input-lg-h:  2.75rem;
   --wdr-input-lg-px: var(--wdr-space-4);
 
-  /* Colors */
   --wdr-input-bg:            var(--wdr-surface-bg);
   --wdr-input-bg-disabled:   var(--wdr-surface-bg-subtle);
   --wdr-input-border:        var(--wdr-border-default);
@@ -32,27 +24,23 @@
   --wdr-input-placeholder:   var(--wdr-text-tertiary);
   --wdr-input-caret:         var(--wdr-interactive-bg);
 
-  /* Label */
   --wdr-input-label-font:    var(--wdr-font-sans);
   --wdr-input-label-size:    var(--wdr-text-label);
   --wdr-input-label-weight:  var(--wdr-weight-medium);
   --wdr-input-label-color:   var(--wdr-text-secondary);
   --wdr-input-label-gap:     var(--wdr-space-1);
 
-  /* Helper / error text */
   --wdr-input-helper-size:   var(--wdr-text-caption);
   --wdr-input-helper-color:  var(--wdr-text-tertiary);
   --wdr-input-error-color:   var(--wdr-signal-error);
 }
 
-/* Input group */
 .wdr-input-group {
   display: flex;
   flex-direction: column;
   gap: var(--wdr-input-label-gap);
 }
 
-/* Label */
 .wdr-input-label {
   font-family: var(--wdr-input-label-font);
   font-size: var(--wdr-input-label-size);
@@ -67,7 +55,6 @@
   color: var(--wdr-signal-error);
 }
 
-/* Base input */
 .wdr-input {
   font-family: var(--wdr-input-font);
   font-size: var(--wdr-input-font-size);
@@ -101,7 +88,6 @@
   cursor: not-allowed;
 }
 
-/* Sizes */
 .wdr-input--sm {
   height: var(--wdr-input-sm-h);
   padding: 0 var(--wdr-input-sm-px);
@@ -117,7 +103,6 @@
   padding: 0 var(--wdr-input-lg-px);
 }
 
-/* States */
 .wdr-input--error {
   border-color: var(--wdr-input-border-error);
 }
@@ -126,7 +111,6 @@
   box-shadow: 0 0 0 3px oklch(0.60 0.20 25 / 0.15);
 }
 
-/* Helper text */
 .wdr-input-helper {
   font-size: var(--wdr-input-helper-size);
   color: var(--wdr-input-helper-color);
@@ -136,7 +120,6 @@
   color: var(--wdr-input-error-color);
 }
 
-/* Textarea */
 .wdr-textarea {
   font-family: var(--wdr-input-font);
   font-size: var(--wdr-input-font-size);
@@ -151,7 +134,6 @@
   width: 100%;
 }
 
-/* Select */
 .wdr-select {
   font-family: var(--wdr-input-font);
   font-size: var(--wdr-input-font-size);
@@ -167,7 +149,6 @@
   cursor: pointer;
 }
 
-/* Search input with prefix icon */
 .wdr-input-search {
   position: relative;
 }
@@ -187,7 +168,6 @@
   height: 1rem;
 }
 
-/* Inline input group (label + input + button) */
 .wdr-input-inline {
   display: flex;
   align-items: stretch;

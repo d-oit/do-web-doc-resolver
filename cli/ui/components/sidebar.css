@@ -1,12 +1,6 @@
-/* ==========================================================================
-   Sidebar — web-doc-resolver
-   Left nav: provider tree, session history, config access
-   Deep marine palette, collapsible sections
-   ========================================================================== */
-
 :root {
-  --wdr-sidebar-width:        16rem;  /* 256px */
-  --wdr-sidebar-width-collapsed: 3rem; /* 48px */
+  --wdr-sidebar-width:        16rem;
+  --wdr-sidebar-width-collapsed: 3rem;
   --wdr-sidebar-width-mobile: 100vw;
 
   --wdr-sidebar-bg:           var(--wdr-color-ocean-950);
@@ -59,8 +53,6 @@
 .wdr-sidebar--collapsed {
   width: var(--wdr-sidebar-width-collapsed);
 }
-
-/* Header / brand area */
 .wdr-sidebar__header {
   height: var(--wdr-sidebar-header-h);
   background: var(--wdr-sidebar-header-bg);
@@ -88,7 +80,6 @@
   text-overflow: ellipsis;
 }
 
-/* Scrollable nav body */
 .wdr-sidebar__body {
   flex: 1;
   overflow-y: auto;
@@ -99,13 +90,11 @@
 .wdr-sidebar__body::-webkit-scrollbar {
   width: 4px;
 }
-
 .wdr-sidebar__body::-webkit-scrollbar-thumb {
   background: var(--wdr-color-ocean-700);
   border-radius: var(--wdr-radius-full);
 }
 
-/* Section */
 .wdr-sidebar__section {
   margin-bottom: var(--wdr-space-4);
 }
@@ -120,7 +109,6 @@
   margin-bottom: var(--wdr-space-1);
 }
 
-/* Nav item */
 .wdr-sidebar__item {
   display: flex;
   align-items: center;
@@ -145,7 +133,6 @@
 .wdr-sidebar__item:hover {
   background: var(--wdr-sidebar-item-bg-hover);
 }
-
 .wdr-sidebar__item--active {
   background: var(--wdr-sidebar-item-bg-active);
   color: var(--wdr-sidebar-item-text-active);
@@ -154,21 +141,18 @@
 .wdr-sidebar__item--active .wdr-sidebar__item-icon {
   color: var(--wdr-sidebar-accent);
 }
-
 .wdr-sidebar__item-icon {
   width: 1rem;
   height: 1rem;
   color: var(--wdr-sidebar-item-icon-color);
   flex-shrink: 0;
 }
-
 .wdr-sidebar__item-label {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Badge on nav item */
 .wdr-sidebar__item-badge {
   font-size: var(--wdr-text-xs);
   font-weight: var(--wdr-weight-medium);
@@ -181,7 +165,6 @@
   text-align: center;
 }
 
-/* Provider status dot */
 .wdr-sidebar__status-dot {
   width: 6px;
   height: 6px;
@@ -193,14 +176,11 @@
 .wdr-sidebar__status-dot--offline { background: var(--wdr-text-tertiary); }
 .wdr-sidebar__status-dot--error   { background: var(--wdr-signal-error); }
 
-/* Footer */
 .wdr-sidebar__footer {
   padding: var(--wdr-space-2);
   border-top: 1px solid var(--wdr-sidebar-border);
   flex-shrink: 0;
 }
-
-/* Collapse toggle */
 .wdr-sidebar__toggle {
   display: flex;
   align-items: center;
@@ -217,21 +197,4 @@
 .wdr-sidebar__toggle:hover {
   background: var(--wdr-sidebar-item-bg-hover);
   color: var(--wdr-sidebar-text-active);
-}
-
-/* Collapsed state adjustments */
-.wdr-sidebar--collapsed .wdr-sidebar__title,
-.wdr-sidebar--collapsed .wdr-sidebar__section-label,
-.wdr-sidebar--collapsed .wdr-sidebar__item-label,
-.wdr-sidebar--collapsed .wdr-sidebar__item-badge {
-  display: none;
-}
-
-.wdr-sidebar--collapsed .wdr-sidebar__item {
-  justify-content: center;
-  padding: 0;
-}
-
-.wdr-sidebar--collapsed .wdr-sidebar__body {
-  padding: var(--wdr-space-2) var(--wdr-space-1);
 }
