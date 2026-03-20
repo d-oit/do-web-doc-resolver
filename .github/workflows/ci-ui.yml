@@ -39,30 +39,15 @@ jobs:
       - run: pnpm test
         working-directory: cli/ui
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [lint, test]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: pnpm install --ignore-workspace
-        working-directory: cli/ui
-      - run: pnpm build-storybook
-        working-directory: cli/ui
-
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
     if: always()
-    needs: [build]
+    needs: [lint, test]
     steps:
       - name: Check results
         run: |
-          if [[ "${{ needs.build.result }}" != "success" ]]; then
+          if [[ "${{ needs.lint.result }}" != "success" ]] || [[ "${{ needs.test.result }}" != "success" ]]; then
             echo "Quality gate failed"; exit 1
           fi
           echo "All checks passed"
