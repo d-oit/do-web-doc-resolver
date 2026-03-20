@@ -45,7 +45,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center p-8 sm:p-16">
       <nav className="w-full max-w-2xl flex items-center justify-between mb-8">
         <Link href="/" className="text-lg font-semibold">
-          Web Doc Resolver
+          d.o. Web Doc Resolver
         </Link>
         <Link
           href="/help"
@@ -57,7 +57,7 @@ export default function Home() {
       <div className="w-full max-w-2xl">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            Web Doc Resolver
+            d.o. Web Doc Resolver
           </h1>
           <p className="mt-4 text-lg text-neutral-600 dark:text-neutral-400">
             Resolve queries and URLs into compact, LLM-ready markdown

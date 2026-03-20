@@ -1,5 +1,5 @@
 {
-  "name": "Web Doc Resolver",
+  "name": "d.o. Web Doc Resolver",
   "short_name": "WDR",
   "description": "Resolve queries and URLs into compact, LLM-ready markdown",
   "start_url": "/",

@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Page Load & Structure", () => {
   test("loads and displays the heading", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("h1")).toHaveText("Web Doc Resolver");
+    await expect(page.locator("h1")).toHaveText("d.o. Web Doc Resolver");
   });
 
   test("displays the subtitle", async ({ page }) => {

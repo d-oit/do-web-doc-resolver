@@ -4,7 +4,7 @@ import Link from "next/link";
 
 const faqs = [
   {
-    q: "What is Web Doc Resolver?",
+    q: "What is d.o. Web Doc Resolver?",
     a: "It is a tool that turns any URL or search query into clean, compact markdown optimized for LLM consumption.",
   },
   {

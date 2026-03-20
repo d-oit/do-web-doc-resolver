@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Web Doc Resolver",
+    default: "d.o. Web Doc Resolver",
     template: "%s — Web Doc Resolver",
   },
   description: "Resolve queries and URLs into compact, LLM-ready markdown",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Web Doc Resolver",
+    title: "d.o. Web Doc Resolver",
   },
 };
 
