@@ -9,6 +9,10 @@ permissions:
   contents: read
   deployments: write
 
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: prj_DTw0VtkzBWQUnIF16jtPrRKVeXNe
+
 jobs:
   deploy:
     name: Deploy to Vercel
