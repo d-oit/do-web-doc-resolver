@@ -1,0 +1,177 @@
+:root {
+  --wdr-stream-height:            1.5rem;
+  --wdr-stream-height-compact:    1.5rem;
+  --wdr-stream-gap:               var(--wdr-space-2);
+  --wdr-stream-font:              var(--wdr-font-mono);
+  --wdr-stream-font-size:         var(--wdr-text-xs);
+  --wdr-stream-label-font:        var(--wdr-font-sans);
+  --wdr-stream-label-size:        var(--wdr-text-xs);
+  --wdr-stream-radius:            var(--wdr-radius-md);
+  --wdr-stream-transition:        var(--wdr-transition-colors);
+
+  --wdr-stream-indicator-size:    0.5rem;
+  --wdr-stream-indicator-radius:  var(--wdr-radius-full);
+
+  --wdr-stream-disconnected-bg:    var(--wdr-surface-bg-elevated);
+  --wdr-stream-disconnected-color: var(--wdr-text-tertiary);
+  --wdr-stream-disconnected-dot:   var(--wdr-text-tertiary);
+
+  --wdr-stream-connecting-bg:      var(--wdr-interactive-bg-subtle);
+  --wdr-stream-connecting-color:   var(--wdr-signal-info);
+  --wdr-stream-connecting-dot:     var(--wdr-pipeline-running);
+
+  --wdr-stream-streaming-bg:       var(--wdr-interactive-bg-subtle);
+  --wdr-stream-streaming-color:    var(--wdr-pipeline-streaming);
+  --wdr-stream-streaming-dot:      var(--wdr-pipeline-streaming);
+
+  --wdr-stream-complete-bg:        var(--wdr-signal-success-bg);
+  --wdr-stream-complete-color:     var(--wdr-signal-success);
+  --wdr-stream-complete-dot:       var(--wdr-pipeline-complete);
+
+  --wdr-stream-error-bg:           var(--wdr-signal-error-bg);
+  --wdr-stream-error-color:        var(--wdr-signal-error);
+  --wdr-stream-error-dot:          var(--wdr-pipeline-failed);
+
+  --wdr-stream-reconnect-bg:       var(--wdr-signal-error);
+  --wdr-stream-reconnect-bg-hover: var(--wdr-signal-error-bg);
+  --wdr-stream-reconnect-color:    var(--wdr-signal-error);
+}
+
+.wdr-stream {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wdr-stream-gap);
+  height: var(--wdr-stream-height-compact);
+  padding: 0 var(--wdr-space-2);
+  border-radius: var(--wdr-stream-radius);
+  font-family: var(--wdr-stream-font);
+  font-size: var(--wdr-stream-font-size);
+  background: var(--wdr-stream-disconnected-bg);
+  color: var(--wdr-stream-disconnected-color);
+  transition: var(--wdr-stream-transition);
+  white-space: nowrap;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.wdr-stream:focus-visible {
+  outline: 2px solid var(--wdr-border-focus);
+  outline-offset: 2px;
+}
+
+.wdr-stream__dot {
+  width: var(--wdr-stream-indicator-size);
+  height: var(--wdr-stream-indicator-size);
+  border-radius: var(--wdr-stream-indicator-radius);
+  background: var(--wdr-stream-disconnected-dot);
+  flex-shrink: 0;
+  transition: var(--wdr-stream-transition);
+}
+
+.wdr-stream__label {
+  font-family: var(--wdr-stream-label-font);
+  font-size: var(--wdr-stream-label-size);
+  color: inherit;
+  line-height: 1;
+}
+
+.wdr-stream__rate {
+  font-variant-numeric: tabular-nums;
+  color: var(--wdr-text-secondary);
+}
+
+.wdr-stream__elapsed {
+  font-variant-numeric: tabular-nums;
+  color: var(--wdr-text-tertiary);
+}
+
+.wdr-stream__reconnect {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1rem;
+  padding: 0 var(--wdr-space-1);
+  margin-left: var(--wdr-space-1);
+  border: none;
+  border-radius: var(--wdr-radius-sm);
+  font-family: var(--wdr-stream-label-font);
+  font-size: var(--wdr-stream-label-size);
+  font-weight: var(--wdr-weight-medium);
+  background: var(--wdr-stream-reconnect-bg);
+  color: oklch(1 0 0);
+  cursor: pointer;
+  transition: var(--wdr-stream-transition);
+  line-height: 1;
+}
+
+.wdr-stream__reconnect:hover {
+  opacity: 0.85;
+}
+
+.wdr-stream__reconnect:focus-visible {
+  outline: 2px solid var(--wdr-border-focus);
+  outline-offset: 1px;
+}
+
+.wdr-stream__separator {
+  width: 1px;
+  height: 0.75rem;
+  background: var(--wdr-border-default);
+  flex-shrink: 0;
+}
+
+.wdr-stream--disconnected {
+  background: var(--wdr-stream-disconnected-bg);
+  color: var(--wdr-stream-disconnected-color);
+}
+
+.wdr-stream--disconnected .wdr-stream__dot {
+  background: var(--wdr-stream-disconnected-dot);
+}
+
+.wdr-stream--connecting {
+  background: var(--wdr-stream-connecting-bg);
+  color: var(--wdr-stream-connecting-color);
+}
+
+.wdr-stream--connecting .wdr-stream__dot {
+  background: var(--wdr-stream-connecting-dot);
+  animation: wdr-pulse-stream 1.5s ease-in-out infinite;
+}
+
+.wdr-stream--streaming {
+  background: var(--wdr-stream-streaming-bg);
+  color: var(--wdr-stream-streaming-color);
+  animation: wdr-pulse-stream 1.5s ease-in-out infinite;
+}
+
+.wdr-stream--streaming .wdr-stream__dot {
+  background: var(--wdr-stream-streaming-dot);
+}
+
+.wdr-stream--complete {
+  background: var(--wdr-stream-complete-bg);
+  color: var(--wdr-stream-complete-color);
+}
+
+.wdr-stream--complete .wdr-stream__dot {
+  background: var(--wdr-stream-complete-dot);
+}
+
+.wdr-stream--error {
+  background: var(--wdr-stream-error-bg);
+  color: var(--wdr-stream-error-color);
+}
+
+.wdr-stream--error .wdr-stream__dot {
+  background: var(--wdr-stream-error-dot);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wdr-stream,
+  .wdr-stream__dot,
+  .wdr-stream__reconnect {
+    transition: none;
+    animation: none;
+  }
+}

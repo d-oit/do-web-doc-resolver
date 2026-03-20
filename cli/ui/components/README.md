@@ -26,8 +26,8 @@ Data-dense, developer-first component library. No chat bubbles. No whimsy.
 |-----------|------|---------|
 | Card | `card.css` | Content grouping, result panels, config sections |
 | Sidebar | `sidebar.css` | Left navigation: provider tree, session history, config |
-| Panel | [#102](https://github.com/d-oit/web-doc-resolver/issues/102) | Resizable split pane, collapsible sections |
-| Modal | [#103](https://github.com/d-oit/web-doc-resolver/issues/103) | Confirmation dialogs, provider key entry |
+| Panel | `panel.css` | Resizable split pane, collapsible sections |
+| Modal | `modal.css` | Confirmation dialogs, provider key entry |
 
 ### Data Display
 
@@ -35,7 +35,7 @@ Data-dense, developer-first component library. No chat bubbles. No whimsy.
 |-----------|------|---------|
 | DataTable | `datatable.css` | Dense tabular data: providers, cache entries, results |
 | MarkdownViewer | `markdown-viewer.css` | Rendered markdown output pane |
-| CodeBlock | [#104](https://github.com/d-oit/web-doc-resolver/issues/104) | Syntax-highlighted code with line numbers |
+| CodeBlock | `codeblock.css` | Syntax-highlighted code with line numbers |
 | KeyValue | `keyvalue.css` | Key-value pair display for metadata/config |
 
 ### Pipeline / SSE
@@ -43,7 +43,7 @@ Data-dense, developer-first component library. No chat bubbles. No whimsy.
 | Component | File | Purpose |
 |-----------|------|---------|
 | Stepper | `stepper.css` | Cascade progress: provider attempts, fallback chain |
-| StreamIndicator | [#106](https://github.com/d-oit/web-doc-resolver/issues/106) | SSE connection status, token rate |
+| StreamIndicator | `streamindicator.css` | SSE connection status, token rate |
 | ProgressBar | `progress.css` | Determinate/indeterminate progress |
 
 ### Layout
@@ -52,7 +52,7 @@ Data-dense, developer-first component library. No chat bubbles. No whimsy.
 |-----------|------|---------|
 | Stack | `../layouts/responsive.css` | Vertical/horizontal stacking with gap |
 | Grid | `../layouts/responsive.css` | CSS Grid layout with container queries |
-| Resizable | [#108](https://github.com/d-oit/web-doc-resolver/issues/108) | Split pane with drag handles |
+| Resizable | `resizable.css` | Split pane with drag handles |
 
 ## Naming Convention
 
