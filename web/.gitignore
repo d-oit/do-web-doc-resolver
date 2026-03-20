@@ -1,5 +1,7 @@
 .vercel
+!.vercel/project.json
 .next
 node_modules
 .env.local
+.env.production.local
 *.tsbuildinfo
