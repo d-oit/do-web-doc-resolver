@@ -26,7 +26,7 @@ Layered configuration system for `do-web-doc-resolover` (Python skill + Rust CLI
 | Variable | Description | Default |
 |----------|-------------|--------|
 | `WDR_PROVIDERS_ORDER` | Comma-separated cascade order | Built-in default |
-| `WDR_SKIP` | Comma-separated providers to skip | (none) |
+| `WDR_SKIP_PROVIDERS` | Comma-separated providers to skip | (none) |
 | `WDR_MIN_CHARS` | Min content chars threshold | `200` |
 | `WDR_MAX_CHARS` | Max output chars | `8000` |
 | `WDR_LOG_LEVEL` | Log level (error/warn/info/debug/trace) | `info` |
@@ -119,3 +119,25 @@ export EXA_API_KEY=xxx
 export TAVILY_API_KEY=yyy
 python -m scripts.resolve "query" --skip mistral
 ```
+
+### Python Env Vars
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `WEB_RESOLVER_MAX_CHARS` | Max output chars | `8000` |
+| `WEB_RESOLVER_MIN_CHARS` | Min content chars threshold | `200` |
+| `WEB_RESOLVER_TIMEOUT` | Request timeout in seconds | `30` |
+| `WEB_RESOLVER_CACHE_DIR` | Cache directory path | `~/.cache/web-doc-resolver` |
+| `WEB_RESOLVER_CACHE_TTL` | Cache TTL in seconds | `86400` (24h) |
+| `WEB_RESOLVER_EXA_RESULTS` | Max Exa results | `5` |
+| `WEB_RESOLVER_TAVILY_RESULTS` | Max Tavily results | `5` |
+| `WEB_RESOLVER_DDG_RESULTS` | Max DuckDuckGo results | `5` |
+
+### Python API Keys
+
+| Variable | Provider | Required |
+|----------|----------|----------|
+| `EXA_API_KEY` | Exa Search API | Only for `exa` provider |
+| `TAVILY_API_KEY` | Tavily Search API | Only for `tavily` provider |
+| `FIRECRAWL_API_KEY` | Firecrawl Extraction | Only for `firecrawl` provider |
+| `MISTRAL_API_KEY` | Mistral OCR/API | Only for `mistral` providers |
