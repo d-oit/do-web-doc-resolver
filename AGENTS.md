@@ -13,6 +13,9 @@ pip install -r requirements.txt
 cd cli && cargo build --release
 # Binary: cli/target/release/wdr
 
+# Web UI (Next.js + Playwright)
+cd web && npm install && npx playwright install chromium
+
 # Git hooks (validates skill symlink on commit + quality gate)
 ./scripts/setup-hooks.sh
 cp scripts/pre-commit-hook.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
@@ -33,6 +36,9 @@ cd cli && cargo test
 # Rust lint
 cd cli && cargo clippy -- -D warnings && cargo fmt --check
 
+# Web E2E tests (against deployed Vercel URL)
+cd web && npx playwright test --project=desktop
+
 # Quality gate (all checks)
 ./scripts/quality_gate.sh
 ```
@@ -52,6 +58,14 @@ cd cli && cargo clippy -- -D warnings && cargo fmt --check
 - **Maximum 500 lines per source file** — split into sub-modules if exceeded
 - Each provider in its own module under `cli/src/providers/`
 - Errors via `thiserror`, propagation via `anyhow`
+
+### Web (Next.js)
+- Next.js 15 + React 19, App Router
+- Tailwind CSS v4 (CSS-first config in `globals.css`, **requires `postcss.config.mjs`**)
+- TypeScript strict mode
+- Playwright for E2E tests (`web/tests/e2e/`)
+- Deploy via Vercel CLI: `cd web && vercel pull --yes && vercel build --prod && vercel deploy --prebuilt --prod`
+- `NEXT_PUBLIC_RESOLVER_URL` env var controls the backend endpoint (defaults to `http://localhost:8000`)
 
 ### Commits
 - Conventional commits: `feat:`, `fix:`, `docs:`, `ci:`, `test:`, `refactor:`
@@ -77,6 +91,12 @@ web-doc-resolver/
 ├── cli/                   # Rust CLI (wdr binary)
 │   ├── Cargo.toml
 │   └── src/
+├── web/                   # Next.js web UI (Vercel deployed)
+│   ├── app/               # App Router pages & layout
+│   ├── tests/e2e/         # Playwright E2E tests
+│   ├── playwright.config.ts
+│   ├── postcss.config.mjs # REQUIRED for Tailwind v4
+│   └── vercel.json
 ├── tests/                 # Python test suite
 ├── references/CASCADE.md  # Legacy → see agents-docs/CASCADE.md
 ├── .mcp.json              # MCP config for Claude Code / OpenCode
