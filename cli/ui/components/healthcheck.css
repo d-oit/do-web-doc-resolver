@@ -5,7 +5,6 @@
   --wdr-healthcheck-radius:         var(--wdr-radius-md);
   --wdr-healthcheck-transition:     var(--wdr-transition-colors);
   --wdr-healthcheck-gap:            var(--wdr-space-2);
-
   --wdr-healthcheck-btn-height:     1.75rem;
   --wdr-healthcheck-btn-px:         var(--wdr-space-2);
   --wdr-healthcheck-btn-font:       var(--wdr-text-xs);
@@ -14,24 +13,19 @@
   --wdr-healthcheck-btn-bg-hover:   var(--wdr-interactive-bg-subtle-hover);
   --wdr-healthcheck-btn-text:       var(--wdr-text-secondary);
   --wdr-healthcheck-btn-text-hover: var(--wdr-text-primary);
-
   --wdr-healthcheck-badge-height:   1.5rem;
   --wdr-healthcheck-badge-px:       var(--wdr-space-2);
   --wdr-healthcheck-badge-gap:      var(--wdr-space-1);
   --wdr-healthcheck-badge-radius:   var(--wdr-radius-full);
-
   --wdr-healthcheck-dot-size:       0.375rem;
-
   --wdr-healthcheck-success-bg:     var(--wdr-signal-success-bg);
   --wdr-healthcheck-success-color:  var(--wdr-signal-success);
   --wdr-healthcheck-warning-bg:     var(--wdr-signal-warning-bg);
   --wdr-healthcheck-warning-color:  var(--wdr-signal-warning);
   --wdr-healthcheck-error-bg:       var(--wdr-signal-error-bg);
   --wdr-healthcheck-error-color:    var(--wdr-signal-error);
-
   --wdr-healthcheck-meta-size:      0.625rem;
   --wdr-healthcheck-meta-color:     var(--wdr-text-tertiary);
-
   --wdr-healthcheck-spinner-size:   0.875rem;
   --wdr-healthcheck-spinner-width:  2px;
 }
@@ -137,26 +131,14 @@
   color: var(--wdr-healthcheck-success-color);
 }
 
-.wdr-healthcheck__badge--success .wdr-healthcheck__dot {
-  background: var(--wdr-healthcheck-success-color);
-}
-
 .wdr-healthcheck__badge--warning {
   background: var(--wdr-healthcheck-warning-bg);
   color: var(--wdr-healthcheck-warning-color);
 }
 
-.wdr-healthcheck__badge--warning .wdr-healthcheck__dot {
-  background: var(--wdr-healthcheck-warning-color);
-}
-
 .wdr-healthcheck__badge--error {
   background: var(--wdr-healthcheck-error-bg);
   color: var(--wdr-healthcheck-error-color);
-}
-
-.wdr-healthcheck__badge--error .wdr-healthcheck__dot {
-  background: var(--wdr-healthcheck-error-color);
 }
 
 .wdr-healthcheck__badge--loading {
@@ -184,7 +166,6 @@
 }
 
 .wdr-healthcheck__validation {
-  font-family: var(--wdr-healthcheck-font);
   font-size: var(--wdr-healthcheck-meta-size);
   color: var(--wdr-healthcheck-error-color);
 }
@@ -206,7 +187,6 @@
     transition: none;
     animation: none;
   }
-
   .wdr-healthcheck__button--loading::after {
     animation: none;
   }

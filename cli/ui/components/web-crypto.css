@@ -1,36 +1,33 @@
 :root {
-  --wdr-crypto-font:         var(--wdr-font-sans);
-  --wdr-crypto-font-mono:    var(--wdr-font-mono);
-  --wdr-crypto-font-size:    var(--wdr-text-sm);
-  --wdr-crypto-font-size-sm: var(--wdr-text-xs);
-  --wdr-crypto-bg:           var(--wdr-surface-bg);
-  --wdr-crypto-bg-elevated:  var(--wdr-surface-bg-elevated);
-  --wdr-crypto-border:       var(--wdr-border-default);
-  --wdr-crypto-border-sub:   var(--wdr-border-subtle);
-  --wdr-crypto-text:         var(--wdr-text-primary);
-  --wdr-crypto-text-muted:   var(--wdr-text-tertiary);
-  --wdr-crypto-radius:       var(--wdr-radius-md);
-  --wdr-crypto-radius-sm:    var(--wdr-radius-sm);
-  --wdr-crypto-padding-x:    var(--wdr-space-3);
-  --wdr-crypto-padding-y:    var(--wdr-space-2);
-  --wdr-crypto-gap:          var(--wdr-space-2);
-  --wdr-crypto-gap-sm:       var(--wdr-space-1);
-  --wdr-crypto-transition:   var(--wdr-transition-colors);
-  --wdr-crypto-encrypted:    var(--wdr-signal-success);
-  --wdr-crypto-rotating:     var(--wdr-signal-warning);
-  --wdr-crypto-expired:      var(--wdr-signal-error);
-  --wdr-crypto-shield-size:  1.5rem;
-  --wdr-crypto-dot-size:     8px;
-  --wdr-crypto-bar-height:   4px;
+  --wdr-crypto-font:       var(--wdr-font-sans);
+  --wdr-crypto-mono:       var(--wdr-font-mono);
+  --wdr-crypto-fs:         var(--wdr-text-sm);
+  --wdr-crypto-fs-xs:      var(--wdr-text-xs);
+  --wdr-crypto-bg:         var(--wdr-surface-bg);
+  --wdr-crypto-bg-el:      var(--wdr-surface-bg-elevated);
+  --wdr-crypto-border:     var(--wdr-border-default);
+  --wdr-crypto-sub:        var(--wdr-border-subtle);
+  --wdr-crypto-text:       var(--wdr-text-primary);
+  --wdr-crypto-muted:      var(--wdr-text-tertiary);
+  --wdr-crypto-r:          var(--wdr-radius-md);
+  --wdr-crypto-r-sm:       var(--wdr-radius-sm);
+  --wdr-crypto-px:         var(--wdr-space-3);
+  --wdr-crypto-py:         var(--wdr-space-2);
+  --wdr-crypto-gap:        var(--wdr-space-2);
+  --wdr-crypto-gap-xs:     var(--wdr-space-1);
+  --wdr-crypto-tr:         var(--wdr-transition-colors);
+  --wdr-crypto-ok:         var(--wdr-signal-success);
+  --wdr-crypto-warn:       var(--wdr-signal-warning);
+  --wdr-crypto-err:        var(--wdr-signal-error);
 }
 
 .wdr-crypto {
   font-family: var(--wdr-crypto-font);
-  font-size: var(--wdr-crypto-font-size);
+  font-size: var(--wdr-crypto-fs);
   color: var(--wdr-crypto-text);
   background: var(--wdr-crypto-bg);
   border: 1px solid var(--wdr-crypto-border);
-  border-radius: var(--wdr-crypto-radius);
+  border-radius: var(--wdr-crypto-r);
   overflow: hidden;
 }
 
@@ -40,21 +37,21 @@
   display: flex;
   align-items: center;
   gap: var(--wdr-crypto-gap);
-  padding: var(--wdr-crypto-padding-y) var(--wdr-crypto-padding-x);
-  background: var(--wdr-crypto-bg-elevated);
-  border-bottom: 1px solid var(--wdr-crypto-border-sub);
+  padding: var(--wdr-crypto-py) var(--wdr-crypto-px);
+  background: var(--wdr-crypto-bg-el);
+  border-bottom: 1px solid var(--wdr-crypto-sub);
 }
 
 .wdr-crypto__shield {
-  width: var(--wdr-crypto-shield-size);
-  height: var(--wdr-crypto-shield-size);
+  width: 1.5rem;
+  height: 1.5rem;
   flex-shrink: 0;
-  color: var(--wdr-crypto-encrypted);
-  transition: var(--wdr-crypto-transition);
+  color: var(--wdr-crypto-ok);
+  transition: var(--wdr-crypto-tr);
 }
 
-.wdr-crypto--rotating .wdr-crypto__shield { color: var(--wdr-crypto-rotating); }
-.wdr-crypto--expired .wdr-crypto__shield { color: var(--wdr-crypto-expired); }
+.wdr-crypto--rotating .wdr-crypto__shield { color: var(--wdr-crypto-warn); }
+.wdr-crypto--expired .wdr-crypto__shield { color: var(--wdr-crypto-err); }
 
 .wdr-crypto__title {
   flex: 1;
@@ -65,104 +62,74 @@
   text-overflow: ellipsis;
 }
 
-.wdr-crypto__status-badge {
+.wdr-crypto__badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--wdr-crypto-gap-sm);
-  padding: 0 var(--wdr-crypto-gap-sm);
+  gap: var(--wdr-crypto-gap-xs);
+  padding: 0 var(--wdr-crypto-gap-xs);
   height: 1.25rem;
   border-radius: var(--wdr-radius-full);
-  font-size: var(--wdr-crypto-font-size-sm);
+  font-size: var(--wdr-crypto-fs-xs);
   font-weight: var(--wdr-weight-medium);
   line-height: 1;
   white-space: nowrap;
 }
 
-.wdr-crypto__status-badge--encrypted { background: oklch(0.95 0.04 155); color: var(--wdr-crypto-encrypted); }
-.wdr-crypto__status-badge--rotating  { background: oklch(0.96 0.04 85);  color: var(--wdr-crypto-rotating); }
-.wdr-crypto__status-badge--expired   { background: oklch(0.95 0.04 25);  color: var(--wdr-crypto-expired); }
+.wdr-crypto__badge--encrypted { background: oklch(0.95 0.04 155); color: var(--wdr-crypto-ok); }
+.wdr-crypto__badge--rotating  { background: oklch(0.96 0.04 85);  color: var(--wdr-crypto-warn); }
+.wdr-crypto__badge--expired   { background: oklch(0.95 0.04 25);  color: var(--wdr-crypto-err); }
 
-.wdr-crypto__body {
-  display: flex;
-  flex-direction: column;
-  padding: var(--wdr-crypto-gap) var(--wdr-crypto-padding-x);
-  gap: var(--wdr-crypto-gap);
-}
+.wdr-crypto__body { display: flex; flex-direction: column; gap: var(--wdr-crypto-gap-xs); padding: var(--wdr-crypto-gap) var(--wdr-crypto-px); }
 
 .wdr-crypto__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--wdr-crypto-gap);
-  font-size: var(--wdr-crypto-font-size-sm);
+  font-size: var(--wdr-crypto-fs-xs);
 }
 
-.wdr-crypto__row-label {
-  color: var(--wdr-crypto-text-muted);
+.wdr-crypto__label {
+  color: var(--wdr-crypto-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: var(--wdr-weight-medium);
 }
 
-.wdr-crypto__row-value {
-  font-family: var(--wdr-crypto-font-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--wdr-crypto-text);
-}
+.wdr-crypto__value { font-family: var(--wdr-crypto-mono); font-variant-numeric: tabular-nums; }
 
 .wdr-crypto__dot {
   display: inline-block;
-  width: var(--wdr-crypto-dot-size);
-  height: var(--wdr-crypto-dot-size);
+  width: 8px;
+  height: 8px;
   border-radius: var(--wdr-radius-full);
-  background: var(--wdr-crypto-encrypted);
+  background: var(--wdr-crypto-ok);
   flex-shrink: 0;
 }
 
-.wdr-crypto--rotating .wdr-crypto__dot { background: var(--wdr-crypto-rotating); animation: wdr-crypto-pulse 1.2s ease-in-out infinite; }
-.wdr-crypto--expired .wdr-crypto__dot { background: var(--wdr-crypto-expired); }
+.wdr-crypto--rotating .wdr-crypto__dot { background: var(--wdr-crypto-warn); animation: wdr-crypto-pulse 1.2s ease-in-out infinite; }
+.wdr-crypto--expired .wdr-crypto__dot { background: var(--wdr-crypto-err); }
 
-.wdr-crypto__rotation {
+.wdr-crypto__section {
   display: flex;
   flex-direction: column;
-  gap: var(--wdr-crypto-gap-sm);
-  padding: var(--wdr-crypto-padding-y) var(--wdr-crypto-padding-x);
-  border-top: 1px solid var(--wdr-crypto-border-sub);
+  gap: var(--wdr-crypto-gap-xs);
+  padding: var(--wdr-crypto-py) var(--wdr-crypto-px);
+  border-top: 1px solid var(--wdr-crypto-sub);
 }
 
-.wdr-crypto__rotation-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+.wdr-crypto__section-header { display: flex; align-items: center; justify-content: space-between; }
 
-.wdr-crypto__rotation-label {
-  font-weight: var(--wdr-weight-medium);
-  font-size: var(--wdr-crypto-font-size-sm);
-}
+.wdr-crypto__track { height: 4px; background: var(--wdr-crypto-sub); border-radius: var(--wdr-radius-full); overflow: hidden; }
 
-.wdr-crypto__rotation-timestamp {
-  font-family: var(--wdr-crypto-font-mono);
-  font-size: var(--wdr-crypto-font-size-sm);
-  color: var(--wdr-crypto-text-muted);
-}
-
-.wdr-crypto__progress-track {
-  height: var(--wdr-crypto-bar-height);
-  background: var(--wdr-crypto-border-sub);
-  border-radius: var(--wdr-radius-full);
-  overflow: hidden;
-}
-
-.wdr-crypto__progress-fill {
+.wdr-crypto__fill {
   height: 100%;
-  background: var(--wdr-crypto-rotating);
+  background: var(--wdr-crypto-warn);
   border-radius: inherit;
   transition: width var(--wdr-duration-slow, 300ms) ease;
   will-change: width;
 }
 
-.wdr-crypto--rotating .wdr-crypto__progress-fill {
+.wdr-crypto--rotating .wdr-crypto__fill {
   background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, oklch(1 0 0 / 0.15) 4px, oklch(1 0 0 / 0.15) 8px);
   background-size: 1rem 100%;
   animation: wdr-crypto-stripe 0.5s linear infinite;
@@ -172,72 +139,50 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
   gap: var(--wdr-crypto-gap);
-  padding: var(--wdr-crypto-padding-y) var(--wdr-crypto-padding-x);
-  border-top: 1px solid var(--wdr-crypto-border-sub);
+  padding: var(--wdr-crypto-py) var(--wdr-crypto-px);
+  border-top: 1px solid var(--wdr-crypto-sub);
 }
 
 .wdr-crypto__metric {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--wdr-crypto-gap-sm);
-  background: var(--wdr-crypto-bg-elevated);
-  border-radius: var(--wdr-crypto-radius-sm);
-  border: 1px solid var(--wdr-crypto-border-sub);
+  padding: var(--wdr-crypto-gap-xs);
+  background: var(--wdr-crypto-bg-el);
+  border-radius: var(--wdr-crypto-r-sm);
+  border: 1px solid var(--wdr-crypto-sub);
 }
 
-.wdr-crypto__metric-label {
-  font-size: var(--wdr-crypto-font-size-sm);
-  color: var(--wdr-crypto-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+.wdr-crypto__metric-label { font-size: var(--wdr-crypto-fs-xs); color: var(--wdr-crypto-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
 .wdr-crypto__metric-value {
-  font-family: var(--wdr-crypto-font-mono);
-  font-size: var(--wdr-crypto-font-size);
+  font-family: var(--wdr-crypto-mono);
   font-variant-numeric: tabular-nums;
   font-weight: var(--wdr-weight-semibold);
 }
 
-.wdr-crypto__metric-value--success { color: var(--wdr-crypto-encrypted); }
-.wdr-crypto__metric-value--warning { color: var(--wdr-crypto-rotating); }
-.wdr-crypto__metric-value--error   { color: var(--wdr-crypto-expired); }
+.wdr-crypto__metric-value--ok   { color: var(--wdr-crypto-ok); }
+.wdr-crypto__metric-value--warn { color: var(--wdr-crypto-warn); }
+.wdr-crypto__metric-value--err  { color: var(--wdr-crypto-err); }
 
-.wdr-crypto__zero-exposure {
+.wdr-crypto__exposure {
   display: flex;
   align-items: center;
-  gap: var(--wdr-crypto-gap-sm);
-  padding: var(--wdr-crypto-gap-sm) var(--wdr-crypto-padding-x);
-  font-size: var(--wdr-crypto-font-size-sm);
-  color: var(--wdr-crypto-encrypted);
+  gap: var(--wdr-crypto-gap-xs);
+  padding: var(--wdr-crypto-gap-xs) var(--wdr-crypto-px);
+  font-size: var(--wdr-crypto-fs-xs);
+  color: var(--wdr-crypto-ok);
   background: oklch(0.95 0.04 155);
-  border-top: 1px solid var(--wdr-crypto-border-sub);
+  border-top: 1px solid var(--wdr-crypto-sub);
 }
 
-.wdr-crypto__zero-exposure-dot {
-  width: var(--wdr-crypto-dot-size);
-  height: var(--wdr-crypto-dot-size);
-  border-radius: var(--wdr-radius-full);
-  background: var(--wdr-crypto-encrypted);
-  flex-shrink: 0;
-  animation: wdr-crypto-pulse 2s ease-in-out infinite;
-}
+.wdr-crypto__exposure-dot { width: 8px; height: 8px; border-radius: var(--wdr-radius-full); background: var(--wdr-crypto-ok); flex-shrink: 0; animation: wdr-crypto-pulse 2s ease-in-out infinite; }
 
-@keyframes wdr-crypto-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
+@keyframes wdr-crypto-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-@keyframes wdr-crypto-stripe {
-  0% { background-position: 0 0; }
-  100% { background-position: 1rem 0; }
-}
+@keyframes wdr-crypto-stripe { 0% { background-position: 0 0; } 100% { background-position: 1rem 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .wdr-crypto, .wdr-crypto__shield, .wdr-crypto__dot,
-  .wdr-crypto__progress-fill, .wdr-crypto__zero-exposure-dot {
-    transition: none;
-    animation: none;
-  }
+  .wdr-crypto__fill, .wdr-crypto__exposure-dot { transition: none; animation: none; }
 }
