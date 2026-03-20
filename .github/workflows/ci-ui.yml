@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   lint:
-    name: Lint
+    name: Lint (cli/ui)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
         working-directory: cli/ui
 
   test:
-    name: Unit Tests
+    name: Unit Tests (cli/ui)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,15 +39,55 @@ jobs:
       - run: pnpm test
         working-directory: cli/ui
 
+  web-lint:
+    name: Lint (web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+        working-directory: web
+      - run: npm run lint
+        working-directory: web
+
+  web-typecheck:
+    name: Typecheck (web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+        working-directory: web
+      - run: npm run typecheck
+        working-directory: web
+
+  web-build:
+    name: Build (web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, test]
+    needs: [lint, test, web-lint, web-typecheck, web-build]
     steps:
       - name: Check results
         run: |
-          if [[ "${{ needs.lint.result }}" != "success" ]] || [[ "${{ needs.test.result }}" != "success" ]]; then
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.web-lint.result }}" != "success" ]] || \
+             [[ "${{ needs.web-typecheck.result }}" != "success" ]] || \
+             [[ "${{ needs.web-build.result }}" != "success" ]]; then
             echo "Quality gate failed"; exit 1
           fi
           echo "All checks passed"

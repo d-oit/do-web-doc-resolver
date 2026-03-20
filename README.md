@@ -1,45 +1,30 @@
 # web-doc-resolver
 
-🔍 Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade.
+<p align="center">
+  <a href="https://pypi.org/project/web-doc-resolver/"><img src="https://img.shields.io/pypi/v/web-doc-resolver?color=blue" alt="PyPI"></a>
+  <a href="https://pypi.org/project/web-doc-resolver/"><img src="https://img.shields.io/pypi/pyversions/web-doc-resolver" alt="Python"></a>
+  <a href="https://github.com/d-oit/web-doc-resolver/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/web-doc-resolver" alt="License"></a>
+  <a href="https://github.com/d-oit/web-doc-resolver/actions/workflows/ci.yml"><img src="https://github.com/d-oit/web-doc-resolver/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
-## Overview
+Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade.
 
-This agent skill implements a v4 cascade resolver that prioritizes free and low-cost data sources:
+## Why This Project?
 
-### Query Resolution Cascade
-1. **Semantic Cache** - Multi-layer cache (URL, Query, Provider)
-2. **Exa MCP** - FREE search via Model Context Protocol (no API key required!)
-3. **Exa highlights** - Token-efficient query resolution using highlights (low-cost)
-4. **Tavily** - Fallback for comprehensive search (configurable)
-5. **DuckDuckGo** - Free search, always available (no API key)
-6. **Mistral** - AI-powered fallback when other methods fail
+Building AI agents that need to fetch web content? This library handles the complexity of web scraping and search so you can focus on your application. It automatically tries multiple providers in order of cost-efficiency, falling back gracefully when services are unavailable.
 
-### URL Resolution Cascade
-1. **Semantic Cache** - Instant retrieval for known URLs
-2. **llms.txt / Jina Reader** - Parallel fast-path probes for structured documentation
-3. **Firecrawl** - Deep extraction (**requires API key**)
-4. **Direct HTTP fetch** - Basic content extraction (free)
-5. **Mistral browser** - AI-powered fallback when other methods fail
-
-## Features
-
-✅ **Execution Profiles**: `free`, `balanced`, `fast`, and `quality` modes
-✅ **Telemetry & Metrics**: Detailed per-provider latency and cost tracking
-✅ **Content Compaction**: Intelligent boilerplate removal and deduplication
-✅ **AI Synthesis**: Cohesive research answers synthesized using Mistral
-✅ **Parallel Probes**: Concurrent fast-path provider checks for lower latency
-✅ **Link Validation**: Automated async HTTP status checks for returned links
-✅ **Bias Scoring**: Quality ranking based on domain trust and heuristics
-✅ **Document & OCR**: Support for PDF/DOCX via Docling and images via OCR
+**Works without any API keys** — uses free providers (Exa MCP, DuckDuckGo, Jina Reader) by default.
 
 ## Installation
 
-### PyPI (Recommended)
-
 ```bash
 pip install web-doc-resolver
-# or isolated install
-pipx install web-doc-resolver
+```
+
+Or install with all dependencies:
+
+```bash
+pip install web-doc-resolver[all]
 ```
 
 ### Prebuilt Binary
@@ -55,367 +40,181 @@ curl -L https://github.com/d-oit/web-doc-resolver/releases/latest/download/wdr-m
 Invoke-WebRequest -Uri "https://github.com/d-oit/web-doc-resolver/releases/latest/download/wdr-windows-x86_64.exe" -OutFile wdr.exe
 ```
 
-### From Source
-
-```bash
-git clone https://github.com/d-oit/web-doc-resolver.git
-cd web-doc-resolver
-pip install -e .
-```
-
-## API Keys Configuration
-
-### All Keys Are Optional
-
-All API keys are **optional**. The resolver works without any keys by using Exa MCP (free) and DuckDuckGo as free fallbacks.
-
-| Key | Provider | Notes |
-|---|---|---|
-| `EXA_API_KEY` | Exa SDK | Optional - Exa MCP is free and used first |
-| `TAVILY_API_KEY` | Tavily | Optional - comprehensive search |
-| `FIRECRAWL_API_KEY` | Firecrawl | Optional - deep extraction |
-| `MISTRAL_API_KEY` | Mistral | Optional - AI-powered fallback |
-
-### Free Tier Options
-
-- **Exa MCP**: Always free, no API key required (primary search)
-- **DuckDuckGo**: Always free, no API key required (fallback)
-- **Mistral**: Free tier available
-- **Exa SDK**: Free tier available ([exa.ai/pricing](https://exa.ai/pricing))
-- **Tavily**: Free tier available ([tavily.com/pricing](https://tavily.com/))
-- **Firecrawl**: Free tier available ([firecrawl.dev/pricing](https://www.firecrawl.dev/pricing))
-
-### Setting API Keys
-
-```bash
-# Linux/macOS
-export EXA_API_KEY="your-exa-key"              # Optional (Exa MCP is free)
-export TAVILY_API_KEY="your-tavily-key"        # Optional
-export FIRECRAWL_API_KEY="your-firecrawl-key"  # Optional
-export MISTRAL_API_KEY="your-mistral-key"      # Optional
-
-# Windows (PowerShell)
-$env:EXA_API_KEY="your-exa-key"
-$env:TAVILY_API_KEY="your-tavily-key"
-$env:FIRECRAWL_API_KEY="your-firecrawl-key"
-$env:MISTRAL_API_KEY="your-mistral-key"
-```
-
-## Usage
-
-### Basic Usage (No API Keys)
+## Quick Start
 
 ```python
 from scripts.resolve import resolve
 
-# Resolve a URL (uses llms.txt + free fallbacks)
-result = resolve("https://example.com")
+# Resolve a URL to markdown
+result = resolve("https://docs.example.com")
 print(result)
 
-# Resolve a query (uses Exa MCP - free!)
-result = resolve("latest AI research papers")
-print(result)
-```
-
-### With API Keys (Enhanced)
-
-```python
-import os
-from scripts.resolve import resolve
-
-# Set API keys (Firecrawl required for deep extraction)
-os.environ["FIRECRAWL_API_KEY"] = "your-firecrawl-key"
-os.environ["EXA_API_KEY"] = "your-exa-key"  # Optional
-
-# Now uses full cascade including Firecrawl
-result = resolve("https://complex-site.com")
+# Resolve a query to search results
+result = resolve("python async best practices")
 print(result)
 ```
+
+## How It Works
+
+The resolver automatically detects whether the input is a URL or a query, then runs through a cascade of providers:
+
+| Input Type | Cascade Order |
+|------------|---------------|
+| **URL** | llms.txt → Jina Reader → Firecrawl → Direct fetch → Mistral → DuckDuckGo |
+| **Query** | Exa MCP → Exa SDK → Tavily → DuckDuckGo → Mistral |
+
+Free providers are tried first. Paid providers are skipped if their API keys aren't configured.
+
+## API Keys
+
+All API keys are **optional**. The resolver works with zero keys using free providers.
+
+| Variable | Provider | Notes |
+|----------|----------|-------|
+| `EXA_API_KEY` | Exa SDK | Optional — Exa MCP is free and tried first |
+| `TAVILY_API_KEY` | Tavily | Optional — comprehensive search |
+| `FIRECRAWL_API_KEY` | Firecrawl | Optional — deep extraction |
+| `MISTRAL_API_KEY` | Mistral | Optional — AI-powered fallback |
+
+```bash
+export EXA_API_KEY="your-key"
+export TAVILY_API_KEY="your-key"
+export FIRECRAWL_API_KEY="your-key"
+export MISTRAL_API_KEY="your-key"
+```
+
+## Advanced Usage
 
 ### Skip Specific Providers
 
 ```python
-from scripts.resolve import resolve
-
-# Skip Exa MCP to test fallbacks
 result = resolve("query", skip_providers={"exa_mcp", "exa"})
-
-# Use only Mistral
-result = resolve("query", skip_providers={"exa_mcp", "exa", "tavily", "duckduckgo"})
 ```
 
-### Use a Specific Provider Directly
-
-Bypass the cascade and use a single provider:
+### Use a Specific Provider
 
 ```python
 from scripts.resolve import resolve_direct, ProviderType
 
-# Use Jina Reader directly for a URL
 result = resolve_direct("https://example.com", ProviderType.JINA)
-
-# Use Exa MCP directly for a query
 result = resolve_direct("python tutorials", ProviderType.EXA_MCP)
-
-# Use DuckDuckGo directly
-result = resolve_direct("latest news", ProviderType.DUCKDUCKGO)
 ```
 
-Available providers:
-- **URL providers**: `llms_txt`, `jina`, `firecrawl`, `direct_fetch`, `mistral_browser`, `duckduckgo`
-- **Query providers**: `exa_mcp`, `exa`, `tavily`, `duckduckgo`, `mistral_websearch`
-
 ### Custom Provider Order
-
-Override the default cascade with your own order:
 
 ```python
 from scripts.resolve import resolve_with_order, ProviderType
 
-# Use only free providers for URLs (no API keys needed)
 result = resolve_with_order(
     "https://example.com",
     [ProviderType.LLMS_TXT, ProviderType.JINA, ProviderType.DIRECT_FETCH]
-)
-
-# Use only free providers for queries
-result = resolve_with_order(
-    "python tutorials",
-    [ProviderType.EXA_MCP, ProviderType.DUCKDUCKGO]
-)
-
-# Prefer Jina over Firecrawl for URLs
-result = resolve_with_order(
-    "https://docs.example.com",
-    [ProviderType.LLMS_TXT, ProviderType.JINA, ProviderType.DIRECT_FETCH, ProviderType.DUCKDUCKGO]
 )
 ```
 
 ### Command Line
 
 ```bash
-# Resolve a URL
+# URL to markdown
 python -m scripts.resolve "https://example.com"
 
-# Resolve a query (uses Exa MCP - free!)
-python -m scripts.resolve "machine learning tutorials"
+# Query to search results
+python -m scripts.resolve "python async tutorials"
 
-# With specific options
-python -m scripts.resolve "query" \
-  --max-chars 8000 \
-  --log-level INFO \
-  --json
+# With options
+python -m scripts.resolve "query" --max-chars 8000 --json
 
-# Skip specific providers
+# Skip providers
 python -m scripts.resolve "query" --skip exa_mcp --skip exa
-
-# Use only Mistral
-python -m scripts.resolve "query" \
-  --skip exa_mcp --skip exa --skip tavily --skip duckduckgo \
-  --log-level INFO --json
-
-# Use a specific provider directly
-python -m scripts.resolve "https://example.com" --provider jina
-python -m scripts.resolve "python tutorials" --provider exa_mcp
-
-# Use a custom provider order
-python -m scripts.resolve "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
-python -m scripts.resolve "python tutorials" --providers-order "exa_mcp,duckduckgo"
 ```
 
-## How It Works
+## Features
 
-### Query Resolution Cascade
-
-```
-Query Input
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 1. Exa MCP Search (FREE - no API key required!)             │
-│    - Uses Model Context Protocol at https://mcp.exa.ai/mcp  │
-│    - JSON-RPC 2.0 over HTTP POST                            │
-│    - Rate limit handling: 30s cooldown                      │
-│    - On error: continue to next provider                    │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 2. Exa SDK Search (if EXA_API_KEY set)                      │
-│    - Uses highlights for token-efficient results            │
-│    - Rate limit handling: 60s cooldown                      │
-│    - On error: continue to next provider                    │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail/unavailable)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 3. Tavily Search (if TAVILY_API_KEY set)                    │
-│    - Comprehensive search results                           │
-│    - Rate limit handling: 60s cooldown                      │
-│    - On error: continue to next provider                    │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail/unavailable)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 4. DuckDuckGo Search (FREE - no API key required!)          │
-│    - Completely free, no authentication needed              │
-│    - Rate limit handling: 30s cooldown                      │
-│    - Always available as fallback                           │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 5. Mistral Web Search (if MISTRAL_API_KEY set)              │
-│    - Uses Mistral chat API with web search                  │
-│    - Free tier available                                    │
-│    - Rate limit handling: 60s cooldown                      │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail/unavailable)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 6. Return Error                                             │
-│    - source: "none"                                         │
-│    - error: "No resolution method available"                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### URL Resolution Cascade
-
-```
-URL Input
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 1. Check for llms.txt                                       │
-│    - Probe: https://origin/llms.txt                         │
-│    - If found: return structured documentation              │
-│    - FREE - no API key required                             │
-│    - Cached per origin (1-hour TTL)                         │
-└─────────────────────────────────────────────────────────────┘
-    │ (not found)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 2. Jina Reader (FREE - https://r.jina.ai/<url>)             │
-│    - No API key required, 20 RPM free tier                  │
-│    - Returns clean markdown for any public URL              │
-│    - Rate limit handling: 60s cooldown                      │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 3. Firecrawl Extraction (if FIRECRAWL_API_KEY set)          │
-│    - Deep content extraction with markdown output           │
-│    - Rate limit handling: 60s cooldown                      │
-│    - On rate limit/quota: fallback to next provider         │
-│    - On auth error: return None                             │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail/unavailable)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 4. Direct HTTP Fetch                                        │
-│    - Basic content extraction from HTML                     │
-│    - FREE - no API key required                             │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 5. Mistral Browser (if MISTRAL_API_KEY set)                 │
-│    - Uses Mistral agent with web browsing capability        │
-│    - Free tier available                                    │
-│    - Rate limit handling: 60s cooldown                      │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail/unavailable)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 6. DuckDuckGo Search (fallback)                             │
-│    - Search for the URL as a query                          │
-│    - FREE - no API key required                             │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 7. Return Error                                             │
-│    - source: "none"                                         │
-│    - error: "No resolution method available"                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Error Handling & Self-Learning
-
-The resolver automatically handles:
-
-- **Rate Limits**: Detects 429 errors and falls back to next source
-- **No Credits**: Catches "no credits" errors and uses free alternatives
-- **Network Errors**: Graceful degradation through the cascade
-- **Invalid Responses**: Validates content before returning
-- **Missing API Keys**: Skips paid services when keys not configured
+- **Multi-layer caching** — URL, query, and provider-level semantic cache
+- **Parallel probes** — Concurrent fast-path checks for lower latency
+- **Content compaction** — Boilerplate removal and deduplication
+- **Telemetry** — Per-provider latency and cost tracking
+- **Link validation** — Async HTTP status checks for returned links
+- **Document OCR** — PDF/DOCX support via Docling, images via OCR
+- **Execution profiles** — `free`, `balanced`, `fast`, and `quality` modes
 
 ## Testing
 
 ```bash
-# Run all tests
-python -m pytest tests/
+# Unit tests (no API keys required)
+python -m pytest tests/ -v -m "not live"
 
-# Run specific test
-python -m pytest tests/test_resolve.py::TestSkipProviders
+# Live integration tests (requires API keys)
+python -m pytest tests/ -m live -v
 
-# Run with coverage
+# With coverage
 python -m pytest --cov=scripts tests/
-
-# Test cascade fallbacks
-python -m pytest tests/test_resolve.py::TestQueryCascade
 ```
 
-## Sample Files
+## Web UI
 
-Check the `samples/` directory for example usage:
+A Next.js 15 PWA deployed on Vercel at [web-doc-resolver.vercel.app](https://web-doc-resolver.vercel.app).
 
-- `sample_basic.py` - Basic usage without API keys
-- `sample_with_keys.py` - Full cascade with all API keys
+### Local Development
 
-## Pricing Information
+```bash
+cd web
+pnpm install
+pnpm dev          # http://localhost:3000
+```
 
-### Free Tier Options
+### Vercel Deployment
 
-- **Exa MCP**: 100% free, no API key required (primary search)
-- **llms.txt**: 100% free, static file check
-- **DuckDuckGo**: 100% free, always available
-- **Mistral**: Free tier available
+```bash
+vercel login
+vercel link
+vercel pull --yes --environment=production
+vercel build --prod
+vercel deploy --prebuilt --prod --yes
+```
 
-### Paid Options
+### Debugging
 
-- **Exa SDK**: Token-efficient, pay-per-search ([exa.ai/pricing](https://exa.ai/pricing))
-- **Tavily**: Comprehensive search, tiered pricing ([tavily.com/pricing](https://tavily.com/))
-- **Firecrawl**: Deep extraction, credit-based ([firecrawl.dev/pricing](https://www.firecrawl.dev/pricing))
-  - **Requires API key** - No free tier for API access
-  - Skipped entirely if `FIRECRAWL_API_KEY` not set
+```bash
+vercel logs <deployment-url>       # build/runtime logs
+vercel logs --level error          # errors only
+vercel inspect <url> --logs        # build logs
+```
 
-## Related Files
+## Project Structure
 
-- [`SKILL.md`](SKILL.md) - Full agent skill specification
-- [`AGENTS.md`](AGENTS.md) - Agent usage documentation
-- [`references/CASCADE.md`](references/CASCADE.md) - Detailed cascade documentation
-- [`scripts/resolve.py`](scripts/resolve.py) - Implementation source code
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) - CI/CD pipeline
+```
+web-doc-resolver/
+├── README.md              # This file
+├── SKILL.md               # agentskills.io skill definition
+├── AGENTS.md              # Developer documentation
+├── pyproject.toml         # Python package configuration
+├── cli/                   # Rust CLI (wdr binary)
+│   └── ui/                # Design system (CSS tokens + components)
+├── web/                   # Next.js web UI (Vercel)
+│   ├── app/               # App Router pages
+│   └── public/            # Static assets + PWA manifest
+├── scripts/               # Python source code
+│   └── resolve.py         # Main resolver
+├── tests/                 # Test suite
+└── agents-docs/           # Detailed reference docs
+```
 
-## Contributing
+## Related Documentation
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure CI passes
-5. Submit a pull request
+- [SKILL.md](SKILL.md) — Agent skill specification
+- [AGENTS.md](AGENTS.md) — Developer guide
+- [agents-docs/CASCADE.md](agents-docs/CASCADE.md) — Full cascade logic
+- [agents-docs/PROVIDERS.md](agents-docs/PROVIDERS.md) — Provider details
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License — see [LICENSE](LICENSE) file.
+
+## Contributing
+
+Contributions are welcome. Please ensure tests pass and follow the code style guidelines in [AGENTS.md](AGENTS.md).
 
 ## Support
 
-For issues, questions, or feature requests, please [open an issue](https://github.com/d-oit/web-doc-resolver/issues).
-
----
-
-**Note**: This skill prioritizes cost-efficiency and graceful degradation. It works perfectly fine with zero API keys configured, using only free sources (Exa MCP, llms.txt, DuckDuckGo, Mistral free tier). API keys enhance functionality but are not required.
+- Report bugs: [GitHub Issues](https://github.com/d-oit/web-doc-resolver/issues)
+- Security issues: See [SECURITY.md](SECURITY.md)

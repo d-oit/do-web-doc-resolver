@@ -2,14 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["iad1"],
-  "functions": {
-    "app/**/*.tsx": {
-      "runtime": "edge"
-    },
-    "app/api/**/*.ts": {
-      "runtime": "edge"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",

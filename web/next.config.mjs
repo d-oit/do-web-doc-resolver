@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    ppr: true,
-    reactCompiler: true,
-    after: true,
-  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [

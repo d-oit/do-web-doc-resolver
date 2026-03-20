@@ -303,6 +303,36 @@ Use `@container (min-width: 640px)` not `@media`. All components must declare `c
 - Floating action buttons
 - Skeleton screens (use shimmer only for data loading, not page load)
 
+## Deployment
+
+| Environment | URL | Trigger |
+|---|---|---|
+| **Production** | `https://web-doc-resolver.vercel.app` | Vercel native GitHub integration (auto-deploy on push to `main`) |
+
+Vercel deploys via `deploy-ui.yml` GitHub Action on push to `main`. `ci-ui.yml` runs lint/test/typecheck quality gates on PRs.
+
+### Manual Deploy (fallback)
+
+```bash
+cd web
+vercel login
+vercel link
+vercel pull --yes --environment=production
+vercel build --prod
+vercel deploy --prebuilt --prod --yes
+```
+
+### Debugging
+
+```bash
+vercel logs <deployment-url>              # build/runtime logs
+vercel logs --level error                 # errors only
+vercel inspect <url> --logs              # build logs for a deployment
+vercel inspect <url> --wait              # wait for deployment to finish
+```
+
+`VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` are stored as GitHub secrets. Never use `--token` flag — use `VERCEL_TOKEN` env var.
+
 ## Testing Strategy
 
 | Type | Tool | Scope |
@@ -310,7 +340,19 @@ Use `@container (min-width: 640px)` not `@media`. All components must declare `c
 | Unit | Vitest + Testing Library | Props, callbacks, renders |
 | a11y | axe-core via `@storybook/addon-a11y` + vitest-axe | Every story and test |
 | Visual regression | Chromatic | Every PR, blocks merge on diff |
-| E2E | Playwright | Critical paths: resolve query, manage keys, browse history |
+| E2E (CI) | Playwright | Critical paths on every push to `main` (`ci-ui.yml`) |
+| E2E (Release) | Playwright | Runs against deployed URL before GitHub Release (`release.yml`) |
+
+### Release E2E Flow
+
+On tag push (`v*.*.*`), `release.yml` runs:
+1. `python-test` + `rust-test` — unit/integration gates
+2. `deploy-ui` — deploys to Vercel production, captures URL
+3. `e2e-release` — runs `pnpm test:e2e --project=desktop` against the deployed URL (`BASE_URL` env)
+4. `build-binaries` — parallel with deploy-ui
+5. `release` — creates GitHub Release only after **both** `build-binaries` and `e2e-release` pass
+
+The `BASE_URL` env var overrides the default `https://web-doc-resolver.vercel.app` in `playwright.config.ts`. E2E tests must pass before any release is published.
 
 ## GitHub Issues Map
 
