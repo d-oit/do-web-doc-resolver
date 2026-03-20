@@ -1,16 +1,10 @@
 {
-  "extends": "stylelint-config-standard",
   "rules": {
-    "custom-property-empty-line-before": null,
-    "declaration-empty-line-before": null,
-    "comment-empty-line-before": null,
-    "no-descending-specificity": null,
-    "no-empty-source": null,
-    "selector-class-pattern": null,
-    "custom-property-pattern": null,
-    "lightness-notation": null,
-    "hue-degree-notation": null,
-    "color-function-notation": null,
-    "alpha-value-notation": null
+    "block-no-empty": true,
+    "no-duplicate-selectors": true,
+    "no-invalid-double-slash-comments": true,
+    "property-no-unknown": true,
+    "selector-pseudo-element-no-unknown": true,
+    "unit-no-unknown": true
   }
 }
