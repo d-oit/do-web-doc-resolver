@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a0f1a" />
+  <title>web-doc-resolver UI Components</title>
+  <link rel="stylesheet" href="tokens/design_tokens.css" />
+  <link rel="stylesheet" href="tokens/typography.css" />
+  <link rel="stylesheet" href="tokens/spacing.css" />
+  <link rel="stylesheet" href="tokens/motion.css" />
+  <link rel="stylesheet" href="styles/globals.css" />
+  <link rel="stylesheet" href="components/button.css" />
+  <link rel="stylesheet" href="components/badge.css" />
+  <link rel="stylesheet" href="components/input.css" />
+  <link rel="stylesheet" href="components/card.css" />
+  <link rel="stylesheet" href="components/tooltip.css" />
+  <link rel="stylesheet" href="components/modal.css" />
+  <link rel="stylesheet" href="components/datatable.css" />
+  <link rel="stylesheet" href="components/datatable-extended.css" />
+  <link rel="stylesheet" href="components/progress.css" />
+  <link rel="stylesheet" href="components/stepper.css" />
+  <link rel="stylesheet" href="components/sidebar.css" />
+  <link rel="stylesheet" href="components/sidebar-collapsed.css" />
+  <link rel="stylesheet" href="components/keyvalue.css" />
+  <link rel="stylesheet" href="components/codeblock.css" />
+  <link rel="stylesheet" href="components/streamindicator.css" />
+  <link rel="stylesheet" href="components/markdown-viewer.css" />
+  <link rel="stylesheet" href="components/bottom-nav.css" />
+  <link rel="stylesheet" href="components/icon-rail.css" />
+  <link rel="stylesheet" href="components/nav-shell.css" />
+  <link rel="stylesheet" href="components/panel.css" />
+  <link rel="stylesheet" href="components/resizable.css" />
+  <link rel="stylesheet" href="components/telemetry.css" />
+  <link rel="stylesheet" href="components/profile-selector.css" />
+  <link rel="stylesheet" href="components/command-bar.css" />
+  <link rel="stylesheet" href="components/provider-settings.css" />
+  <link rel="stylesheet" href="components/web-crypto.css" />
+  <link rel="stylesheet" href="components/healthcheck.css" />
+  <link rel="stylesheet" href="components/history-card.css" />
+  <link rel="stylesheet" href="components/history-filters.css" />
+  <link rel="stylesheet" href="components/cache-restore.css" />
+  <link rel="stylesheet" href="layouts/responsive.css" />
+  <link rel="stylesheet" href="layouts/accessibility.css" />
+</head>
+<body>
+  <a href="#main" style="position:absolute;left:-9999px;top:0;z-index:999;padding:8px;background:var(--wdr-interactive-bg);color:var(--wdr-interactive-text)">Skip to content</a>
+
+  <div id="main">
+    <h1 style="padding:2rem;font-family:var(--wdr-font-sans)">web-doc-resolver — Component Catalog</h1>
+
+    <section style="padding:2rem">
+      <h2>Buttons</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+        <button class="wdr-button wdr-button--primary">Primary</button>
+        <button class="wdr-button wdr-button--secondary">Secondary</button>
+        <button class="wdr-button wdr-button--ghost">Ghost</button>
+        <button class="wdr-button wdr-button--danger">Danger</button>
+        <button class="wdr-button wdr-button--sm wdr-button--primary">Small</button>
+        <button class="wdr-button wdr-button--lg wdr-button--primary">Large</button>
+        <button class="wdr-button wdr-button--primary" disabled>Disabled</button>
+        <button class="wdr-button wdr-button--loading wdr-button--primary">Loading</button>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Badges</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+        <span class="wdr-badge wdr-badge--default">Default</span>
+        <span class="wdr-badge wdr-badge--success">Success</span>
+        <span class="wdr-badge wdr-badge--warning">Warning</span>
+        <span class="wdr-badge wdr-badge--error">Error</span>
+        <span class="wdr-badge wdr-badge--info">Info</span>
+        <span class="wdr-badge wdr-badge--dot wdr-badge--success"></span>
+        <span class="wdr-badge wdr-badge--pill wdr-badge--info">99+</span>
+        <span class="wdr-badge wdr-badge--provider-exa">Exa</span>
+        <span class="wdr-badge wdr-badge--provider-tavily">Tavily</span>
+        <span class="wdr-badge wdr-badge--provider-firecrawl">Firecrawl</span>
+        <span class="wdr-badge wdr-badge--provider-mistral">Mistral</span>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Inputs</h2>
+      <div style="max-width:400px;display:flex;flex-direction:column;gap:12px">
+        <fieldset class="wdr-input-group">
+          <label class="wdr-input-label" for="url-input">Target URL</label>
+          <input class="wdr-input wdr-input--md" id="url-input" type="url" placeholder="https://docs.python.org/3/" />
+        </fieldset>
+        <fieldset class="wdr-input-group">
+          <label class="wdr-input-label wdr-input-label--required" for="search-input">Search</label>
+          <input class="wdr-input wdr-input--sm" id="search-input" type="text" placeholder="Search docs..." />
+          <span class="wdr-input-helper">Enter a query or URL</span>
+        </fieldset>
+        <fieldset class="wdr-input-group">
+          <label class="wdr-input-label" for="error-input">Error State</label>
+          <input class="wdr-input wdr-input--error" id="error-input" type="text" value="invalid" />
+          <span class="wdr-input-helper wdr-input-helper--error">Invalid URL format</span>
+        </fieldset>
+        <select class="wdr-select wdr-input--md">
+          <option>Fast</option>
+          <option>Balanced</option>
+          <option>Quality</option>
+        </select>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Cards</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+        <div class="wdr-card">
+          <div class="wdr-card__header">
+            <span class="wdr-card__title">Default Card</span>
+          </div>
+          <div class="wdr-card__body">Card content goes here.</div>
+          <div class="wdr-card__footer">
+            <button class="wdr-button wdr-button--ghost wdr-button--sm">Cancel</button>
+            <button class="wdr-button wdr-button--primary wdr-button--sm">Confirm</button>
+          </div>
+        </div>
+        <div class="wdr-card wdr-card--status-success">
+          <div class="wdr-card__header">
+            <span class="wdr-card__title">Success Card</span>
+          </div>
+          <div class="wdr-card__body">Resolution completed successfully.</div>
+        </div>
+        <div class="wdr-card wdr-card--interactive">
+          <div class="wdr-card__header">
+            <span class="wdr-card__title">Interactive Card</span>
+          </div>
+          <div class="wdr-card__body">Click me for details.</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Progress Bars</h2>
+      <div style="max-width:400px;display:flex;flex-direction:column;gap:16px">
+        <div class="wdr-progress" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
+          <div class="wdr-progress__fill" style="width:45%"></div>
+        </div>
+        <div class="wdr-progress wdr-progress--success" role="progressbar" aria-valuenow="100">
+          <div class="wdr-progress__fill" style="width:100%"></div>
+        </div>
+        <div class="wdr-progress wdr-progress--indeterminate wdr-progress--warning" role="progressbar"></div>
+        <div class="wdr-progress wdr-progress--error" role="progressbar" aria-valuenow="75">
+          <div class="wdr-progress__fill" style="width:75%"></div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Stepper</h2>
+      <div class="wdr-stepper" role="list">
+        <div class="wdr-stepper__step wdr-stepper__step--complete" role="listitem">
+          <div class="wdr-stepper__indicator">1</div>
+          <div class="wdr-stepper__content">
+            <div class="wdr-stepper__label">Cache Check</div>
+            <div class="wdr-stepper__detail">HIT — 12ms</div>
+          </div>
+        </div>
+        <div class="wdr-stepper__step wdr-stepper__step--complete" role="listitem">
+          <div class="wdr-stepper__indicator">2</div>
+          <div class="wdr-stepper__content">
+            <div class="wdr-stepper__label">Exa Fetch</div>
+            <div class="wdr-stepper__detail">234ms — 1.2K tokens</div>
+          </div>
+        </div>
+        <div class="wdr-stepper__step wdr-stepper__step--running" role="listitem">
+          <div class="wdr-stepper__indicator">3</div>
+          <div class="wdr-stepper__content">
+            <div class="wdr-stepper__label">Synthesis</div>
+            <div class="wdr-stepper__detail">streaming...</div>
+            <div class="wdr-stepper__token-count">847 tokens/sec</div>
+          </div>
+        </div>
+        <div class="wdr-stepper__step wdr-stepper__step--pending" role="listitem">
+          <div class="wdr-stepper__indicator">4</div>
+          <div class="wdr-stepper__content">
+            <div class="wdr-stepper__label">Complete</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Data Table</h2>
+      <div class="wdr-table-wrapper">
+        <table class="wdr-table" role="grid">
+          <thead>
+            <tr>
+              <th role="columnheader" aria-sort="none">URL</th>
+              <th role="columnheader" aria-sort="ascending">Date</th>
+              <th role="columnheader" aria-sort="none">Latency</th>
+              <th role="columnheader" aria-sort="none">Profile</th>
+              <th role="columnheader" aria-sort="none">Cache</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>docs.python.org/3/</td>
+              <td>2026-03-20</td>
+              <td class="wdr-table__latency wdr-table__latency--fast">142ms</td>
+              <td>Balanced</td>
+              <td><span class="wdr-table__status"><span class="wdr-table__status-dot wdr-table__status-dot--success"></span> HIT</span></td>
+            </tr>
+            <tr>
+              <td>react.dev/reference</td>
+              <td>2026-03-20</td>
+              <td class="wdr-table__latency wdr-table__latency--medium">890ms</td>
+              <td>Quality</td>
+              <td><span class="wdr-table__status"><span class="wdr-table__status-dot wdr-table__status-dot--neutral"></span> MISS</span></td>
+            </tr>
+            <tr>
+              <td>rust-lang.org/book</td>
+              <td>2026-03-19</td>
+              <td class="wdr-table__latency wdr-table__latency--slow">2.1s</td>
+              <td>Quality</td>
+              <td><span class="wdr-table__status"><span class="wdr-table__status-dot wdr-table__status-dot--error"></span> ERR</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Key-Value</h2>
+      <div class="wdr-keyvalue" style="max-width:500px">
+        <div class="wdr-keyvalue__row">
+          <dt class="wdr-keyvalue__key" role="term">Provider</dt>
+          <dd class="wdr-keyvalue__value" role="definition">Exa</dd>
+        </div>
+        <div class="wdr-keyvalue__row">
+          <dt class="wdr-keyvalue__key" role="term">Latency</dt>
+          <dd class="wdr-keyvalue__value" role="definition">142ms</dd>
+        </div>
+        <div class="wdr-keyvalue__row">
+          <dt class="wdr-keyvalue__key" role="term">Tokens</dt>
+          <dd class="wdr-keyvalue__value" role="definition">1,247</dd>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Stream Indicator</h2>
+      <div style="display:flex;gap:16px;align-items:center">
+        <div class="wdr-streamindicator wdr-streamindicator--streaming" role="status" aria-live="polite">
+          <span class="wdr-streamindicator__dot"></span>
+          <span class="wdr-streamindicator__rate">847 tok/s</span>
+        </div>
+        <div class="wdr-streamindicator wdr-streamindicator--complete" role="status">
+          <span class="wdr-streamindicator__dot"></span>
+          <span class="wdr-streamindicator__label">Complete</span>
+        </div>
+        <div class="wdr-streamindicator wdr-streamindicator--error" role="status">
+          <span class="wdr-streamindicator__dot"></span>
+          <span class="wdr-streamindicator__label">Disconnected</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Markdown Viewer</h2>
+      <div class="wdr-markdown">
+        <h1>Heading 1</h1>
+        <h2>Heading 2</h2>
+        <p>This is a paragraph with <a href="#">a link</a> and <code>inline code</code>.</p>
+        <pre><code class="language-python">def resolve(url: str) -> str:
+    return cascade.resolve(url)</code></pre>
+        <blockquote>
+          <p>Important note about the resolver.</p>
+        </blockquote>
+        <ul>
+          <li>Item one</li>
+          <li>Item two</li>
+        </ul>
+        <table>
+          <thead><tr><th>Provider</th><th>Latency</th></tr></thead>
+          <tbody>
+            <tr><td>Exa</td><td>142ms</td></tr>
+            <tr><td>Tavily</td><td>230ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Tooltips</h2>
+      <div style="display:flex;gap:32px;padding:2rem 0">
+        <div class="wdr-tooltip wdr-tooltip--top">
+          <button class="wdr-button wdr-button--secondary wdr-tooltip__trigger" aria-describedby="tip-top">Hover Top</button>
+          <div class="wdr-tooltip__content" id="tip-top" role="tooltip">Tooltip on top</div>
+        </div>
+        <div class="wdr-tooltip wdr-tooltip--bottom">
+          <button class="wdr-button wdr-button--secondary wdr-tooltip__trigger" aria-describedby="tip-bottom">Hover Bottom</button>
+          <div class="wdr-tooltip__content" id="tip-bottom" role="tooltip">Tooltip on bottom</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Navigation</h2>
+      <div style="display:flex;gap:16px">
+        <nav class="wdr-sidebar" style="height:300px;position:relative">
+          <div class="wdr-sidebar__header">
+            <span class="wdr-sidebar__title">web-doc-resolver</span>
+          </div>
+          <div class="wdr-sidebar__body">
+            <div class="wdr-sidebar__section">
+              <div class="wdr-sidebar__section-label">Navigation</div>
+              <a class="wdr-sidebar__item wdr-sidebar__item--active" href="#" aria-current="page">
+                <span class="wdr-sidebar__item-label">Resolve</span>
+              </a>
+              <a class="wdr-sidebar__item" href="#">
+                <span class="wdr-sidebar__item-label">History</span>
+                <span class="wdr-sidebar__item-badge">12</span>
+              </a>
+              <a class="wdr-sidebar__item" href="#">
+                <span class="wdr-sidebar__item-label">Providers</span>
+                <span class="wdr-sidebar__status-dot wdr-sidebar__status-dot--online"></span>
+              </a>
+              <a class="wdr-sidebar__item" href="#">
+                <span class="wdr-sidebar__item-label">Settings</span>
+              </a>
+            </div>
+          </div>
+          <div class="wdr-sidebar__footer">
+            <button class="wdr-sidebar__toggle" aria-label="Collapse sidebar">Toggle</button>
+          </div>
+        </nav>
+      </div>
+    </section>
+
+    <section style="padding:2rem">
+      <h2>Telemetry</h2>
+      <div class="wdr-telemetry" style="max-width:500px">
+        <div class="wdr-telemetry__row">
+          <span class="wdr-telemetry__label">Total Latency</span>
+          <span class="wdr-telemetry__value wdr-telemetry__value--mono">1,247ms</span>
+        </div>
+        <div class="wdr-telemetry__row">
+          <span class="wdr-telemetry__label">Tokens Used</span>
+          <span class="wdr-telemetry__value wdr-telemetry__value--mono">3,481</span>
+        </div>
+        <div class="wdr-telemetry__row">
+          <span class="wdr-telemetry__label">Cache Hit Rate</span>
+          <span class="wdr-telemetry__value wdr-telemetry__value--mono">73%</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

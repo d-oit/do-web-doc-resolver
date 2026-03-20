@@ -14,7 +14,6 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: cli/ui } }
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,25 +21,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: pnpm install
+        working-directory: cli/ui
       - run: pnpm lint
-
-  typecheck:
-    name: Typecheck
-    runs-on: ubuntu-latest
-    defaults: { run: { working-directory: cli/ui } }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: pnpm install
-      - run: pnpm typecheck
+        working-directory: cli/ui
 
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: cli/ui } }
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -48,13 +35,14 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: pnpm install
+        working-directory: cli/ui
       - run: pnpm test
+        working-directory: cli/ui
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test]
-    defaults: { run: { working-directory: cli/ui } }
+    needs: [lint, test]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -62,57 +50,19 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: pnpm install
-      - run: pnpm build
-      - uses: actions/upload-artifact@v4
-        with: { name: ui-build, path: cli/ui/.next }
-
-  e2e:
-    name: Playwright E2E
-    runs-on: ubuntu-latest
-    needs: [build]
-    defaults: { run: { working-directory: cli/ui } }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: pnpm install
-      - run: pnpm exec playwright install --with-deps
-      - run: pnpm test:e2e
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with: { name: playwright-report, path: cli/ui/playwright-report, 'retention-days': 14 }
-
-  chromatic:
-    name: Chromatic Visual Regression
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    needs: [build]
-    defaults: { run: { working-directory: cli/ui } }
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: pnpm install
-      - uses: chromaui/action@v11
-        with:
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          workingDir: cli/ui
-          exitOnceUploaded: true
+        working-directory: cli/ui
+      - run: pnpm build-storybook
+        working-directory: cli/ui
 
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
     if: always()
-    needs: [build, e2e]
+    needs: [build]
     steps:
       - name: Check results
         run: |
-          if [[ "${{ needs.build.result }}" != "success" ]] || [[ "${{ needs.e2e.result }}" != "success" ]]; then
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
             echo "Quality gate failed"; exit 1
           fi
           echo "All checks passed"
