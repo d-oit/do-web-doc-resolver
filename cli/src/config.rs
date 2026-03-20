@@ -64,6 +64,21 @@ pub struct Config {
     /// Disable routing memory
     #[serde(default)]
     pub disable_routing_memory: bool,
+    /// Negative cache TTL for thin content in seconds (default: 1800)
+    #[serde(default = "default_negative_cache_ttl")]
+    pub negative_cache_ttl_secs: u64,
+    /// Negative cache TTL for errors in seconds (default: 600)
+    #[serde(default = "default_error_cache_ttl")]
+    pub error_cache_ttl_secs: u64,
+    /// Circuit breaker failure threshold (default: 3)
+    #[serde(default = "default_circuit_breaker_threshold")]
+    pub circuit_breaker_threshold: u32,
+    /// Circuit breaker cooldown in seconds (default: 300)
+    #[serde(default = "default_circuit_breaker_cooldown")]
+    pub circuit_breaker_cooldown_secs: u64,
+    /// Max links to extract (default: 10)
+    #[serde(default = "default_max_links")]
+    pub max_links: usize,
 }
 
 pub struct RoutingProfileConfig {
@@ -127,6 +142,26 @@ fn default_output_limit() -> usize {
     10
 }
 
+fn default_negative_cache_ttl() -> u64 {
+    1800
+}
+
+fn default_error_cache_ttl() -> u64 {
+    600
+}
+
+fn default_circuit_breaker_threshold() -> u32 {
+    3
+}
+
+fn default_circuit_breaker_cooldown() -> u64 {
+    300
+}
+
+fn default_max_links() -> usize {
+    10
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -145,16 +180,86 @@ impl Default for Config {
             max_paid_attempts: None,
             max_total_latency_ms: None,
             disable_routing_memory: false,
+            negative_cache_ttl_secs: default_negative_cache_ttl(),
+            error_cache_ttl_secs: default_error_cache_ttl(),
+            circuit_breaker_threshold: default_circuit_breaker_threshold(),
+            circuit_breaker_cooldown_secs: default_circuit_breaker_cooldown(),
+            max_links: default_max_links(),
         }
     }
 }
 
 impl Config {
-    /// Load configuration from a TOML file
+    /// Load configuration from a TOML file and merge with defaults
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self, ConfigError> {
         let content = std::fs::read_to_string(path.as_ref())?;
-        let config: Config = toml::from_str(&content)?;
+        let file_config: Config = toml::from_str(&content)?;
+        // Merge file config with defaults - file values override defaults
+        let mut config = Config::default();
+        config.merge(file_config);
         Ok(config)
+    }
+
+    /// Merge another config into self, overriding only set values
+    pub fn merge(&mut self, other: Config) {
+        // Only override if the value differs from default
+        if other.max_chars != default_max_chars() {
+            self.max_chars = other.max_chars;
+        }
+        if other.min_chars != default_min_chars() {
+            self.min_chars = other.min_chars;
+        }
+        if other.exa_results != default_exa_results() {
+            self.exa_results = other.exa_results;
+        }
+        if other.tavily_results != default_tavily_results() {
+            self.tavily_results = other.tavily_results;
+        }
+        if other.output_limit != default_output_limit() {
+            self.output_limit = other.output_limit;
+        }
+        if other.log_level != "info" {
+            self.log_level = other.log_level;
+        }
+        if !other.skip_providers.is_empty() {
+            self.skip_providers = other.skip_providers;
+        }
+        if !other.providers_order.is_empty() {
+            self.providers_order = other.providers_order;
+        }
+        if other.negative_cache_ttl_secs != default_negative_cache_ttl() {
+            self.negative_cache_ttl_secs = other.negative_cache_ttl_secs;
+        }
+        if other.error_cache_ttl_secs != default_error_cache_ttl() {
+            self.error_cache_ttl_secs = other.error_cache_ttl_secs;
+        }
+        if other.circuit_breaker_threshold != default_circuit_breaker_threshold() {
+            self.circuit_breaker_threshold = other.circuit_breaker_threshold;
+        }
+        if other.circuit_breaker_cooldown_secs != default_circuit_breaker_cooldown() {
+            self.circuit_breaker_cooldown_secs = other.circuit_breaker_cooldown_secs;
+        }
+        if other.max_links != default_max_links() {
+            self.max_links = other.max_links;
+        }
+        if other.profile != Profile::Balanced {
+            self.profile = other.profile;
+        }
+        if other.quality_threshold.is_some() {
+            self.quality_threshold = other.quality_threshold;
+        }
+        if other.max_provider_attempts.is_some() {
+            self.max_provider_attempts = other.max_provider_attempts;
+        }
+        if other.max_paid_attempts.is_some() {
+            self.max_paid_attempts = other.max_paid_attempts;
+        }
+        if other.max_total_latency_ms.is_some() {
+            self.max_total_latency_ms = other.max_total_latency_ms;
+        }
+        if other.disable_routing_memory {
+            self.disable_routing_memory = other.disable_routing_memory;
+        }
     }
 
     /// Load configuration with environment variable overrides
@@ -162,16 +267,16 @@ impl Config {
         // Start with defaults
         let mut config = Config::default();
 
-        // Try to load from config.toml
+        // Try to load from config.toml and merge
         if let Ok(config_path) = env::var("WDR_CONFIG") {
             if let Ok(file_config) = Config::from_file(&config_path) {
-                config = file_config;
+                config.merge(file_config);
             }
         } else {
             // Try default locations
             for path in ["./config.toml", "./wdr.toml", "./wdr.conf"] {
                 if let Ok(file_config) = Config::from_file(path) {
-                    config = file_config;
+                    config.merge(file_config);
                     break;
                 }
             }
