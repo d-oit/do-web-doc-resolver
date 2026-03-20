@@ -1,4 +1,4 @@
-# web-doc-resolver
+# do-web-doc-resolover
 
 Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade.
 
@@ -44,8 +44,8 @@ This project implements a v4 cascade resolver with Python core, Rust CLI, and we
 ### Python (Primary)
 
 ```bash
-git clone https://github.com/d-oit/web-doc-resolver.git
-cd web-doc-resolver
+git clone https://github.com/d-oit/do-web-doc-resolover.git
+cd do-web-doc-resolover
 pip install -r requirements.txt
 ```
 
@@ -413,7 +413,7 @@ cd web && npx playwright test --ui
 ## Repository Structure
 
 ```
-web-doc-resolver/
+do-web-doc-resolover/
 ├── AGENTS.md              # Agent instructions
 ├── SKILL.md               # agentskills.io skill definition
 ├── README.md              # This file
@@ -475,7 +475,7 @@ MIT License - see LICENSE file for details.
 
 ## Support
 
-For issues, questions, or feature requests, please [open an issue](https://github.com/d-oit/web-doc-resolver/issues).
+For issues, questions, or feature requests, please [open an issue](https://github.com/d-oit/do-web-doc-resolover/issues).
 
 ---
 

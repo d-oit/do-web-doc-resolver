@@ -199,11 +199,11 @@ jobs:
             dist/wdr-macos-aarch64
             dist/wdr-windows-x86_64.exe
           body: |
-            ## web-doc-resolver ${{ steps.version.outputs.VERSION }}
+            ## do-web-doc-resolover ${{ steps.version.outputs.VERSION }}
 
             ### Install
             ```bash
-            curl -L https://github.com/d-oit/web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/wdr-linux-x86_64 -o wdr
+            curl -L https://github.com/d-oit/do-web-doc-resolover/releases/download/${{ steps.version.outputs.VERSION }}/wdr-linux-x86_64 -o wdr
             chmod +x wdr
             ```
 

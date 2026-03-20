@@ -13,7 +13,7 @@ Only the latest release on the `main` branch receives security updates.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Use [GitHub Private Security Advisories](https://github.com/d-oit/web-doc-resolver/security/advisories/new) to report a vulnerability confidentially.
+Use [GitHub Private Security Advisories](https://github.com/d-oit/do-web-doc-resolover/security/advisories/new) to report a vulnerability confidentially.
 
 This keeps the report private until a fix is ready and lets us coordinate a disclosure date with you.
 

@@ -1,4 +1,4 @@
-# Components — web-doc-resolver
+# Components — do-web-doc-resolover
 
 Data-dense, developer-first component library. No chat bubbles. No whimsy.
 

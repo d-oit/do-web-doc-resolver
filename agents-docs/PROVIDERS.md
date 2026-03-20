@@ -1,6 +1,6 @@
 # Provider Reference
 
-Detailed reference for all resolution providers in `web-doc-resolver`.
+Detailed reference for all resolution providers in `do-web-doc-resolover`.
 
 ## Query Cascade Order
 

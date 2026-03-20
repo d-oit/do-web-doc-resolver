@@ -1,11 +1,11 @@
-# Contributing to web-doc-resolver
+# Contributing to do-web-doc-resolover
 
 Thank you for your interest in contributing! This document outlines the process for contributing to this project.
 
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/web-doc-resolver.git`
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/do-web-doc-resolover.git`
 3. Install dependencies: `pip install -r requirements.txt`
 
 ## Development Setup

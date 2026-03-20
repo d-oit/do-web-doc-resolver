@@ -1,6 +1,6 @@
 # Sample Files
 
-This directory contains example scripts demonstrating various usage patterns of web-doc-resolver.
+This directory contains example scripts demonstrating various usage patterns of do-web-doc-resolover.
 
 ## Files
 

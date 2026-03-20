@@ -1,6 +1,6 @@
 # Configuration Reference
 
-Layered configuration system for `web-doc-resolver` (Python skill + Rust CLI).
+Layered configuration system for `do-web-doc-resolover` (Python skill + Rust CLI).
 
 ## Configuration Layers (Priority: High to Low)
 

@@ -1,6 +1,6 @@
 # Testing Reference
 
-Test structure and guidelines for `web-doc-resolver` (Python skill + Rust CLI).
+Test structure and guidelines for `do-web-doc-resolover` (Python skill + Rust CLI).
 
 ## Python Skill Tests
 

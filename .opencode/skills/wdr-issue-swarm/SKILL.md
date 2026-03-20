@@ -99,7 +99,7 @@ If CI fails:
 ## Agent prompt template
 
 ```
-You are implementing GitHub Issue #{N}: "{Title}" for the web-doc-resolver project.
+You are implementing GitHub Issue #{N}: "{Title}" for the do-web-doc-resolover project.
 
 CONTEXT: The UI layer is in `/workspaces/web-doc-resolver/cli/ui/`. Components are CSS-only files with BEM classes prefixed `wdr-`.
 

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> **web-doc-resolver** — resolves queries or URLs into compact, LLM-ready markdown via a low-cost provider cascade.
+> **do-web-doc-resolover** — resolves queries or URLs into compact, LLM-ready markdown via a low-cost provider cascade.
 > Full detail docs live in [`agents-docs/`](./agents-docs/). See [agents.md](https://agents.md) for spec.
 
 ## Setup commands
@@ -74,7 +74,7 @@ cd web && npx playwright test --project=desktop
 ## Repository structure
 
 ```
-web-doc-resolver/
+do-web-doc-resolover/
 ├── AGENTS.md              # This file (agent instructions, <150 lines)
 ├── agents-docs/           # Detailed agent reference docs
 │   ├── CASCADE.md         # Full cascade decision trees
@@ -135,7 +135,7 @@ See [`agents-docs/CONFIG.md`](./agents-docs/CONFIG.md) for full config reference
 
 ## Skill symlink validation
 
-`.blackbox/skills/web-doc-resolver/SKILL.md` must symlink to root `SKILL.md`.
+`.blackbox/skills/do-web-doc-resolover/SKILL.md` must symlink to root `SKILL.md`.
 Validated on every commit (pre-commit hook) and in CI (`validate-symlink` job).
 Manual check: `python scripts/validate_skill_symlink.py`
 

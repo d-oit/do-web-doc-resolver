@@ -1,8 +1,8 @@
-# DESIGN.md — web-doc-resolver
+# DESIGN.md — do-web-doc-resolover
 
 ## Identity
 
-**Name:** web-doc-resolver (wdr)
+**Name:** do-web-doc-resolover (wdr)
 **Nature:** Developer tool — CLI + optional web frontend
 **Philosophy:** Deterministic, data-dense, anti-slop. No chat bubbles. No "how can I help you?" No decorative animation. Every pixel serves information or action.
 

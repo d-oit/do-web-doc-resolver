@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "web-doc-resolver": {
+    "do-web-doc-resolover": {
       "command": "python",
       "args": [
         "scripts/resolve.py"

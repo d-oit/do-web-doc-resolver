@@ -1,5 +1,5 @@
 ---
-name: web-doc-resolver
+name: do-web-doc-resolover
 description: Resolve a query or URL into compact, LLM-ready markdown using a low-cost cascade. Prioritizes llms.txt for structured docs, uses Exa MCP (free) for query search, falls back to Tavily/Serper/DuckDuckGo, and uses Firecrawl for final extraction. Use when you need to fetch documentation, resolve web URLs to markdown, search for technical content, or build context from web sources.
 license: MIT
 compatibility: Python 3.10+, optional env EXA_API_KEY TAVILY_API_KEY SERPER_API_KEY FIRECRAWL_API_KEY MISTRAL_API_KEY
@@ -7,8 +7,8 @@ allowed-tools: Bash(python:*) Read
 metadata:
   author: d-oit
   version: "0.1.0"
-  source: https://github.com/d-oit/web-doc-resolver
-  changelog: https://github.com/d-oit/web-doc-resolver/releases
+  source: https://github.com/d-oit/do-web-doc-resolover
+  changelog: https://github.com/d-oit/do-web-doc-resolover/releases
 ---
 
 # Web Documentation Resolver

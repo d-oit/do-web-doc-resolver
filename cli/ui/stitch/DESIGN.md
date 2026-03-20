@@ -1,4 +1,4 @@
-# Stitch Design Spec — web-doc-resolver
+# Stitch Design Spec — do-web-doc-resolover
 
 > Google Stitch screen definitions for the resolver workspace PWA.
 > Stitch reads this file + `tokens/semantic.json` to generate pixel-consistent Next.js pages.
@@ -6,7 +6,7 @@
 ## Metadata
 
 ```yaml
-name: web-doc-resolver
+name: do-web-doc-resolover
 version: 1.0.0
 tokens: tokens/semantic.json
 output: app/
