@@ -1,24 +1,37 @@
-/* web-doc-resolver — Dark mode token overrides */
-/* This file is imported after globals.css to override semantic tokens */
+<script>
+(function(){
+  var t=localStorage.getItem('wdr-theme');
+  if(t==='dark'||t==='light'){
+    document.documentElement.setAttribute('data-theme',t);
+  }else if(!document.documentElement.hasAttribute('data-theme')){
+    if(window.matchMedia('(prefers-color-scheme:dark)').matches){
+      document.documentElement.setAttribute('data-theme','dark');
+    }
+  }
+})();
+</script>
 
-/* OS preference sync */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not(.wdr-light) {
     color-scheme: dark;
   }
 }
 
-/* Manual override via data-theme attribute */
 [data-theme="dark"] {
   color-scheme: dark;
 }
 
-/* Light mode forced */
 [data-theme="light"] {
   color-scheme: light;
 }
 
-/* High contrast mode support */
+@media (prefers-reduced-motion: reduce) {
+  .wdr-theme-toggle,
+  .wdr-theme-toggle__icon {
+    transition: none;
+  }
+}
+
 @media (forced-colors: active) {
   :root {
     --wdr-interactive-bg: Highlight;

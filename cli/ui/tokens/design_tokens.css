@@ -176,7 +176,7 @@
    Dark mode
    -------------------------------------------------------------------------- */
 [data-theme="dark"],
-.wdr-dark {
+:root.wdr-dark {
   --wdr-surface-bg:           var(--wdr-color-neutral-950);
   --wdr-surface-bg-subtle:   var(--wdr-color-neutral-900);
   --wdr-surface-bg-muted:    var(--wdr-color-neutral-800);
@@ -204,22 +204,51 @@
   --wdr-interactive-bg-subtle: oklch(0.20 0.08 230);
   --wdr-interactive-bg-subtle-hover: oklch(0.25 0.09 230);
 
-  --wdr-signal-success-bg:    oklch(0.18 0.04 155);
-  --wdr-signal-warning-bg:    oklch(0.18 0.03 85);
-  --wdr-signal-error-bg:      oklch(0.18 0.04 25);
-  --wdr-signal-info-bg:       oklch(0.18 0.03 230);
+  --wdr-signal-success-bg: oklch(0.18 0.04 155);
+  --wdr-signal-warning-bg: oklch(0.18 0.03 85);
+  --wdr-signal-error-bg:   oklch(0.18 0.04 25);
+  --wdr-signal-info-bg:    oklch(0.18 0.03 230);
 
-  --wdr-data-row-alt:         var(--wdr-color-neutral-900);
-  --wdr-data-row-hover:       oklch(0.20 0.06 230);
-  --wdr-data-row-selected:    oklch(0.25 0.08 230);
-  --wdr-data-header-bg:       var(--wdr-color-neutral-800);
-  --wdr-data-grid-line:       var(--wdr-color-neutral-700);
+  --wdr-data-row-alt:      var(--wdr-color-neutral-900);
+  --wdr-data-row-hover:    oklch(0.20 0.06 230);
+  --wdr-data-row-selected: oklch(0.25 0.08 230);
+  --wdr-data-header-bg:    var(--wdr-color-neutral-800);
+  --wdr-data-grid-line:    var(--wdr-color-neutral-700);
 
-  --wdr-shadow-xs:  0 1px 2px oklch(0.00 0 0 / 0.20);
-  --wdr-shadow-sm:  0 1px 3px oklch(0.00 0 0 / 0.30), 0 1px 2px oklch(0.00 0 0 / 0.20);
-  --wdr-shadow-md:  0 4px 6px oklch(0.00 0 0 / 0.30), 0 2px 4px oklch(0.00 0 0 / 0.20);
-  --wdr-shadow-lg:  0 10px 15px oklch(0.00 0 0 / 0.30), 0 4px 6px oklch(0.00 0 0 / 0.15);
-  --wdr-shadow-xl:  0 20px 25px oklch(0.00 0 0 / 0.30), 0 8px 10px oklch(0.00 0 0 / 0.15);
+  --wdr-shadow-xs: 0 1px 2px oklch(0.00 0 0 / 0.20);
+  --wdr-shadow-sm: 0 1px 3px oklch(0.00 0 0 / 0.30), 0 1px 2px oklch(0.00 0 0 / 0.20);
+  --wdr-shadow-md: 0 4px 6px oklch(0.00 0 0 / 0.30), 0 2px 4px oklch(0.00 0 0 / 0.20);
+  --wdr-shadow-lg: 0 10px 15px oklch(0.00 0 0 / 0.30), 0 4px 6px oklch(0.00 0 0 / 0.15);
+  --wdr-shadow-xl: 0 20px 25px oklch(0.00 0 0 / 0.30), 0 8px 10px oklch(0.00 0 0 / 0.15);
+
+  --wdr-badge-provider-exa-bg:          oklch(0.25 0.06 260);
+  --wdr-badge-provider-exa-text:        var(--wdr-color-deep-300);
+  --wdr-badge-provider-tavily-bg:       oklch(0.25 0.06 155);
+  --wdr-badge-provider-tavily-text:     oklch(0.75 0.12 155);
+  --wdr-badge-provider-firecrawl-bg:    oklch(0.25 0.06 50);
+  --wdr-badge-provider-firecrawl-text:  oklch(0.75 0.12 50);
+  --wdr-badge-provider-mistral-bg:      oklch(0.25 0.05 290);
+  --wdr-badge-provider-mistral-text:    oklch(0.72 0.10 290);
+
+  --wdr-progress-shimmer-bg: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0 0 0 / 0.20) 50%,
+    transparent 100%
+  );
+
+  --wdr-codeblock-text-color: var(--wdr-color-foam-300);
+  --wdr-codeblock-bg: var(--wdr-color-neutral-1000);
+  --wdr-codeblock-gutter-bg: var(--wdr-color-neutral-950);
+
+  --wdr-stream-reconnect-bg: oklch(0.40 0.15 25);
+  --wdr-stream-reconnect-bg-hover: oklch(0.22 0.06 25);
+
+  --wdr-toggle-bg: var(--wdr-surface-bg-elevated);
+  --wdr-toggle-bg-hover: var(--wdr-interactive-bg-subtle);
+  --wdr-toggle-color: var(--wdr-text-secondary);
+  --wdr-toggle-color-hover: var(--wdr-text-primary);
+  --wdr-toggle-border: var(--wdr-border-default);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -265,5 +294,34 @@
     --wdr-shadow-md: 0 4px 6px oklch(0.00 0 0 / 0.30), 0 2px 4px oklch(0.00 0 0 / 0.20);
     --wdr-shadow-lg: 0 10px 15px oklch(0.00 0 0 / 0.30), 0 4px 6px oklch(0.00 0 0 / 0.15);
     --wdr-shadow-xl: 0 20px 25px oklch(0.00 0 0 / 0.30), 0 8px 10px oklch(0.00 0 0 / 0.15);
+
+    --wdr-badge-provider-exa-bg:          oklch(0.25 0.06 260);
+    --wdr-badge-provider-exa-text:        var(--wdr-color-deep-300);
+    --wdr-badge-provider-tavily-bg:       oklch(0.25 0.06 155);
+    --wdr-badge-provider-tavily-text:     oklch(0.75 0.12 155);
+    --wdr-badge-provider-firecrawl-bg:    oklch(0.25 0.06 50);
+    --wdr-badge-provider-firecrawl-text:  oklch(0.75 0.12 50);
+    --wdr-badge-provider-mistral-bg:      oklch(0.25 0.05 290);
+    --wdr-badge-provider-mistral-text:    oklch(0.72 0.10 290);
+
+    --wdr-progress-shimmer-bg: linear-gradient(
+      90deg,
+      transparent 0%,
+      oklch(0 0 0 / 0.20) 50%,
+      transparent 100%
+    );
+
+    --wdr-codeblock-text-color: var(--wdr-color-foam-300);
+    --wdr-codeblock-bg: var(--wdr-color-neutral-1000);
+    --wdr-codeblock-gutter-bg: var(--wdr-color-neutral-950);
+
+    --wdr-stream-reconnect-bg: oklch(0.40 0.15 25);
+    --wdr-stream-reconnect-bg-hover: oklch(0.22 0.06 25);
+
+    --wdr-toggle-bg: var(--wdr-surface-bg-elevated);
+    --wdr-toggle-bg-hover: var(--wdr-interactive-bg-subtle);
+    --wdr-toggle-color: var(--wdr-text-secondary);
+    --wdr-toggle-color-hover: var(--wdr-text-primary);
+    --wdr-toggle-border: var(--wdr-border-default);
   }
 }
