@@ -42,7 +42,7 @@ test.describe("CSS & Theme", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const button = page.locator("button");
+    const button = page.getByRole("button", { name: "Resolve" });
     const bgColor = await button.evaluate(
       (el) => getComputedStyle(el).backgroundColor
     );
@@ -83,21 +83,21 @@ test.describe("Form Interaction", () => {
 
   test("button is disabled when input is empty", async ({ page }) => {
     await page.goto("/");
-    const button = page.locator("button");
+    const button = page.getByRole("button", { name: "Resolve" });
     await expect(button).toBeDisabled();
   });
 
   test("button is enabled when input has text", async ({ page }) => {
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("some query");
-    const button = page.locator("button");
+    const button = page.getByRole("button", { name: "Resolve" });
     await expect(button).toBeEnabled();
   });
 
   test("button shows Resolve text by default", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("button")).toHaveText("Resolve");
+    await expect(page.getByRole("button", { name: "Resolve" })).toBeVisible();
   });
 
   test("button shows loading state on submit", async ({ page }) => {
@@ -111,11 +111,12 @@ test.describe("Form Interaction", () => {
     });
 
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
-    const button = page.locator("button");
+    const button = page.getByRole("button", { name: "Resolve" });
     await button.click();
-    await expect(button).toContainText("Resolving...");
+    // After click, the button text changes to "Resolving..."
+    await expect(page.getByRole("button", { name: /Resolving/ })).toBeVisible();
   });
 
   test("button is disabled while loading", async ({ page }) => {
@@ -129,11 +130,12 @@ test.describe("Form Interaction", () => {
     });
 
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
-    const button = page.locator("button");
+    const button = page.getByRole("button", { name: "Resolve" });
     await button.click();
-    await expect(button).toBeDisabled();
+    // After click, check the disabled state on the "Resolving..." button
+    await expect(page.getByRole("button", { name: /Resolving/ })).toBeDisabled();
   });
 
   test("form submits on Enter key", async ({ page }) => {
@@ -147,37 +149,45 @@ test.describe("Form Interaction", () => {
     });
 
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("test query");
     await input.press("Enter");
-    await expect(page.locator("button")).toContainText("Resolving...");
+    await expect(page.getByRole("button", { name: "Resolving..." })).toBeVisible();
   });
 
   test("whitespace-only input does not submit", async ({ page }) => {
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("   ");
-    const button = page.locator("button");
+    const button = page.getByRole("button", { name: "Resolve" });
     await expect(button).toBeDisabled();
   });
 });
 
 test.describe("Error Handling", () => {
   test("shows error message on failed fetch", async ({ page }) => {
+    await page.route("**/resolve", async (route) => {
+      await route.abort("failed");
+    });
+
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
-    await page.locator("button").click();
+    await page.getByRole("button", { name: "Resolve" }).click();
     await expect(page.locator("text=Failed to fetch")).toBeVisible({
       timeout: 10000,
     });
   });
 
   test("error message has styled appearance", async ({ page }) => {
+    await page.route("**/resolve", async (route) => {
+      await route.abort("failed");
+    });
+
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
-    await page.locator("button").click();
+    await page.getByRole("button", { name: "Resolve" }).click();
     await page.waitForSelector("text=Failed to fetch");
 
     const errorDiv = page.locator("div.text-red-800, div.dark\\:text-red-200").first();
@@ -203,8 +213,8 @@ test.describe("Error Handling", () => {
     });
 
     await page.goto("/");
-    const input = page.locator("input");
-    const button = page.locator("button");
+    const input = page.locator("input[type='text']");
+    const button = page.getByRole("button", { name: "Resolve" });
 
     await input.fill("https://example.com");
     await button.click();
@@ -263,8 +273,8 @@ test.describe("Responsive Layout", () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
 
-    const input = page.locator("input");
-    const button = page.locator("button");
+    const input = page.locator("input[type='text']");
+    const button = page.getByRole("button", { name: "Resolve" });
 
     await expect(input).toBeVisible();
     await expect(button).toBeVisible();
@@ -277,26 +287,28 @@ test.describe("Responsive Layout", () => {
 test.describe("Keyboard Navigation", () => {
   test("input is focusable via Tab", async ({ page }) => {
     await page.goto("/");
+    // Tab through: home link -> settings button -> help link -> input
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
-    const input = page.locator("input");
+    await page.keyboard.press("Tab");
+    const input = page.locator("input[type='text']");
     await expect(input).toBeFocused();
   });
 
   test("button is focusable when enabled", async ({ page }) => {
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("some query");
     await input.focus();
     await page.keyboard.press("Tab");
-    const button = page.locator("button");
+    const button = page.getByRole("button", { name: "Resolve" });
     await expect(button).toBeFocused();
   });
 
   test("input has visible focus ring", async ({ page }) => {
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.focus();
     const boxShadow = await input.evaluate(
       (el) => getComputedStyle(el).boxShadow
@@ -325,9 +337,9 @@ test.describe("Network Interception", () => {
     );
 
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("test query");
-    await page.locator("button").click();
+    await page.getByRole("button", { name: "Resolve" }).click();
 
     await expect(page.locator("pre")).toContainText(
       "This is the resolved content."
@@ -344,11 +356,11 @@ test.describe("Network Interception", () => {
     );
 
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("test query");
-    await page.locator("button").click();
+    await page.getByRole("button", { name: "Resolve" }).click();
 
-    await expect(page.locator("text=Resolver returned 500")).toBeVisible({
+    await expect(page.locator("text=Internal server error")).toBeVisible({
       timeout: 10000,
     });
   });
@@ -367,8 +379,8 @@ test.describe("Network Interception", () => {
     });
 
     await page.goto("/");
-    const input = page.locator("input");
-    const button = page.locator("button");
+    const input = page.locator("input[type='text']");
+    const button = page.getByRole("button", { name: "Resolve" });
 
     await input.fill("query 1");
     await button.click();
@@ -391,9 +403,9 @@ test.describe("Network Interception", () => {
     );
 
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("test query");
-    await page.locator("button").click();
+    await page.getByRole("button", { name: "Resolve" }).click();
 
     await expect(page.locator("pre")).toContainText(
       "Alternative result field"
@@ -415,9 +427,9 @@ test.describe("Network Interception", () => {
     );
 
     await page.goto("/");
-    const input = page.locator("input");
+    const input = page.locator("input[type='text']");
     await input.fill("test query");
-    await page.locator("button").click();
+    await page.getByRole("button", { name: "Resolve" }).click();
 
     await expect(page.locator("pre")).toContainText('"nested"');
   });
@@ -498,7 +510,7 @@ test.describe("Help Page", () => {
       page.getByRole("heading", { name: "FAQ", exact: true })
     ).toBeVisible();
     await expect(
-      page.locator("text=What is Web Doc Resolver?")
+      page.locator("text=What is d.o. Web Doc Resolver?")
     ).toBeVisible();
     await expect(page.locator("text=Do I need an API key?")).toBeVisible();
   });

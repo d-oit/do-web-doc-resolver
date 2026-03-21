@@ -173,6 +173,7 @@ Manual check: `python scripts/validate_skill_symlink.py`
 | web-doc-resolver | `.agents/skills/web-doc-resolver/` | Python resolver with cascade |
 | wdr-cli | `.agents/skills/wdr-cli/` | Rust CLI (wdr binary) |
 | wdr-assets | `.agents/skills/wdr-assets/` | Screenshots & visual assets |
+| wdr-release | `.agents/skills/wdr-release/` | Release management & Git/GitHub best practices |
 
 ## Assets
 
@@ -182,3 +183,26 @@ Screenshots and visual assets are stored in `assets/screenshots/`. See [`assets/
 # Capture screenshots for release
 ./scripts/capture/capture-release.sh <version>
 ```
+
+## Releases
+
+Releases follow [Semantic Versioning](https://semver.org/) with conventional commits.
+
+```bash
+# Patch release (0.1.0 → 0.1.1)
+./scripts/release.sh patch
+
+# Minor release (0.1.1 → 0.2.0)
+./scripts/release.sh minor
+
+# Major release (0.2.0 → 1.0.0)
+./scripts/release.sh major
+
+# Specific version
+./scripts/release.sh 1.2.3
+
+# Generate changelog
+./scripts/changelog.sh v0.2.0
+```
+
+See [`wdr-release` skill](.agents/skills/wdr-release/SKILL.md) for full release workflow.
