@@ -86,3 +86,13 @@ Screenshots are captured:
 - On every release (via `capture-release.sh`)
 - In CI/CD pipeline (optional)
 - On pre-commit if UI changes detected
+
+## Available Screenshots
+
+### v0.2.0
+
+| File | Description |
+|------|-------------|
+| `release-v0.2.0/homepage.png` | Main resolver UI |
+| `release-v0.2.0/help-page.png` | Help and FAQ page |
+| `release-v0.2.0/homepage-annotated.png` | Annotated UI with element refs |

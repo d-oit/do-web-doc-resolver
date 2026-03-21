@@ -2,7 +2,7 @@
 
 Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade.
 
-![Web Doc Resolver UI](./assets/screenshots/release-v0.1.0/homepage.png)
+![Web Doc Resolver UI](./assets/screenshots/release-v0.2.0/homepage.png)
 
 ## Overview
 
@@ -218,7 +218,7 @@ cd cli && cargo build --release
 
 ### Web UI
 
-![Help Page](./assets/screenshots/release-v0.1.0/help-page.png)
+![Help Page](./assets/screenshots/release-v0.2.0/help-page.png)
 
 ```bash
 # Development
