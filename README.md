@@ -1,8 +1,10 @@
-# do-web-doc-resolover
-
-Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade.
-
-![Web Doc Resolver UI](./assets/screenshots/release-v0.2.0/homepage.png)
+<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+  <img src="./assets/logo.png" alt="do-web-doc-resolver Logo" width="80" height="80"/>
+  <div>
+    <h2 style="margin: 0;">do-web-doc-resolver</h2>
+    <p style="margin: 5px 0 0 0;">Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade</p>
+  </div>
+</div>
 
 ## Overview
 
@@ -451,9 +453,6 @@ do-web-doc-resolover/
 │           ├── RUST_CLI.md # Rust CLI architecture
 │           ├── TESTING.md  # Test structure
 │           └── CONFIG.md   # Config reference
-├── .blackbox/skills/      # Skill symlinks (Blackbox)
-├── .claude/skills/        # Skill symlinks (Claude)
-├── .opencode/skills/     # Skill symlinks (OpenCode)
 └── .github/workflows/     # CI/CD pipelines
 ```
 
@@ -461,8 +460,7 @@ do-web-doc-resolover/
 
 - [`SKILL.md`](SKILL.md) - Agent skill specification (symlink to `.agents/skills/web-doc-resolver/SKILL.md`)
 - [`AGENTS.md`](AGENTS.md) - Agent usage documentation
-- [`.agents/skills/web-doc-resolver/SKILL.md`](.agents/skills/web-doc-resolver/SKILL.md) - Canonical skill definition
-- [`.agents/skills/web-doc-resolver/references/`](.agents/skills/web-doc-resolver/references/) - Detailed reference docs
+- [`.agents/skills/web-doc-resolver/`](.agents/skills/web-doc-resolver/) - Skill definition and reference docs
 - [`scripts/resolve.py`](scripts/resolve.py) - Python resolver source
 - [`cli/src/`](cli/src/) - Rust CLI source
 
