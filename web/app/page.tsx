@@ -214,6 +214,59 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            
+            <hr className="my-4 border-neutral-200 dark:border-neutral-700" />
+            
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium text-sm">Provider Selection</h3>
+              {selectedProviders.length > 0 && (
+                <button
+                  onClick={clearProviders}
+                  className="text-xs text-red-600 hover:text-red-700 dark:text-red-400"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
+              Choose which search providers to use. Exa MCP is free and runs first by default.
+            </p>
+            <div className="grid gap-2 sm:gap-3">
+              {[
+                { id: 'exa_mcp', label: 'Exa MCP', description: 'Free neural search (no API key)' },
+                { id: 'serper', label: 'Serper', description: 'Google search (requires API key)' },
+                { id: 'tavily', label: 'Tavily', description: 'Comprehensive search (requires API key)' },
+                { id: 'duckduckgo', label: 'DuckDuckGo', description: 'Free search fallback' },
+              ].map(({ id, label, description }) => (
+                <label key={id} className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedProviders.includes(id)}
+                    onChange={() => handleProviderToggle(id)}
+                    className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-800"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{label}</span>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">{description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            
+            <div className="mt-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deepResearch}
+                  onChange={(e) => setDeepResearch(e.target.checked)}
+                  className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-800"
+                />
+                <div>
+                  <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Deep Research</span>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Run selected providers in parallel and combine results</p>
+                </div>
+              </label>
+            </div>
           </div>
         )}
 

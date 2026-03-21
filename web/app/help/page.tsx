@@ -104,6 +104,31 @@ export default function HelpPage() {
         </section>
 
         <section className="mt-10">
+          <h2 className="text-xl font-semibold">Provider Selection & Deep Research</h2>
+          <p className="mt-3 text-neutral-700 dark:text-neutral-300">
+            You can customize which search providers to use and enable deep research mode.
+          </p>
+          <div className="mt-4 space-y-4">
+            <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+              <h3 className="font-medium">Provider Selection</h3>
+              <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                In the settings panel, choose which providers to include in the cascade.
+                By default, all providers are enabled in the recommended order (Exa MCP first).
+                You can select a subset to speed up resolution or use specific APIs.
+              </p>
+            </div>
+            <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+              <h3 className="font-medium">Deep Research</h3>
+              <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                Enable deep research to run all selected providers in parallel.
+                Results from each provider are combined into a single document,
+                giving you comprehensive coverage from multiple sources.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10">
           <h2 className="text-xl font-semibold">Result format</h2>
           <p className="mt-3 text-neutral-700 dark:text-neutral-300">
             Results are returned as plain markdown. The content is cleaned, deduplicated, and trimmed to fit within LLM
