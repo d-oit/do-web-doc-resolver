@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Validate that skill symlinks in .blackbox/skills/, .claude/skills/, .opencode/skills/ point to .agents/skills/web-doc-resolver."""
+"""Validate that skill symlinks in .blackbox/skills/ and .claude/skills/ point to .agents/skills/.
+
+Note: .opencode/skills/ uses regular directories (not symlinks) and is not validated here.
+"""
 
 import sys
 from pathlib import Path
@@ -9,30 +12,43 @@ def validate_single_symlink(skill_dir: Path, canonical_dir: Path, name: str) -> 
     """Validate a single skill directory symlink."""
     errors = []
 
+    # Check if canonical directory exists first
+    if not canonical_dir.exists():
+        errors.append(f"❌ {name}: Canonical directory does not exist: {canonical_dir}")
+        for error in errors:
+            print(error)
+        return False
+
     # Check if symlink exists
-    if not skill_dir.exists():
-        errors.append(f"❌ {name}: Symlink does not exist: {skill_dir}")
+    if not skill_dir.exists() and not skill_dir.is_symlink():
+        errors.append(f"⚠️  {name}: Symlink not found at {skill_dir}")
+        for error in errors:
+            print(error)
+        return True  # Missing symlink is a warning, not a failure
 
     # Check if it's a symlink
-    elif not skill_dir.is_symlink():
+    if not skill_dir.is_symlink():
         errors.append(f"❌ {name}: Not a symlink (it's a regular file or directory): {skill_dir}")
+        for error in errors:
+            print(error)
+        return False
 
-    else:
-        # Resolve both to absolute paths for comparison
-        resolved_target = skill_dir.resolve()
-        resolved_expected = canonical_dir.resolve()
+    # Resolve both to absolute paths for comparison
+    resolved_target = skill_dir.resolve()
+    resolved_expected = canonical_dir.resolve()
 
-        if resolved_target != resolved_expected:
-            errors.append(f"❌ {name}: Points to wrong target")
-            errors.append(f"   Expected: {resolved_expected}")
-            errors.append(f"   Got:      {resolved_target}")
+    if resolved_target != resolved_expected:
+        errors.append(f"❌ {name}: Points to wrong target")
+        errors.append(f"   Expected: {resolved_expected}")
+        errors.append(f"   Got:      {resolved_target}")
+        for error in errors:
+            print(error)
+        return False
 
-    # Check if canonical directory exists with SKILL.md
+    # Check if canonical directory has SKILL.md
     skill_md = canonical_dir / "SKILL.md"
     if not skill_md.exists():
         errors.append(f"❌ {name}: SKILL.md does not exist in canonical: {skill_md}")
-
-    if errors:
         for error in errors:
             print(error)
         return False
@@ -46,33 +62,46 @@ def validate_single_symlink(skill_dir: Path, canonical_dir: Path, name: str) -> 
 def validate_skill_symlinks():
     """Ensure all skill symlinks point to the correct location."""
     root_dir = Path(__file__).parent.parent
-    canonical_skill = root_dir / ".agents" / "skills" / "web-doc-resolver"
+    canonical_skills = root_dir / ".agents" / "skills"
 
-    # Define all skill locations (symlinks point to .agents/skills/web-doc-resolver)
-    skill_locations = [
-        (root_dir / ".blackbox" / "skills" / "web-doc-resolver", ".blackbox/skills"),
-        (root_dir / ".claude" / "skills" / "web-doc-resolver", ".claude/skills"),
-        (root_dir / ".opencode" / "skills" / "web-doc-resolver", ".opencode/skills"),
-    ]
+    if not canonical_skills.exists():
+        print(f"❌ Canonical skills directory does not exist: {canonical_skills}")
+        sys.exit(1)
+
+    # Get all skill directories from .agents/skills/
+    skill_dirs = [d for d in canonical_skills.iterdir() if d.is_dir()]
+
+    if not skill_dirs:
+        print("⚠️  No skills found in .agents/skills/")
+        return True
 
     all_valid = True
-    results = []
+    total_checked = 0
 
-    for skill_dir, name in skill_locations:
-        if skill_dir.exists() or skill_dir.is_symlink():
-            is_valid = validate_single_symlink(skill_dir, canonical_skill, name)
+    # Only validate symlinks in .blackbox and .claude (not .opencode which uses regular dirs)
+    symlink_dirs = [".blackbox", ".claude"]
+
+    for canonical_skill in skill_dirs:
+        skill_name = canonical_skill.name
+        skill_md = canonical_skill / "SKILL.md"
+
+        # Check if SKILL.md exists in canonical
+        if not skill_md.exists():
+            print(f"⚠️  {skill_name}: No SKILL.md in canonical directory")
+            continue
+
+        # Check symlinks in .blackbox and .claude locations only
+        for symlink_dir_name in symlink_dirs:
+            skill_symlink = root_dir / symlink_dir_name / "skills" / skill_name
+            is_valid = validate_single_symlink(
+                skill_symlink, canonical_skill, f"{symlink_dir_name}/skills/{skill_name}"
+            )
             all_valid = all_valid and is_valid
-            results.append((name, is_valid, skill_dir.resolve() if is_valid else None))
-        else:
-            print(f"⚠️  {name}: Symlink not found at {skill_dir}")
-            # Don't fail if a skill location doesn't exist (optional)
-            # But warn about it
+            total_checked += 1
 
     print()
     if all_valid:
-        print("✅ PASS: All skill symlinks are valid")
-        print(f"   Canonical: {canonical_skill}")
-        print(f"   SKILL.md size: {(canonical_skill / 'SKILL.md').stat().st_size} bytes")
+        print(f"✅ PASS: All {total_checked} skill symlinks are valid")
         return True
     else:
         print("❌ FAIL: Some skill symlinks are invalid")

@@ -36,6 +36,9 @@ jobs:
         run: npm ci
         working-directory: web
 
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production
         working-directory: web
@@ -110,7 +113,7 @@ jobs:
         run: npx playwright test --project=desktop
         working-directory: web
         env:
-          BASE_URL: https://web-eight-ivory-29.vercel.app/
+          BASE_URL: ${{ needs.deploy.outputs.url }}
 
       - name: Upload test results
         if: always()

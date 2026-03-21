@@ -13,6 +13,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "=== Quality Gate ==="
 
+# Skill symlink validation
+echo "Validating skill symlinks..."
+cd "$REPO_ROOT"
+python scripts/validate_skill_symlink.py
+
 # Python checks
 echo "Running Python tests (unit only)..."
 cd "$REPO_ROOT"
