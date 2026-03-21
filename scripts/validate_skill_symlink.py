@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that skill symlinks in .blackbox/skills/ and .opencode/skills/ point to root SKILL.md."""
+"""Validate that skill symlinks in .blackbox/skills/, .claude/skills/, .opencode/skills/ point to root SKILL.md."""
 
 import sys
 from pathlib import Path
@@ -47,9 +47,10 @@ def validate_skill_symlinks():
     root_dir = Path(__file__).parent.parent
     root_skill = root_dir / "SKILL.md"
 
-    # Define all skill locations
+    # Define all skill locations (symlinks point to .agents/skills/web-doc-resolver)
     skill_locations = [
         (root_dir / ".blackbox" / "skills" / "web-doc-resolver" / "SKILL.md", ".blackbox/skills"),
+        (root_dir / ".claude" / "skills" / "web-doc-resolver" / "SKILL.md", ".claude/skills"),
         (root_dir / ".opencode" / "skills" / "web-doc-resolver" / "SKILL.md", ".opencode/skills"),
     ]
 

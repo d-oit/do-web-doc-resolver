@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PROVIDERS = {
-  EXA_API_KEY: process.env.EXA_API_KEY,
-  TAVILY_API_KEY: process.env.TAVILY_API_KEY,
-  SERPER_API_KEY: process.env.SERPER_API_KEY,
-  FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
-  MISTRAL_API_KEY: process.env.MISTRAL_API_KEY,
-};
+// Allow up to 60 seconds for resolver operations
+export const maxDuration = 60;
 
 const MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
+
+// Provider keys - can come from env vars or request body
+interface ProviderKeys {
+  SERPER_API_KEY?: string;
+  TAVILY_API_KEY?: string;
+  EXA_API_KEY?: string;
+  FIRECRAWL_API_KEY?: string;
+  MISTRAL_API_KEY?: string;
+}
 
 function isUrl(input: string): boolean {
   return /^https?:\/\/\S+$/i.test(input.trim());
@@ -68,15 +72,15 @@ async function extractViaDirectFetch(url: string): Promise<string | null> {
   }
 }
 
-async function searchViaSerper(query: string): Promise<string | null> {
-  if (!PROVIDERS.SERPER_API_KEY) return null;
+async function searchViaSerper(query: string, apiKey: string): Promise<string | null> {
+  if (!apiKey) return null;
   try {
     const res = await fetchWithTimeout(
       "https://google.serper.dev/search",
       {
         method: "POST",
         headers: {
-          "X-API-KEY": PROVIDERS.SERPER_API_KEY,
+          "X-API-KEY": apiKey,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ q: query, num: 5 }),
@@ -103,14 +107,14 @@ async function searchViaSerper(query: string): Promise<string | null> {
   }
 }
 
-async function searchViaTavily(query: string): Promise<string | null> {
-  if (!PROVIDERS.TAVILY_API_KEY) return null;
+async function searchViaTavily(query: string, apiKey: string): Promise<string | null> {
+  if (!apiKey) return null;
   try {
     const res = await fetchWithTimeout("https://api.tavily.com/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        api_key: PROVIDERS.TAVILY_API_KEY,
+        api_key: apiKey,
         query,
         max_results: 5,
         include_raw_content: true,
@@ -132,29 +136,76 @@ async function searchViaTavily(query: string): Promise<string | null> {
   }
 }
 
-async function searchViaDuckDuckGo(query: string): Promise<string | null> {
+/**
+ * Free search via DuckDuckGo using Jina Reader to parse search results
+ * This works without any API key by scraping DDG search results
+ */
+async function searchViaDuckDuckGoFree(query: string): Promise<string | null> {
   try {
-    const res = await fetchWithTimeout(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`,
-      {}
-    );
+    // Use DuckDuckGo HTML search and parse via Jina Reader
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    const res = await fetchWithTimeout(`https://r.jina.ai/${searchUrl}`, {
+      headers: {
+        Accept: "text/plain",
+        "X-Return-Format": "text",
+      },
+    });
     if (!res.ok) return null;
-    const data = await res.json();
-    const parts = [
-      data.AbstractText,
-      ...(data.RelatedTopics || [])
-        .slice(0, 5)
-        .map((t: { Text?: string }) => t.Text)
-        .filter(Boolean),
-    ].filter(Boolean);
-    const text = parts.join("\n\n");
-    return text.length > 100 ? text.slice(0, MAX_CHARS) : null;
+    const text = await res.text();
+
+    // Clean up the search results text
+    // Jina returns the page content, we need to extract meaningful parts
+    const lines = text.split('\n').filter(line => {
+      const trimmed = line.trim();
+      // Filter out navigation and noise
+      if (trimmed.length < 20) return false;
+      if (trimmed.includes('Your browser is out of date')) return false;
+      if (trimmed.includes('DuckDuckGo')) return false;
+      if (trimmed.match(/^[\s\-\*\|]+$/)) return false;
+      return true;
+    });
+
+    const cleaned = lines.join('\n\n').trim();
+    return cleaned.length > 100 ? cleaned.slice(0, MAX_CHARS) : null;
   } catch {
     return null;
   }
 }
 
-async function resolveUrl(url: string): Promise<string> {
+/**
+ * Alternative: Use DuckDuckGo Lite search via Jina
+ */
+async function searchViaDuckDuckGoLite(query: string): Promise<string | null> {
+  try {
+    const searchUrl = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
+    const res = await fetchWithTimeout(`https://r.jina.ai/${searchUrl}`, {
+      headers: {
+        Accept: "text/plain",
+        "X-Return-Format": "text",
+      },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+
+    // DDG Lite is cleaner, parse results
+    const lines = text.split('\n').filter(line => {
+      const trimmed = line.trim();
+      if (trimmed.length < 20) return false;
+      // Remove noise
+      if (trimmed.includes('DuckDuckGo')) return false;
+      if (trimmed.includes('web images news')) return false;
+      if (trimmed.match(/^[\d\.\s]+$/)) return false;
+      return true;
+    });
+
+    const cleaned = lines.join('\n\n').trim();
+    return cleaned.length > 100 ? cleaned.slice(0, MAX_CHARS) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveUrl(url: string, keys: ProviderKeys): Promise<string> {
   // URL cascade: Jina (free) → Direct fetch (free)
   let result = await extractViaJina(url);
   if (result) return result;
@@ -165,18 +216,32 @@ async function resolveUrl(url: string): Promise<string> {
   throw new Error("Failed to extract content from URL");
 }
 
-async function resolveQuery(query: string): Promise<string> {
-  // Query cascade: Serper → Tavily → DuckDuckGo
-  let result = await searchViaSerper(query);
+async function resolveQuery(query: string, keys: ProviderKeys): Promise<string> {
+  // Query cascade: Serper → Tavily → DuckDuckGo (free via Jina)
+  let result: string | null = null;
+
+  // Try paid providers first if keys are available
+  const serperKey = keys.SERPER_API_KEY || process.env.SERPER_API_KEY;
+  const tavilyKey = keys.TAVILY_API_KEY || process.env.TAVILY_API_KEY;
+
+  if (serperKey) {
+    result = await searchViaSerper(query, serperKey);
+    if (result) return result;
+  }
+
+  if (tavilyKey) {
+    result = await searchViaTavily(query, tavilyKey);
+    if (result) return result;
+  }
+
+  // Free fallback: DuckDuckGo via Jina Reader
+  result = await searchViaDuckDuckGoLite(query);
   if (result) return result;
 
-  result = await searchViaTavily(query);
+  result = await searchViaDuckDuckGoFree(query);
   if (result) return result;
 
-  result = await searchViaDuckDuckGo(query);
-  if (result) return result;
-
-  throw new Error("No search results found for query");
+  throw new Error("No search results found for query. Try adding API keys for better results.");
 }
 
 export async function POST(request: NextRequest) {
@@ -191,10 +256,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Extract optional user-provided API keys from request body
+    const userKeys: ProviderKeys = {
+      SERPER_API_KEY: body.serper_api_key,
+      TAVILY_API_KEY: body.tavily_api_key,
+      EXA_API_KEY: body.exa_api_key,
+      FIRECRAWL_API_KEY: body.firecrawl_api_key,
+      MISTRAL_API_KEY: body.mistral_api_key,
+    };
+
     const urlMode = isUrl(input);
     const markdown = urlMode
-      ? await resolveUrl(input)
-      : await resolveQuery(input);
+      ? await resolveUrl(input, userKeys)
+      : await resolveQuery(input, userKeys);
 
     return NextResponse.json({ markdown });
   } catch (err) {

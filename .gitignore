@@ -216,3 +216,4 @@ tmp/
 Thumbs.db
 .vercel
 .env*.local
+.claude/settings.local.json
