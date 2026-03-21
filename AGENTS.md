@@ -1,7 +1,7 @@
 # AGENTS.md
 
 > **do-web-doc-resolover** — resolves queries or URLs into compact, LLM-ready markdown via a low-cost provider cascade.
-> Full detail docs live in [`agents-docs/`](./agents-docs/). See [agents.md](https://agents.md) for spec.
+> Full detail docs live in [`.agents/skills/web-doc-resolver/`](.agents/skills/web-doc-resolver/). See [agents.md](https://agents.md) for spec.
 
 ## Setup commands
 
@@ -76,14 +76,7 @@ cd web && npx playwright test --project=desktop
 ```
 do-web-doc-resolover/
 ├── AGENTS.md              # This file (agent instructions, <150 lines)
-├── agents-docs/           # Detailed agent reference docs
-│   ├── CASCADE.md         # Full cascade decision trees
-│   ├── PROVIDERS.md       # Provider API details & rate limits
-│   ├── CLI.md             # Python + Rust CLI usage reference
-│   ├── RUST_CLI.md        # Rust CLI architecture & crate stack
-│   ├── TESTING.md         # Test structure, markers, live vs unit
-│   └── CONFIG.md          # Env vars, config.toml, layered config
-├── SKILL.md               # agentskills.io skill definition
+├── SKILL.md               # agentskills.io skill definition (symlink)
 ├── README.md              # Human-readable docs
 ├── scripts/resolve.py     # Main Python resolver (<500 LOC)
 ├── scripts/quality_gate.sh # Pre-commit quality checks
@@ -98,21 +91,34 @@ do-web-doc-resolover/
 │   ├── postcss.config.mjs # REQUIRED for Tailwind v4
 │   └── vercel.json
 ├── tests/                 # Python test suite
-├── references/CASCADE.md  # Legacy → see agents-docs/CASCADE.md
+├── .agents/skills/        # Canonical skill definitions
+│   └── web-doc-resolver/
+│       ├── SKILL.md       # Main skill file
+│       └── references/    # Detailed reference docs
+│           ├── CASCADE.md  # Full cascade decision trees
+│           ├── PROVIDERS.md # Provider API details & rate limits
+│           ├── CLI.md      # Python + Rust CLI usage reference
+│           ├── RUST_CLI.md # Rust CLI architecture & crate stack
+│           ├── TESTING.md  # Test structure, markers, live vs unit
+│           └── CONFIG.md   # Env vars, config.toml, layered config
+├── .blackbox/skills/      # Skill symlinks (Blackbox)
+├── .claude/skills/        # Skill symlinks (Claude)
+├── .opencode/skills/      # Skill symlinks (OpenCode)
+├── agents-docs/            # Reference docs for AGENTS.md
 ├── .mcp.json              # MCP config for Claude Code / OpenCode
 └── .github/workflows/     # CI/CD (ci.yml, release.yml)
 ```
 
 ## Cascade overview
 
-The resolver auto-detects URL vs query and runs a free-first cascade. See [`agents-docs/CASCADE.md`](./agents-docs/CASCADE.md) for the full decision tree.
+The resolver auto-detects URL vs query and runs a free-first cascade. See [`.agents/skills/web-doc-resolver/references/CASCADE.md`](.agents/skills/web-doc-resolver/references/CASCADE.md) for the full decision tree.
 
 | Input type | Cascade order |
 |---|---|
 | **Query** | Exa MCP (free) → Exa SDK → Tavily → Serper → DuckDuckGo (free) → Mistral |
 | **URL** | llms.txt (free) → Jina (free) → Firecrawl → Direct fetch (free) → Mistral browser → DuckDuckGo |
 
-Skip providers: `--skip exa_mcp --skip exa` — see [`agents-docs/CLI.md`](./agents-docs/CLI.md).
+Skip providers: `--skip exa_mcp --skip exa` — see [`.agents/skills/web-doc-resolver/references/CLI.md`](.agents/skills/web-doc-resolver/references/CLI.md).
 
 ## Environment variables (all optional)
 
@@ -125,7 +131,7 @@ Skip providers: `--skip exa_mcp --skip exa` — see [`agents-docs/CLI.md`](./age
 | `MISTRAL_API_KEY` | Mistral | Optional AI-powered fallback |
 
 Exa MCP, Jina Reader, DuckDuckGo, and direct fetch are always available — **no API key required**.
-See [`agents-docs/CONFIG.md`](./agents-docs/CONFIG.md) for full config reference including `cli/config.toml`.
+See [`.agents/skills/web-doc-resolver/references/CONFIG.md`](.agents/skills/web-doc-resolver/references/CONFIG.md) for full config reference including `cli/config.toml`.
 
 ## Security
 
@@ -135,7 +141,8 @@ See [`agents-docs/CONFIG.md`](./agents-docs/CONFIG.md) for full config reference
 
 ## Skill symlink validation
 
-`.blackbox/skills/do-web-doc-resolover/SKILL.md` must symlink to root `SKILL.md`.
+All skill symlinks (`.blackbox/skills/`, `.claude/skills/`, `.opencode/skills/`) must point to the canonical source in `.agents/skills/`.
+The root `SKILL.md` symlinks to `.agents/skills/web-doc-resolver/SKILL.md`.
 Validated on every commit (pre-commit hook) and in CI (`validate-symlink` job).
 Manual check: `python scripts/validate_skill_symlink.py`
 
@@ -143,9 +150,24 @@ Manual check: `python scripts/validate_skill_symlink.py`
 
 | Topic | File |
 |---|---|
-| Full cascade logic | [`agents-docs/CASCADE.md`](./agents-docs/CASCADE.md) |
-| All providers & rate limits | [`agents-docs/PROVIDERS.md`](./agents-docs/PROVIDERS.md) |
-| CLI usage (Python + Rust) | [`agents-docs/CLI.md`](./agents-docs/CLI.md) |
-| Rust CLI architecture | [`agents-docs/RUST_CLI.md`](./agents-docs/RUST_CLI.md) |
-| Test structure & markers | [`agents-docs/TESTING.md`](./agents-docs/TESTING.md) |
-| Config & env vars | [`agents-docs/CONFIG.md`](./agents-docs/CONFIG.md) |
+| Full cascade logic | [`.agents/skills/web-doc-resolver/references/CASCADE.md`](.agents/skills/web-doc-resolver/references/CASCADE.md) |
+| All providers & rate limits | [`.agents/skills/web-doc-resolver/references/PROVIDERS.md`](.agents/skills/web-doc-resolver/references/PROVIDERS.md) |
+| CLI usage (Python + Rust) | [`.agents/skills/web-doc-resolver/references/CLI.md`](.agents/skills/web-doc-resolver/references/CLI.md) |
+| Rust CLI architecture | [`.agents/skills/web-doc-resolver/references/RUST_CLI.md`](.agents/skills/web-doc-resolver/references/RUST_CLI.md) |
+| Test structure & markers | [`.agents/skills/web-doc-resolver/references/TESTING.md`](.agents/skills/web-doc-resolver/references/TESTING.md) |
+| Config & env vars | [`.agents/skills/web-doc-resolver/references/CONFIG.md`](.agents/skills/web-doc-resolver/references/CONFIG.md) |
+
+## Project Documentation
+
+| Topic | File |
+|---|---|
+| Project overview | [`agents-docs/OVERVIEW.md`](agents-docs/OVERVIEW.md) |
+| Development guide | [`agents-docs/DEVELOPMENT.md`](agents-docs/DEVELOPMENT.md) |
+| Deployment guide | [`agents-docs/DEPLOYMENT.md`](agents-docs/DEPLOYMENT.md) |
+
+## Skills
+
+| Skill | Location | Description |
+|---|---|---|
+| web-doc-resolver | `.agents/skills/web-doc-resolver/` | Python resolver with cascade |
+| wdr-cli | `.agents/skills/wdr-cli/` | Rust CLI (wdr binary) |

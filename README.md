@@ -99,7 +99,7 @@ $env:FIRECRAWL_API_KEY="your-firecrawl-key"
 $env:MISTRAL_API_KEY="your-mistral-key"
 ```
 
-Rust CLI supports `config.toml` or `WDR_*` env vars. See [`agents-docs/CONFIG.md`](agents-docs/CONFIG.md) for full reference.
+Rust CLI supports `config.toml` or `WDR_*` env vars. See [`.agents/skills/web-doc-resolver/references/CONFIG.md`](.agents/skills/web-doc-resolver/references/CONFIG.md) for full reference.
 
 ## Usage
 
@@ -415,7 +415,7 @@ cd web && npx playwright test --ui
 ```
 do-web-doc-resolover/
 ├── AGENTS.md              # Agent instructions
-├── SKILL.md               # agentskills.io skill definition
+├── SKILL.md               # agentskills.io skill definition (symlink)
 ├── README.md              # This file
 ├── scripts/
 │   ├── resolve.py         # Main Python resolver
@@ -437,25 +437,28 @@ do-web-doc-resolover/
 │   ├── tests/e2e/         # Playwright E2E tests
 │   └── vercel.json        # Deployment config
 ├── tests/                 # Python test suite
-├── agents-docs/           # Detailed documentation
-│   ├── CASCADE.md         # Full cascade decision trees
-│   ├── PROVIDERS.md       # Provider API details
-│   ├── CLI.md             # CLI usage reference
-│   ├── RUST_CLI.md        # Rust CLI architecture
-│   ├── TESTING.md         # Test structure
-│   └── CONFIG.md          # Config reference
+├── .agents/skills/        # Canonical skill definitions
+│   └── web-doc-resolver/
+│       ├── SKILL.md       # Main skill file
+│       └── references/    # Detailed reference docs
+│           ├── CASCADE.md  # Full cascade decision trees
+│           ├── PROVIDERS.md # Provider API details
+│           ├── CLI.md      # CLI usage reference
+│           ├── RUST_CLI.md # Rust CLI architecture
+│           ├── TESTING.md  # Test structure
+│           └── CONFIG.md   # Config reference
+├── .blackbox/skills/      # Skill symlinks (Blackbox)
+├── .claude/skills/        # Skill symlinks (Claude)
+├── .opencode/skills/     # Skill symlinks (OpenCode)
 └── .github/workflows/     # CI/CD pipelines
 ```
 
 ## Related Files
 
-- [`SKILL.md`](SKILL.md) - Agent skill specification
+- [`SKILL.md`](SKILL.md) - Agent skill specification (symlink to `.agents/skills/web-doc-resolver/SKILL.md`)
 - [`AGENTS.md`](AGENTS.md) - Agent usage documentation
-- [`agents-docs/CASCADE.md`](agents-docs/CASCADE.md) - Detailed cascade documentation
-- [`agents-docs/CLI.md`](agents-docs/CLI.md) - CLI usage reference
-- [`agents-docs/RUST_CLI.md`](agents-docs/RUST_CLI.md) - Rust CLI architecture
-- [`agents-docs/CONFIG.md`](agents-docs/CONFIG.md) - Config & env vars reference
-- [`agents-docs/PROVIDERS.md`](agents-docs/PROVIDERS.md) - Provider API details
+- [`.agents/skills/web-doc-resolver/SKILL.md`](.agents/skills/web-doc-resolver/SKILL.md) - Canonical skill definition
+- [`.agents/skills/web-doc-resolver/references/`](.agents/skills/web-doc-resolver/references/) - Detailed reference docs
 - [`scripts/resolve.py`](scripts/resolve.py) - Python resolver source
 - [`cli/src/`](cli/src/) - Rust CLI source
 
