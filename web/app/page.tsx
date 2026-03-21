@@ -41,6 +41,8 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [apiKeys, setApiKeys] = useState<ApiKeys>({});
   const [copied, setCopied] = useState(false);
+  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
+  const [deepResearch, setDeepResearch] = useState(false);
 
   // Load API keys on mount
   useEffect(() => {
@@ -63,6 +65,8 @@ export default function Home() {
           query: query.trim(),
           // Include user-provided API keys if available
           ...apiKeys,
+          providers: selectedProviders,
+          deepResearch,
         }),
       });
 
@@ -91,6 +95,19 @@ export default function Home() {
   const clearKeys = () => {
     setApiKeys({});
     saveApiKeys({});
+  };
+
+  const handleProviderToggle = (provider: string) => {
+    setSelectedProviders(prev =>
+      prev.includes(provider)
+        ? prev.filter(p => p !== provider)
+        : [...prev, provider]
+    );
+  };
+
+  const clearProviders = () => {
+    setSelectedProviders([]);
+    setDeepResearch(false);
   };
 
   const hasKeys = Object.values(apiKeys).some(v => v);
@@ -181,6 +198,7 @@ export default function Home() {
                 { key: 'serper_api_key', label: 'Serper (Google Search)', placeholder: 'Free 2500 credits at serper.dev' },
                 { key: 'tavily_api_key', label: 'Tavily', placeholder: 'tavily.com' },
                 { key: 'exa_api_key', label: 'Exa', placeholder: 'exa.ai' },
+                { key: 'firecrawl_api_key', label: 'Firecrawl', placeholder: 'firecrawl.dev - JS rendering' },
               ].map(({ key, label, placeholder }) => (
                 <div key={key} className="flex flex-col sm:flex-row gap-1 sm:gap-2 sm:items-center">
                   <label className="text-xs text-neutral-600 dark:text-neutral-400 sm:w-32 shrink-0">

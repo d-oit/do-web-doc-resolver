@@ -72,6 +72,37 @@ async function extractViaDirectFetch(url: string): Promise<string | null> {
   }
 }
 
+/**
+ * Extract content via Firecrawl API (requires API key)
+ * Deep extraction with JavaScript rendering
+ */
+async function extractViaFirecrawl(url: string, apiKey: string): Promise<string | null> {
+  if (!apiKey) return null;
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.firecrawl.dev/v1/scrape",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url,
+          formats: ["markdown"],
+        }),
+      },
+      30000 // Longer timeout for JS rendering
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const markdown = data?.data?.markdown;
+    return markdown && markdown.length > 50 ? markdown.slice(0, MAX_CHARS) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function searchViaSerper(query: string, apiKey: string): Promise<string | null> {
   if (!apiKey) return null;
   try {
@@ -205,10 +236,125 @@ async function searchViaDuckDuckGoLite(query: string): Promise<string | null> {
   }
 }
 
+/**
+ * Free search via Exa MCP (Model Context Protocol)
+ * No API key required, rate limited.
+ */
+async function searchViaExaMcp(query: string): Promise<string | null> {
+  try {
+    const mcpRequest = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: {
+        name: "web_search_exa",
+        arguments: {
+          query,
+          numResults: 8,
+        },
+      },
+    };
+    const res = await fetchWithTimeout("https://mcp.exa.ai/mcp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(mcpRequest),
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    // Response is streamed with "data: " lines
+    const lines = text.split("\n");
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.result && data.result.content) {
+            const content = data.result.content[0]?.text;
+            if (content && content.length > 100) {
+              return content.slice(0, MAX_CHARS);
+            }
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Provider mapping for custom selection
+type ProviderFn = (query: string, keys: ProviderKeys) => Promise<string | null>;
+
+const providerMap: Record<string, ProviderFn> = {
+  exa_mcp: async (query, keys) => searchViaExaMcp(query),
+  serper: async (query, keys) => {
+    const key = keys.SERPER_API_KEY || process.env.SERPER_API_KEY;
+    return key ? searchViaSerper(query, key) : null;
+  },
+  tavily: async (query, keys) => {
+    const key = keys.TAVILY_API_KEY || process.env.TAVILY_API_KEY;
+    return key ? searchViaTavily(query, key) : null;
+  },
+  duckduckgo: async (query, keys) => searchViaDuckDuckGoLite(query) || searchViaDuckDuckGoFree(query),
+};
+
+// Run providers sequentially until one succeeds
+async function runProvidersSequential(
+  query: string,
+  keys: ProviderKeys,
+  providerNames: string[]
+): Promise<string> {
+  for (const name of providerNames) {
+    const fn = providerMap[name];
+    if (!fn) continue;
+    const result = await fn(query, keys);
+    if (result) return result;
+  }
+  throw new Error("No search results found for query. Try adding API keys for better results.");
+}
+
+// Run multiple providers in parallel and concatenate results
+async function runProvidersParallel(
+  query: string,
+  keys: ProviderKeys,
+  providerNames: string[]
+): Promise<string> {
+  const results = await Promise.all(
+    providerNames.map(async (name) => {
+      const fn = providerMap[name];
+      if (!fn) return null;
+      try {
+        return await fn(query, keys);
+      } catch {
+        return null;
+      }
+    })
+  );
+  const successful = results.filter((r): r is string => r !== null);
+  if (successful.length === 0) {
+    throw new Error("No search results found for query. Try adding API keys for better results.");
+  }
+  // Combine results with provider headers
+  return successful
+    .map((content, idx) => `## Results from ${providerNames[idx]}\n\n${content}`)
+    .join("\n\n---\n\n");
+}
+
 async function resolveUrl(url: string, keys: ProviderKeys): Promise<string> {
-  // URL cascade: Jina (free) → Direct fetch (free)
+  // URL cascade: Jina (free) → Firecrawl (paid) → Direct fetch (free)
   let result = await extractViaJina(url);
   if (result) return result;
+
+  // Try Firecrawl if API key is available
+  const firecrawlKey = keys.FIRECRAWL_API_KEY || process.env.FIRECRAWL_API_KEY;
+  if (firecrawlKey) {
+    result = await extractViaFirecrawl(url, firecrawlKey);
+    if (result) return result;
+  }
 
   result = await extractViaDirectFetch(url);
   if (result) return result;
@@ -217,10 +363,14 @@ async function resolveUrl(url: string, keys: ProviderKeys): Promise<string> {
 }
 
 async function resolveQuery(query: string, keys: ProviderKeys): Promise<string> {
-  // Query cascade: Serper → Tavily → DuckDuckGo (free via Jina)
+  // Query cascade: Exa MCP (free) → Serper → Tavily → DuckDuckGo (free)
   let result: string | null = null;
 
-  // Try paid providers first if keys are available
+  // 1. Exa MCP (free, no API key required)
+  result = await searchViaExaMcp(query);
+  if (result) return result;
+
+  // 2. Paid providers if keys are available
   const serperKey = keys.SERPER_API_KEY || process.env.SERPER_API_KEY;
   const tavilyKey = keys.TAVILY_API_KEY || process.env.TAVILY_API_KEY;
 
@@ -234,7 +384,7 @@ async function resolveQuery(query: string, keys: ProviderKeys): Promise<string> 
     if (result) return result;
   }
 
-  // Free fallback: DuckDuckGo via Jina Reader
+  // 3. Free fallback: DuckDuckGo via Jina Reader
   result = await searchViaDuckDuckGoLite(query);
   if (result) return result;
 
@@ -266,9 +416,25 @@ export async function POST(request: NextRequest) {
     };
 
     const urlMode = isUrl(input);
-    const markdown = urlMode
-      ? await resolveUrl(input, userKeys)
-      : await resolveQuery(input, userKeys);
+    let markdown: string;
+    if (urlMode) {
+      markdown = await resolveUrl(input, userKeys);
+    } else {
+      // Query mode: check for provider selection and deep research
+      const providers: string[] = body.providers || [];
+      const deepResearch: boolean = body.deepResearch || false;
+      
+      if (providers.length === 0) {
+        // Default cascade
+        markdown = await resolveQuery(input, userKeys);
+      } else if (deepResearch) {
+        // Run selected providers in parallel
+        markdown = await runProvidersParallel(input, userKeys, providers);
+      } else {
+        // Run selected providers sequentially in given order
+        markdown = await runProvidersSequential(input, userKeys, providers);
+      }
+    }
 
     return NextResponse.json({ markdown });
   } catch (err) {

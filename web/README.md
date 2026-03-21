@@ -11,19 +11,105 @@ npm run dev
 
 The app runs at [http://localhost:3000](http://localhost:3000).
 
+## How to Use
+
+### Resolving URLs
+
+Enter any public URL to extract its content as markdown:
+
+```
+https://docs.python.org
+https://example.com
+https://httpbin.org/html
+```
+
+The resolver runs through a cascade of providers:
+1. **Jina Reader** (free) — Web-to-markdown conversion
+2. **Firecrawl** (requires API key) — Deep extraction with JS rendering
+3. **Direct Fetch** (free) — Basic HTML extraction
+
+### Resolving Queries
+
+Enter a natural language search query:
+
+```
+python async best practices
+machine learning tutorials
+latest AI research papers
+```
+
+The query cascade:
+1. **Serper** (requires API key) — Google search
+2. **Tavily** (requires API key) — Comprehensive search
+3. **DuckDuckGo** (free) — Search fallback
+
+### Using API Keys
+
+Click **Settings** in the nav bar to add your API keys. Keys are stored locally in your browser's localStorage.
+
+| Provider | Key Name | Get Key | Use Case |
+|----------|----------|---------|----------|
+| Serper | `serper_api_key` | [serper.dev](https://serper.dev) | Google search (2500 free credits) |
+| Tavily | `tavily_api_key` | [tavily.com](https://tavily.com) | AI-optimized search |
+| Exa | `exa_api_key` | [exa.ai](https://exa.ai) | Neural search |
+| Firecrawl | `firecrawl_api_key` | [firecrawl.dev](https://firecrawl.dev) | JS-rendered pages (500 free/month) |
+
+### Result Actions
+
+After a successful resolution:
+- **Copy** — Click the Copy button to copy markdown to clipboard
+- **Clear** — Clear the result to start fresh
+- **Stats** — See character and word count in the header
+
+### Keyboard Shortcuts
+
+- `Tab` — Navigate through form elements
+- `Enter` — Submit the form when input is focused
+
 ## Environment Variables
 
 | Variable | Required | Description | Default |
 |---|---|---|---|
-| `EXA_API_KEY` | No | Exa SDK neural search | — |
+| `SERPER_API_KEY` | No | Google search via Serper | — |
 | `TAVILY_API_KEY` | No | Tavily comprehensive search | — |
-| `SERPER_API_KEY` | No | Google search via Serper (2500 free credits) | — |
+| `EXA_API_KEY` | No | Exa neural search | — |
 | `FIRECRAWL_API_KEY` | No | Firecrawl deep extraction | — |
 | `MISTRAL_API_KEY` | No | Mistral AI-powered fallback | — |
 | `WEB_RESOLVER_MAX_CHARS` | No | Max characters in response | `8000` |
 | `NEXT_PUBLIC_APP_URL` | No | Public URL of this app | — |
 
 **Note**: All API keys are optional. The resolver works with free providers (Jina Reader, DuckDuckGo, direct fetch).
+
+## API Endpoint
+
+### POST `/api/resolve`
+
+Resolve a URL or query to markdown.
+
+**Request:**
+```json
+{
+  "query": "https://example.com",
+  "serper_api_key": "optional",
+  "tavily_api_key": "optional",
+  "exa_api_key": "optional",
+  "firecrawl_api_key": "optional"
+}
+```
+
+**Response:**
+```json
+{
+  "markdown": "Example Domain\n\nThis domain is for use in..."
+}
+```
+
+**Error Response:**
+```json
+{
+  "error": "Failed to extract content from URL"
+}
+```
 
 ## Available Scripts
 
@@ -61,6 +147,8 @@ vercel build --prod
 vercel deploy --prebuilt --prod
 ```
 
+**Live URL**: https://web-eight-ivory-29.vercel.app
+
 ### Vercel Configuration
 
 - **API Routes**: Configured with 60s max duration for long-running resolver operations
@@ -73,9 +161,9 @@ vercel deploy --prebuilt --prod
 web/
 ├── app/
 │   ├── layout.tsx        # Root layout (fonts, metadata, SpeedInsights)
-│   ├── page.tsx          # Home page (resolver form)
+│   ├── page.tsx          # Home page (resolver form + settings)
 │   ├── api/resolve/
-│   │   └── route.ts      # API endpoint for resolution
+│   │   └── route.ts      # API endpoint with provider cascade
 │   ├── help/
 │   │   └── page.tsx      # Help / FAQ page
 │   └── globals.css       # Tailwind v4 config + theme tokens
@@ -89,3 +177,12 @@ web/
 ├── vercel.json
 └── package.json
 ```
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "Failed to fetch" | Backend not reachable. Check `NEXT_PUBLIC_RESOLVER_URL` or run locally |
+| Empty results | Site may block automated fetching. Add Firecrawl API key for JS rendering |
+| Slow responses | Cascade tries multiple providers. Add API keys to skip slower fallbacks |
+| Rate limited | Wait and retry, or add alternative API keys |
