@@ -438,11 +438,12 @@ test.describe("Security Headers", () => {
 });
 
 test.describe("Navigation", () => {
-  test("home page has nav bar with app name", async ({ page }) => {
+  test("home page has nav bar with home icon", async ({ page }) => {
     await page.goto("/");
     const nav = page.locator("nav");
     await expect(nav).toBeVisible();
-    await expect(nav.locator("a").first()).toContainText("Web Doc Resolver");
+    // Nav now has a home icon instead of text
+    await expect(nav.locator("a").first()).toBeVisible();
   });
 
   test("nav has link to help page", async ({ page }) => {

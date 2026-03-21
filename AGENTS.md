@@ -78,9 +78,14 @@ do-web-doc-resolover/
 ├── AGENTS.md              # This file (agent instructions, <150 lines)
 ├── SKILL.md               # agentskills.io skill definition (symlink)
 ├── README.md              # Human-readable docs
-├── scripts/resolve.py     # Main Python resolver (<500 LOC)
-├── scripts/quality_gate.sh # Pre-commit quality checks
-├── scripts/pre-commit-hook.sh # Git hook for quality gate
+├── scripts/
+│   ├── resolve.py         # Main Python resolver (<500 LOC)
+│   ├── quality_gate.sh    # Pre-commit quality checks
+│   ├── pre-commit-hook.sh # Git hook for quality gate
+│   └── capture/           # Screenshot capture scripts
+│       ├── capture-release.sh
+│       ├── capture-flow.sh
+│       └── capture-responsive.sh
 ├── cli/                   # Rust CLI (wdr binary)
 │   ├── Cargo.toml
 │   └── src/
@@ -91,16 +96,12 @@ do-web-doc-resolover/
 │   ├── postcss.config.mjs # REQUIRED for Tailwind v4
 │   └── vercel.json
 ├── tests/                 # Python test suite
+├── assets/                # Visual assets
+│   └── screenshots/       # Screenshot images
 ├── .agents/skills/        # Canonical skill definitions
-│   └── web-doc-resolver/
-│       ├── SKILL.md       # Main skill file
-│       └── references/    # Detailed reference docs
-│           ├── CASCADE.md  # Full cascade decision trees
-│           ├── PROVIDERS.md # Provider API details & rate limits
-│           ├── CLI.md      # Python + Rust CLI usage reference
-│           ├── RUST_CLI.md # Rust CLI architecture & crate stack
-│           ├── TESTING.md  # Test structure, markers, live vs unit
-│           └── CONFIG.md   # Env vars, config.toml, layered config
+│   ├── web-doc-resolver/  # Python resolver skill
+│   ├── wdr-cli/           # Rust CLI skill
+│   └── wdr-assets/        # Screenshot/asset skill
 ├── .blackbox/skills/      # Skill symlinks (Blackbox)
 ├── .claude/skills/        # Skill symlinks (Claude)
 ├── .opencode/skills/      # Skill symlinks (OpenCode)
@@ -171,3 +172,13 @@ Manual check: `python scripts/validate_skill_symlink.py`
 |---|---|---|
 | web-doc-resolver | `.agents/skills/web-doc-resolver/` | Python resolver with cascade |
 | wdr-cli | `.agents/skills/wdr-cli/` | Rust CLI (wdr binary) |
+| wdr-assets | `.agents/skills/wdr-assets/` | Screenshots & visual assets |
+
+## Assets
+
+Screenshots and visual assets are stored in `assets/screenshots/`. See [`assets/README.md`](./assets/README.md) for details.
+
+```bash
+# Capture screenshots for release
+./scripts/capture/capture-release.sh <version>
+```

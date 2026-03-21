@@ -2,6 +2,8 @@
 
 Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade.
 
+![Web Doc Resolver UI](./assets/screenshots/release-v0.1.0/homepage.png)
+
 ## Overview
 
 This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources:
@@ -216,13 +218,15 @@ cd cli && cargo build --release
 
 ### Web UI
 
+![Help Page](./assets/screenshots/release-v0.1.0/help-page.png)
+
 ```bash
 # Development
 cd web && npm run dev
 # Open http://localhost:3000
 
-# The web UI connects to the resolver backend at NEXT_PUBLIC_RESOLVER_URL
-# (defaults to http://localhost:8000)
+# Production
+# https://web-eight-ivory-29.vercel.app
 ```
 
 The web UI provides a browser-based interface with:
@@ -471,6 +475,26 @@ Contributions are welcome! Please:
 3. Add tests for new functionality
 4. Run `./scripts/quality_gate.sh` before submitting
 5. Submit a pull request
+
+## Assets & Screenshots
+
+Screenshots and visual assets are stored in `assets/screenshots/`. See [assets/README.md](./assets/README.md) for details.
+
+### Capturing Screenshots
+
+```bash
+# Capture for current version
+./scripts/capture/capture-release.sh
+
+# Capture for specific version
+./scripts/capture/capture-release.sh 1.0.0
+
+# Capture resolution flow
+./scripts/capture/capture-flow.sh resolve
+
+# Capture responsive views
+./scripts/capture/capture-responsive.sh
+```
 
 ## License
 
