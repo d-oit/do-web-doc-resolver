@@ -247,6 +247,7 @@ The web UI provides a browser-based interface with:
 - Collapsible configuration sidebar (profile, providers, advanced options)
 - Profile-based provider selection with visual active indicators
 - Collapsible API keys section for paid providers
+- All UI state persisted to localStorage (sidebar, profile, providers, options)
 - Text input for URLs or search queries
 - Markdown result display
 - Dark mode support

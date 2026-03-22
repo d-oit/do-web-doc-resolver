@@ -217,4 +217,9 @@ tmp/
 Thumbs.db
 .vercel
 .env*.local
+
+# Claude Code
 .claude/settings.local.json
+
+# Playwright
+web/playwright-report

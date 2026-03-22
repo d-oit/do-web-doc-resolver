@@ -25,7 +25,8 @@ use crate::types::ResolvedResult;
 #[cfg(feature = "semantic-cache")]
 use {
     chaotic_semantic_memory::prelude::*,
-    sha2::{Digest, Sha256},
+    serde_json::Value,
+    std::collections::HashMap,
 };
 
 /// Cache entry stored in semantic memory
@@ -141,7 +142,7 @@ impl SemanticCache {
         // Generate query vector
         let query_vector = self.encode_query(query);
 
-        // Probe semantic memory
+        // Probe semantic memory - returns (id, score) pairs
         let hits = self
             .framework
             .probe(query_vector, 5)
@@ -153,25 +154,27 @@ impl SemanticCache {
             return Ok(None);
         }
 
-        // Get best hit similarity (first hit is best match)
-        // The chaotic_semantic_memory returns similarity scores implicitly
-        // by the order of hits - first hit has highest similarity
-        let best_match = &hits[0];
+        // Check best hit against threshold
+        let (best_id, best_score) = &hits[0];
 
-        // Check if similarity meets threshold
-        // Since we don't have direct similarity scores, we use hit position
-        // as a proxy - first hit is considered best match
-        if best_match.score >= self.config.threshold as f64 {
+        if *best_score >= self.config.threshold {
             tracing::info!(
-                "Semantic cache HIT for query='{}' (score: {:.2})",
+                "Semantic cache HIT for query='{}' (score: {:.2}, id: {})",
                 query,
-                best_match.score
+                best_score,
+                best_id
             );
 
-            if let Some(metadata) = &best_match.concept.metadata {
-                if let Ok(entry) = serde_json::from_str::<serde_json::Value>(metadata) {
+            // Retrieve full concept with metadata
+            if let Some(concept) = self
+                .framework
+                .get_concept(best_id)
+                .await
+                .map_err(|e| ResolverError::Cache(format!("get_concept failed: {}", e)))?
+            {
+                if let Some(results_value) = concept.metadata.get("results") {
                     if let Ok(results) =
-                        serde_json::from_value::<Vec<ResolvedResult>>(entry["results"].clone())
+                        serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
                     {
                         return Ok(Some(results));
                     }
@@ -182,7 +185,7 @@ impl SemanticCache {
         tracing::debug!(
             "Semantic cache miss for query='{}' (best score: {:.2} < {})",
             query,
-            best_match.score,
+            best_score,
             self.config.threshold
         );
         Ok(None)
@@ -206,20 +209,28 @@ impl SemanticCache {
         // Generate query vector
         let query_vector = self.encode_query(query);
 
-        // Create concept with metadata
-        let metadata = serde_json::json!({
-            "query": query,
-            "results": results,
-            "provider": provider,
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-        });
-
-        let concept = ConceptBuilder::new(query.to_string())
-            .with_metadata(metadata.to_string())
-            .build();
+        // Create metadata HashMap
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "query".to_string(),
+            Value::String(query.to_string()),
+        );
+        metadata.insert(
+            "results".to_string(),
+            serde_json::to_value(results)
+                .map_err(|e| ResolverError::Cache(format!("serialize results: {}", e)))?,
+        );
+        metadata.insert(
+            "provider".to_string(),
+            Value::String(provider.to_string()),
+        );
+        metadata.insert(
+            "timestamp".to_string(),
+            Value::String(chrono::Utc::now().to_rfc3339()),
+        );
 
         self.framework
-            .inject_concept(query.to_string(), concept.vector)
+            .inject_concept_with_metadata(query.to_string(), query_vector, metadata)
             .await
             .map_err(|e| ResolverError::Cache(format!("inject failed: {}", e)))?;
 
@@ -288,14 +299,17 @@ impl SemanticCache {
     fn encode_query(&self, query: &str) -> HVec10240 {
         use chaotic_semantic_memory::hyperdim::HVec10240;
 
-        // Simple hash-based encoding for demo
-        // In production, use proper text embedding
-        let mut hasher = Sha256::new();
-        hasher.update(query.as_bytes());
-        let hash = hasher.finalize();
+        // Normalize query for better matching: lowercase, trim, collapse whitespace
+        let normalized: String = query
+            .to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
 
-        // Convert hash to hypervector using from_bytes
-        HVec10240::from_bytes(&hash)
+        // Use inject_text_with_metadata encoding path via direct hypervector generation
+        // The framework's built-in encoder is used for inject_text, but for probe we need
+        // to generate a compatible vector. Use the same normalizer for consistency.
+        HVec10240::from_bytes(normalized.as_bytes())
     }
 
     /// Encode query (no-op without feature)

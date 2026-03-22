@@ -37,6 +37,7 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [apiKeysOpen, setApiKeysOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // CLI parity options
   const [profile, setProfile] = useState("free");
@@ -54,9 +55,34 @@ export default function Home() {
       .then((r) => r.json())
       .then((status) => setKeySource(resolveKeySource(keys, status)))
       .catch(() => {});
+
+    const ui = loadUiState();
+    setSidebarOpen(ui.sidebarOpen);
+    setApiKeysOpen(ui.apiKeysOpen);
+    setShowAdvanced(ui.showAdvanced);
+    setProfile(ui.profile);
+    setSelectedProviders(ui.selectedProviders);
+    setMaxChars(ui.maxChars);
+    setSkipCache(ui.skipCache);
+    setDeepResearch(ui.deepResearch);
     setLoaded(true);
     inputRef.current?.focus();
   }, []);
+
+  // Persist UI state changes (skip before first load)
+  useEffect(() => {
+    if (!loaded) return;
+    saveUiState({
+      sidebarOpen,
+      apiKeysOpen,
+      showAdvanced,
+      profile,
+      selectedProviders,
+      maxChars,
+      skipCache,
+      deepResearch,
+    });
+  }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch]);
 
   const handleProviderToggle = (providerId: string) => {
     setSelectedProviders(prev =>
@@ -148,12 +174,27 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row">
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/80 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar - Configuration */}
-      <aside className="w-full lg:w-[280px] lg:min-w-[280px] border-b-2 lg:border-b-0 lg:border-r-2 border-[#333]">
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-[280px] lg:w-[280px] lg:min-w-[280px]
+        border-r-2 border-[#333]
+        bg-[#0c0c0c]
+        transform transition-transform duration-200
+        ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
         {/* Sidebar Header - Toggle */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors"
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
         >
           <span className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
             Configuration
@@ -163,6 +204,14 @@ export default function Home() {
               Keys
             </Link>
             <span className="text-[10px] text-[#444]">{sidebarOpen ? "Hide" : "Show"}</span>
+            {/* Close button for mobile */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
+              className="lg:hidden text-[#666] hover:text-[#e8e6e3] p-2"
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
           </div>
         </button>
 
@@ -196,7 +245,7 @@ export default function Home() {
                       key={provider.id}
                       onClick={() => available && handleProviderToggle(provider.id)}
                       disabled={!available}
-                      className={`px-2 py-1 text-[11px] border-2 ${
+                      className={`px-2 py-2 text-[11px] border-2 min-h-[44px] ${
                         isManual
                           ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
                           : isActive
@@ -228,30 +277,30 @@ export default function Home() {
               </button>
               {showAdvanced && (
                 <div className="flex flex-col gap-3 pl-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between min-h-[44px]">
                     <label className="text-[11px] text-[#888]">Max chars</label>
                     <input
                       type="number"
                       value={maxChars}
                       onChange={(e) => setMaxChars(parseInt(e.target.value) || 8000)}
-                      className="w-20 bg-[#141414] border-2 border-[#333] px-2 py-1 text-[11px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
+                      className="w-20 bg-[#141414] border-2 border-[#333] px-2 py-2 text-[11px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
                     />
                   </div>
-                  <label className="flex items-center gap-2 text-[11px] text-[#888]">
+                  <label className="flex items-center gap-3 text-[11px] text-[#888] min-h-[44px] py-2">
                     <input
                       type="checkbox"
                       checked={skipCache}
                       onChange={(e) => setSkipCache(e.target.checked)}
-                      className="w-4 h-4 bg-[#141414] border-2 border-[#333]"
+                      className="w-5 h-5 bg-[#141414] border-2 border-[#333]"
                     />
                     Skip cache
                   </label>
-                  <label className="flex items-center gap-2 text-[11px] text-[#888]">
+                  <label className="flex items-center gap-3 text-[11px] text-[#888] min-h-[44px] py-2">
                     <input
                       type="checkbox"
                       checked={deepResearch}
                       onChange={(e) => setDeepResearch(e.target.checked)}
-                      className="w-4 h-4 bg-[#141414] border-2 border-[#333]"
+                      className="w-5 h-5 bg-[#141414] border-2 border-[#333]"
                     />
                     Deep research
                   </label>
@@ -297,9 +346,21 @@ export default function Home() {
       {/* Center - Input/Output */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="border-b-2 border-[#333] p-2 flex items-center justify-between">
-          <span className="text-[11px] text-[#666]">do-web-doc-resolver</span>
-          <Link href="/help" className="text-[11px] text-[#666] hover:text-[#00ff41]">
+        <div className="border-b-2 border-[#333] p-2 flex items-center justify-between min-h-[44px]">
+          <div className="flex items-center gap-2">
+            {/* Hamburger menu - mobile only */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 text-[#666] hover:text-[#e8e6e3] min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Open menu"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <span className="text-[11px] text-[#666]">do-web-doc-resolver</span>
+          </div>
+          <Link href="/help" className="text-[11px] text-[#666] hover:text-[#00ff41] min-h-[44px] flex items-center px-2">
             Help
           </Link>
         </div>
