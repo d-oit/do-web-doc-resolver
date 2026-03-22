@@ -1,18 +1,24 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { loadApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
 
 const PROVIDERS = [
-  { id: "jina", label: "Jina", free: true },
   { id: "exa_mcp", label: "Exa MCP", free: true },
+  { id: "jina", label: "Jina", free: true },
   { id: "duckduckgo", label: "DuckDuckGo", free: true },
   { id: "serper", label: "Serper", free: false },
   { id: "tavily", label: "Tavily", free: false },
   { id: "firecrawl", label: "Firecrawl", free: false },
 ];
 
-const DEMO_URL = "https://github.com/d-oit/web-doc-resolver";
+const PROFILES = [
+  { id: "free", label: "Free", providers: ["exa_mcp", "jina", "duckduckgo"] },
+  { id: "balanced", label: "Balanced", providers: ["exa_mcp", "serper", "jina", "duckduckgo"] },
+  { id: "fast", label: "Fast", providers: ["serper", "exa_mcp"] },
+  { id: "quality", label: "Quality", providers: ["tavily", "serper", "exa_mcp", "jina"] },
+];
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -26,6 +32,15 @@ export default function Home() {
   const [resolveTime, setResolveTime] = useState<number | null>(null);
   const [sourceProvider, setSourceProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // CLI parity options
+  const [profile, setProfile] = useState("free");
+  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
+  const [maxChars, setMaxChars] = useState(8000);
+  const [skipCache, setSkipCache] = useState(false);
+  const [deepResearch, setDeepResearch] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -39,6 +54,14 @@ export default function Home() {
     inputRef.current?.focus();
   }, []);
 
+  const handleProviderToggle = (providerId: string) => {
+    setSelectedProviders(prev =>
+      prev.includes(providerId)
+        ? prev.filter(p => p !== providerId)
+        : [...prev, providerId]
+    );
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!query.trim() || loading) return;
@@ -49,12 +72,20 @@ export default function Home() {
     const startTime = Date.now();
 
     try {
+      const providers = selectedProviders.length > 0
+        ? selectedProviders
+        : PROFILES.find(p => p.id === profile)?.providers || [];
+
       const res = await fetch("/api/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: query.trim(),
           ...apiKeys,
+          providers,
+          deepResearch,
+          maxChars,
+          skipCache,
         }),
       });
 
@@ -68,7 +99,7 @@ export default function Home() {
       }
 
       setResult(data.markdown || data.result || "");
-      setSourceProvider(data.provider || "Unknown");
+      setSourceProvider(data.provider || (providers.length > 0 ? providers.join(", ") : profile));
       setResolveTime(Date.now() - startTime);
       setProviderStatus(null);
     } catch (err) {
@@ -111,73 +142,138 @@ export default function Home() {
   if (!loaded) return null;
 
   return (
-    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex">
+    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row">
       {/* Left Sidebar - Configuration */}
-      <aside className="w-[280px] min-w-[280px] border-r-2 border-[#333] p-4 flex flex-col gap-6">
-        <div className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
-          Configuration
+      <aside className="w-full lg:w-[280px] lg:min-w-[280px] border-b-2 lg:border-b-0 lg:border-r-2 border-[#333] p-4 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
+            Configuration
+          </div>
+          <Link href="/settings" className="text-[11px] text-[#00ff41] hover:underline">
+            Keys
+          </Link>
         </div>
 
-        {/* API Keys */}
-        <div className="flex flex-col gap-3">
-          <div className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
-            API Keys
+        {/* Profile Selector */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[11px] text-[#888]">Profile</label>
+          <select
+            value={profile}
+            onChange={(e) => setProfile(e.target.value)}
+            className="bg-[#141414] border-2 border-[#333] px-2 py-1.5 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
+          >
+            {PROFILES.map((p) => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Provider Selection */}
+        <div className="flex flex-col gap-2">
+          <div className="text-[11px] text-[#888]">Providers</div>
+          <div className="flex flex-wrap gap-1">
+            {PROVIDERS.map((provider) => {
+              const source = keySource[provider.id];
+              const available = provider.free || source === "local" || source === "server";
+              const selected = selectedProviders.includes(provider.id);
+              return (
+                <button
+                  key={provider.id}
+                  onClick={() => available && handleProviderToggle(provider.id)}
+                  disabled={!available}
+                  className={`px-2 py-1 text-[11px] border-2 ${
+                    selected
+                      ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
+                      : available
+                      ? "bg-transparent text-[#888] border-[#333] hover:border-[#00ff41]"
+                      : "bg-transparent text-[#444] border-[#222] cursor-not-allowed"
+                  }`}
+                >
+                  {provider.label}
+                </button>
+              );
+            })}
           </div>
-          <p className="text-[11px] text-[#888] leading-relaxed">
-            Stored locally. Requests execute client-side.
+          <p className="text-[10px] text-[#555]">
+            {selectedProviders.length > 0 ? `${selectedProviders.length} selected` : `Using ${profile} profile`}
           </p>
+        </div>
+
+        {/* Advanced Options */}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="text-[11px] text-[#666] hover:text-[#888] text-left"
+          >
+            {showAdvanced ? "▼" : "▶"} Advanced
+          </button>
+          {showAdvanced && (
+            <div className="flex flex-col gap-3 pl-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] text-[#888]">Max chars</label>
+                <input
+                  type="number"
+                  value={maxChars}
+                  onChange={(e) => setMaxChars(parseInt(e.target.value) || 8000)}
+                  className="w-20 bg-[#141414] border-2 border-[#333] px-2 py-1 text-[11px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-[11px] text-[#888]">
+                <input
+                  type="checkbox"
+                  checked={skipCache}
+                  onChange={(e) => setSkipCache(e.target.checked)}
+                  className="w-4 h-4 bg-[#141414] border-2 border-[#333]"
+                />
+                Skip cache
+              </label>
+              <label className="flex items-center gap-2 text-[11px] text-[#888]">
+                <input
+                  type="checkbox"
+                  checked={deepResearch}
+                  onChange={(e) => setDeepResearch(e.target.checked)}
+                  className="w-4 h-4 bg-[#141414] border-2 border-[#333]"
+                />
+                Deep research
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* API Keys (short version) */}
+        <div className="flex flex-col gap-2 lg:flex-1">
+          <div className="text-[11px] text-[#888]">API Keys</div>
           {PROVIDERS.filter((p) => !p.free).map((provider) => {
             const key = `${provider.id}_api_key` as keyof ApiKeys;
             const value = apiKeys[key] || "";
+            const source = keySource[provider.id];
+            const hasServer = source === "server";
             return (
               <div key={provider.id} className="flex flex-col gap-1">
-                <label className="text-[11px] text-[#888]">{provider.label}</label>
+                <label className="text-[10px] text-[#666]">{provider.label} {hasServer && !value && "(server)"}</label>
                 <input
                   type="password"
                   value={value}
                   onChange={(e) => handleKeyChange(key, e.target.value)}
-                  placeholder={`sk-...`}
-                  className="bg-[#141414] border-2 border-[#333] px-2 py-1.5 text-[13px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none"
+                  placeholder={hasServer && !value ? "Using server key" : "sk-..."}
+                  className="bg-[#141414] border-2 border-[#333] px-2 py-1 text-[12px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none"
                 />
               </div>
             );
           })}
         </div>
-
-        {/* Provider Chain */}
-        <div className="flex flex-col gap-3">
-          <div className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
-            Provider Chain
-          </div>
-          <div className="flex flex-col gap-1">
-            {PROVIDERS.map((provider) => {
-              const source = keySource[provider.id];
-              const available = provider.free || source === "local" || source === "server";
-              return (
-                <div
-                  key={provider.id}
-                  className={`flex items-center gap-2 text-[12px] ${
-                    available ? "text-[#888]" : "text-[#444]"
-                  }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      available ? "bg-[#00ff41]" : "bg-[#333]"
-                    }`}
-                  />
-                  {provider.label}
-                  {provider.free && (
-                    <span className="text-[10px] text-[#555] ml-auto">free</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </aside>
 
       {/* Center - Input/Output */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Header */}
+        <div className="border-b-2 border-[#333] p-2 flex items-center justify-between">
+          <span className="text-[11px] text-[#666]">web-doc-resolver</span>
+          <Link href="/help" className="text-[11px] text-[#666] hover:text-[#00ff41]">
+            Help
+          </Link>
+        </div>
+
         {/* Input */}
         <div className="border-b-2 border-[#333] p-4">
           <div className="flex items-center gap-4">
@@ -188,15 +284,15 @@ export default function Home() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="URL or search query..."
-              className="flex-1 bg-transparent text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none tracking-tight"
+              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none tracking-tight"
             />
             {query.trim() && (
               <button
                 onClick={() => handleSubmit()}
                 disabled={loading}
-                className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50"
+                className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px]"
               >
-                {loading ? "Fetching..." : "Fetch"}
+                {loading ? "..." : "Fetch"}
               </button>
             )}
           </div>
@@ -220,7 +316,7 @@ export default function Home() {
         )}
 
         {/* Output */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {result ? (
             <>
               {/* Metadata bar */}
@@ -243,11 +339,11 @@ export default function Home() {
               <textarea
                 readOnly
                 value={result}
-                className="flex-1 bg-[#141414] p-4 text-[13px] text-[#e8e6e3] font-mono resize-none focus:outline-none whitespace-pre-wrap overflow-auto"
+                className="flex-1 bg-[#141414] p-4 text-[13px] text-[#e8e6e3] font-mono resize-none focus:outline-none whitespace-pre-wrap overflow-auto min-h-[200px]"
               />
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-[#444] text-[13px]">
+            <div className="flex-1 flex items-center justify-center text-[#444] text-[13px] p-4 text-center">
               Paste a URL or enter a search query
             </div>
           )}
