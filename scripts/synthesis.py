@@ -1,5 +1,5 @@
 """
-Two-stage synthesis gating logic for the Research Resolver.
+Two-stage synthesis gating logic for the Web Doc Resolver.
 """
 
 import logging

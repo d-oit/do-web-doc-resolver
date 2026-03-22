@@ -1,5 +1,5 @@
 """
-Utility functions for the Research Resolver.
+Utility functions for the Web Doc Resolver.
 """
 
 import hashlib
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
 DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
-CACHE_DIR = os.path.expanduser(os.getenv("WEB_RESOLVER_CACHE_DIR", "~/.cache/web-doc-resolver"))
+CACHE_DIR = os.path.expanduser(os.getenv("WEB_RESOLVER_CACHE_DIR", "~/.cache/do-web-doc-resolver"))
 CACHE_TTL = int(os.getenv("WEB_RESOLVER_CACHE_TTL", str(3600 * 24)))
 
 USER_AGENT = (

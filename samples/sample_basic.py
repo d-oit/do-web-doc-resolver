@@ -2,7 +2,7 @@
 """
 Basic usage example without API keys.
 
-This demonstrates using web-doc-resolver with free sources only:
+This demonstrates using do-web-doc-resolver with free sources only:
 - llms.txt checks for URLs
 - Exa MCP for queries (free, no API key required)
 - DuckDuckGo as fallback
@@ -14,7 +14,7 @@ from scripts.resolve import resolve
 
 def main():
     print("=" * 60)
-    print("web-doc-resolver: Basic Usage (No API Keys)")
+    print("do-web-doc-resolver: Basic Usage (No API Keys)")
     print("=" * 60)
     print()
     print("Free providers used:")

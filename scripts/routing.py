@@ -1,5 +1,5 @@
 """
-Budget-aware routing logic for the Research Resolver.
+Budget-aware routing logic for the Web Doc Resolver.
 """
 
 from dataclasses import dataclass

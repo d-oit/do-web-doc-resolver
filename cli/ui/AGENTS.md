@@ -307,7 +307,7 @@ Use `@container (min-width: 640px)` not `@media`. All components must declare `c
 
 | Environment | URL | Trigger |
 |---|---|---|
-| **Production** | `https://do-web-doc-resolver.vercel.app` | Vercel native GitHub integration (auto-deploy on push to `main`) |
+| **Production** | `https://web-eight-ivory-29.vercel.app` | Vercel native GitHub integration (auto-deploy on push to `main`) |
 
 Vercel deploys via `deploy-ui.yml` GitHub Action on push to `main`. `ci-ui.yml` runs lint/test/typecheck quality gates on PRs.
 
@@ -352,7 +352,7 @@ On tag push (`v*.*.*`), `release.yml` runs:
 4. `build-binaries` — parallel with deploy-ui
 5. `release` — creates GitHub Release only after **both** `build-binaries` and `e2e-release` pass
 
-The `BASE_URL` env var overrides the default `https://do-web-doc-resolver.vercel.app` in `playwright.config.ts`. E2E tests must pass before any release is published.
+The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.app` in `playwright.config.ts`. E2E tests must pass before any release is published.
 
 ## GitHub Issues Map
 

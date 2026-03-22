@@ -1,5 +1,5 @@
 """
-Negative caching logic for the Research Resolver.
+Negative caching logic for the Web Doc Resolver.
 """
 
 from dataclasses import dataclass
