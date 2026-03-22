@@ -1,5 +1,5 @@
-use wdr_lib::routing::{ResolutionBudget, plan_provider_order};
-use wdr_lib::routing_memory::RoutingMemory;
+use do_wdr_lib::routing::{ResolutionBudget, plan_provider_order};
+use do_wdr_lib::routing_memory::RoutingMemory;
 
 #[test]
 fn test_budget_enforcement() {
