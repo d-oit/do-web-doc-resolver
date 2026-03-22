@@ -1,4 +1,4 @@
-use wdr_lib::quality::score_content;
+use do_wdr_lib::quality::score_content;
 
 #[test]
 fn test_quality_scoring() {

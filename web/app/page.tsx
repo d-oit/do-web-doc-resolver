@@ -34,6 +34,8 @@ export default function Home() {
   const [sourceProvider, setSourceProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [apiKeysOpen, setApiKeysOpen] = useState(false);
 
   // CLI parity options
   const [profile, setProfile] = useState("free");
@@ -73,17 +75,13 @@ export default function Home() {
     const startTime = Date.now();
 
     try {
-      const providers = selectedProviders.length > 0
-        ? selectedProviders
-        : PROFILES.find(p => p.id === profile)?.providers || [];
-
       const res = await fetch("/api/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: query.trim(),
           ...apiKeys,
-          providers,
+          providers: activeProviders,
           deepResearch,
           maxChars,
           skipCache,
@@ -100,7 +98,7 @@ export default function Home() {
       }
 
       setResult(data.markdown || data.result || "");
-      setSourceProvider(data.provider || (providers.length > 0 ? providers.join(", ") : profile));
+      setSourceProvider(data.provider || (activeProviders.length > 0 ? activeProviders.join(", ") : profile));
       setResolveTime(Date.now() - startTime);
       setProviderStatus(null);
     } catch (err) {
@@ -140,129 +138,159 @@ export default function Home() {
   const charCount = result.length;
   const isUrl = query.trim().startsWith("http");
 
+  // Providers from current profile (used as visual default when no manual selection)
+  const profileProviders = PROFILES.find(p => p.id === profile)?.providers || [];
+  const activeProviders = selectedProviders.length > 0 ? selectedProviders : profileProviders;
+  const isCustomSelection = selectedProviders.length > 0;
+
   if (!loaded) return null;
 
   return (
     <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row">
       {/* Left Sidebar - Configuration */}
-      <aside className="w-full lg:w-[280px] lg:min-w-[280px] border-b-2 lg:border-b-0 lg:border-r-2 border-[#333] p-4 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
+      <aside className="w-full lg:w-[280px] lg:min-w-[280px] border-b-2 lg:border-b-0 lg:border-r-2 border-[#333]">
+        {/* Sidebar Header - Toggle */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors"
+        >
+          <span className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
             Configuration
+          </span>
+          <div className="flex items-center gap-3">
+            <Link href="/settings" className="text-[11px] text-[#00ff41] hover:underline" onClick={(e) => e.stopPropagation()}>
+              Keys
+            </Link>
+            <span className="text-[10px] text-[#444]">{sidebarOpen ? "Hide" : "Show"}</span>
           </div>
-          <Link href="/settings" className="text-[11px] text-[#00ff41] hover:underline">
-            Keys
-          </Link>
-        </div>
+        </button>
 
-        {/* Profile Selector */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-[#888]">Profile</label>
-          <select
-            value={profile}
-            onChange={(e) => setProfile(e.target.value)}
-            className="bg-[#141414] border-2 border-[#333] px-2 py-1.5 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
-          >
-            {PROFILES.map((p) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Provider Selection */}
-        <div className="flex flex-col gap-2">
-          <div className="text-[11px] text-[#888]">Providers</div>
-          <div className="flex flex-wrap gap-1">
-            {PROVIDERS.map((provider) => {
-              const source = keySource[provider.id];
-              const available = provider.free || source === "local" || source === "server";
-              const selected = selectedProviders.includes(provider.id);
-              return (
-                <button
-                  key={provider.id}
-                  onClick={() => available && handleProviderToggle(provider.id)}
-                  disabled={!available}
-                  className={`px-2 py-1 text-[11px] border-2 ${
-                    selected
-                      ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
-                      : available
-                      ? "bg-transparent text-[#888] border-[#333] hover:border-[#00ff41]"
-                      : "bg-transparent text-[#444] border-[#222] cursor-not-allowed"
-                  }`}
-                >
-                  {provider.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[10px] text-[#555]">
-            {selectedProviders.length > 0 ? `${selectedProviders.length} selected` : `Using ${profile} profile`}
-          </p>
-        </div>
-
-        {/* Advanced Options */}
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="text-[11px] text-[#666] hover:text-[#888] text-left"
-          >
-            {showAdvanced ? "▼" : "▶"} Advanced
-          </button>
-          {showAdvanced && (
-            <div className="flex flex-col gap-3 pl-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] text-[#888]">Max chars</label>
-                <input
-                  type="number"
-                  value={maxChars}
-                  onChange={(e) => setMaxChars(parseInt(e.target.value) || 8000)}
-                  className="w-20 bg-[#141414] border-2 border-[#333] px-2 py-1 text-[11px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
-                />
-              </div>
-              <label className="flex items-center gap-2 text-[11px] text-[#888]">
-                <input
-                  type="checkbox"
-                  checked={skipCache}
-                  onChange={(e) => setSkipCache(e.target.checked)}
-                  className="w-4 h-4 bg-[#141414] border-2 border-[#333]"
-                />
-                Skip cache
-              </label>
-              <label className="flex items-center gap-2 text-[11px] text-[#888]">
-                <input
-                  type="checkbox"
-                  checked={deepResearch}
-                  onChange={(e) => setDeepResearch(e.target.checked)}
-                  className="w-4 h-4 bg-[#141414] border-2 border-[#333]"
-                />
-                Deep research
-              </label>
+        {sidebarOpen && (
+          <div className="px-4 pb-4 flex flex-col gap-4">
+            {/* Profile Selector */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[11px] text-[#888]">Profile</label>
+              <select
+                value={profile}
+                onChange={(e) => setProfile(e.target.value)}
+                className="bg-[#141414] border-2 border-[#333] px-2 py-1.5 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
+              >
+                {PROFILES.map((p) => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
             </div>
-          )}
-        </div>
 
-        {/* API Keys (short version) */}
-        <div className="flex flex-col gap-2 lg:flex-1">
-          <div className="text-[11px] text-[#888]">API Keys</div>
-          {PROVIDERS.filter((p) => !p.free).map((provider) => {
-            const key = `${provider.id}_api_key` as keyof ApiKeys;
-            const value = apiKeys[key] || "";
-            const source = keySource[provider.id];
-            const hasServer = source === "server";
-            return (
-              <div key={provider.id} className="flex flex-col gap-1">
-                <label className="text-[10px] text-[#666]">{provider.label} {hasServer && !value && "(server)"}</label>
-                <input
-                  type="password"
-                  value={value}
-                  onChange={(e) => handleKeyChange(key, e.target.value)}
-                  placeholder={hasServer && !value ? "Using server key" : "sk-..."}
-                  className="bg-[#141414] border-2 border-[#333] px-2 py-1 text-[12px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none"
-                />
+            {/* Provider Selection */}
+            <div className="flex flex-col gap-2">
+              <div className="text-[11px] text-[#888]">Providers</div>
+              <div className="flex flex-wrap gap-1">
+                {PROVIDERS.map((provider) => {
+                  const source = keySource[provider.id];
+                  const available = provider.free || source === "local" || source === "server";
+                  const isActive = activeProviders.includes(provider.id);
+                  const isManual = selectedProviders.includes(provider.id);
+                  return (
+                    <button
+                      key={provider.id}
+                      onClick={() => available && handleProviderToggle(provider.id)}
+                      disabled={!available}
+                      className={`px-2 py-1 text-[11px] border-2 ${
+                        isManual
+                          ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
+                          : isActive
+                          ? "bg-[#1a3a1a] text-[#00ff41] border-[#00ff41]"
+                          : available
+                          ? "bg-transparent text-[#888] border-[#333] hover:border-[#00ff41]"
+                          : "bg-transparent text-[#444] border-[#222] cursor-not-allowed"
+                      }`}
+                    >
+                      {provider.label}
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+              <p className="text-[10px] text-[#555]">
+                {isCustomSelection
+                  ? `${selectedProviders.length} selected`
+                  : `Using ${profile} profile · ${profileProviders.length} providers`}
+              </p>
+            </div>
+
+            {/* Advanced Options */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="text-[11px] text-[#666] hover:text-[#888] text-left"
+              >
+                {showAdvanced ? "▼" : "▶"} Advanced
+              </button>
+              {showAdvanced && (
+                <div className="flex flex-col gap-3 pl-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] text-[#888]">Max chars</label>
+                    <input
+                      type="number"
+                      value={maxChars}
+                      onChange={(e) => setMaxChars(parseInt(e.target.value) || 8000)}
+                      className="w-20 bg-[#141414] border-2 border-[#333] px-2 py-1 text-[11px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-[11px] text-[#888]">
+                    <input
+                      type="checkbox"
+                      checked={skipCache}
+                      onChange={(e) => setSkipCache(e.target.checked)}
+                      className="w-4 h-4 bg-[#141414] border-2 border-[#333]"
+                    />
+                    Skip cache
+                  </label>
+                  <label className="flex items-center gap-2 text-[11px] text-[#888]">
+                    <input
+                      type="checkbox"
+                      checked={deepResearch}
+                      onChange={(e) => setDeepResearch(e.target.checked)}
+                      className="w-4 h-4 bg-[#141414] border-2 border-[#333]"
+                    />
+                    Deep research
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* API Keys - Collapsible */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setApiKeysOpen(!apiKeysOpen)}
+                className="text-[11px] text-[#666] hover:text-[#888] text-left"
+              >
+                {apiKeysOpen ? "▼" : "▶"} API Keys
+              </button>
+              {apiKeysOpen && (
+                <div className="flex flex-col gap-3 pl-2">
+                  {PROVIDERS.filter((p) => !p.free).map((provider) => {
+                    const key = `${provider.id}_api_key` as keyof ApiKeys;
+                    const value = apiKeys[key] || "";
+                    const source = keySource[provider.id];
+                    const hasServer = source === "server";
+                    return (
+                      <div key={provider.id} className="flex flex-col gap-1">
+                        <label className="text-[10px] text-[#666]">{provider.label} {hasServer && !value && "(server)"}</label>
+                        <input
+                          type="password"
+                          value={value}
+                          onChange={(e) => handleKeyChange(key, e.target.value)}
+                          placeholder={hasServer && !value ? "Using server key" : "sk-..."}
+                          className="bg-[#141414] border-2 border-[#333] px-2 py-1 text-[12px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* Center - Input/Output */}

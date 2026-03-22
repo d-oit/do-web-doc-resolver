@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
-use wdr_lib::negative_cache::NegativeCache;
+use do_wdr_lib::negative_cache::NegativeCache;
 
 #[test]
 fn test_negative_cache_skip() {
