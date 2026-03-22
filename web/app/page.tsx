@@ -223,7 +223,7 @@ export default function Home() {
               <select
                 value={profile}
                 onChange={(e) => setProfile(e.target.value)}
-                className="bg-[#141414] border-2 border-[#333] px-2 py-1.5 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
+                className="bg-[#141414] border-2 border-[#333] px-2 py-2 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
               >
                 {PROFILES.map((p) => (
                   <option key={p.id} value={p.id}>{p.label}</option>
@@ -271,7 +271,7 @@ export default function Home() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-[11px] text-[#666] hover:text-[#888] text-left"
+                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
               >
                 {showAdvanced ? "▼" : "▶"} Advanced
               </button>
@@ -312,7 +312,7 @@ export default function Home() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => setApiKeysOpen(!apiKeysOpen)}
-                className="text-[11px] text-[#666] hover:text-[#888] text-left"
+                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
               >
                 {apiKeysOpen ? "▼" : "▶"} API Keys
               </button>
@@ -331,7 +331,7 @@ export default function Home() {
                           value={value}
                           onChange={(e) => handleKeyChange(key, e.target.value)}
                           placeholder={hasServer && !value ? "Using server key" : "sk-..."}
-                          className="bg-[#141414] border-2 border-[#333] px-2 py-1 text-[12px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none"
+                          className="bg-[#141414] border-2 border-[#333] px-2 py-2 text-[12px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
                         />
                       </div>
                     );
@@ -381,7 +381,7 @@ export default function Home() {
               <button
                 onClick={() => handleSubmit()}
                 disabled={loading}
-                className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px]"
+                className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
               >
                 {loading ? "..." : "Fetch"}
               </button>
@@ -421,7 +421,7 @@ export default function Home() {
                 </div>
                 <button
                   onClick={handleCopy}
-                  className="hover:text-[#e8e6e3] transition-colors"
+                  className="hover:text-[#e8e6e3] transition-colors min-h-[44px] px-2"
                 >
                   {copied ? "Copied" : "Copy"}
                 </button>
