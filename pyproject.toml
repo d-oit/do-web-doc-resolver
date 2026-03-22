@@ -1,5 +1,5 @@
 [project]
-name = "web-doc-resolver"
+name = "do-web-doc-resolver"
 version = "1.1.0"
 description = "Resolve queries or URLs into compact, LLM-ready markdown using a low-cost cascade"
 readme = "README.md"
@@ -45,14 +45,16 @@ all = [
 
 [project.scripts]
 wdr = "scripts.resolve:main"
+do-wdr = "scripts.resolve:main"
 web-doc-resolver = "scripts.resolve:main"
+do-web-doc-resolver = "scripts.resolve:main"
 
 [project.urls]
-Homepage = "https://github.com/d-oit/web-doc-resolver"
-Documentation = "https://github.com/d-oit/web-doc-resolver#readme"
-Repository = "https://github.com/d-oit/web-doc-resolver"
-Issues = "https://github.com/d-oit/web-doc-resolver/issues"
-Changelog = "https://github.com/d-oit/web-doc-resolver/releases"
+Homepage = "https://github.com/d-oit/do-web-doc-resolver"
+Documentation = "https://github.com/d-oit/do-web-doc-resolver#readme"
+Repository = "https://github.com/d-oit/do-web-doc-resolver"
+Issues = "https://github.com/d-oit/do-web-doc-resolver/issues"
+Changelog = "https://github.com/d-oit/do-web-doc-resolver/releases"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

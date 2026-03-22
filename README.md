@@ -60,8 +60,8 @@ This project implements a v4 cascade resolver with Python core, Rust CLI, and we
 ### Python (Primary)
 
 ```bash
-git clone https://github.com/d-oit/do-web-doc-resolover.git
-cd do-web-doc-resolover
+git clone https://github.com/d-oit/do-web-doc-resolver.git
+cd do-web-doc-resolver
 pip install -r requirements.txt
 ```
 
@@ -431,7 +431,7 @@ cd web && npx playwright test --ui
 ## Repository Structure
 
 ```
-do-web-doc-resolover/
+do-web-doc-resolver/
 ├── AGENTS.md              # Agent instructions
 ├── SKILL.md               # agentskills.io skill definition (symlink)
 ├── README.md              # This file
@@ -512,7 +512,7 @@ MIT License - see LICENSE file for details.
 
 ## Support
 
-For issues, questions, or feature requests, please [open an issue](https://github.com/d-oit/do-web-doc-resolover/issues).
+For issues, questions, or feature requests, please [open an issue](https://github.com/d-oit/do-web-doc-resolver/issues).
 
 ---
 
