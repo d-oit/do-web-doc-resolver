@@ -1,5 +1,5 @@
 {
-  "name": "@wdr/tokens",
+  "name": "@do-wdr/tokens",
   "version": "0.0.0",
   "private": true,
   "type": "module",

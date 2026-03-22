@@ -1,10 +1,11 @@
 [package]
-name = "wdr"
+name = "do-wdr"
 version = "0.2.0"
 edition = "2024"
 rust-version = "1.85"
 description = "Web Documentation Resolver CLI"
 license = "MIT"
+authors = ["d-oit <support@d-oit.com>"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive", "env"] }
@@ -36,9 +37,9 @@ semantic-cache = ["dep:chaotic_semantic_memory"]
 mockall = "0.14"
 
 [[bin]]
-name = "wdr"
+name = "do-wdr"
 path = "src/main.rs"
 
 [lib]
-name = "wdr_lib"
+name = "do_wdr_lib"
 path = "src/lib.rs"
