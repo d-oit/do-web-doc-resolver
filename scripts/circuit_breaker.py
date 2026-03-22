@@ -1,5 +1,5 @@
 """
-Circuit breaker logic for the Research Resolver.
+Circuit breaker logic for the Web Doc Resolver.
 """
 
 from dataclasses import dataclass

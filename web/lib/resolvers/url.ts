@@ -72,7 +72,7 @@ export async function extractViaDirectFetch(url: string, log: Logger): Promise<s
   try {
     const res = await fetchWithTimeout(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; WebDocResolver/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; WebDocResolver/2.0)",
         Accept: "text/html",
       },
     });

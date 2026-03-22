@@ -15,6 +15,10 @@ const faqs = [
     q: "How long does it take?",
     a: "2–10 seconds depending on the provider cascade and site response times.",
   },
+  {
+    q: "How does the configuration panel work?",
+    a: "The sidebar is collapsible — click 'Configuration' to toggle. Profile determines which providers run. Provider buttons show which are active (green border = from profile, solid green = manually selected). API Keys are hidden by default — expand to add paid provider keys.",
+  },
 ];
 
 export default function HelpPage() {

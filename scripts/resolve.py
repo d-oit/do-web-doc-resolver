@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Deep Research Resolver - Resolve queries or URLs into compact, LLM-ready markdown.
+Web Doc Resolver - Resolve queries or URLs into compact, LLM-ready markdown.
 Main orchestrator and CLI.
 """
 
@@ -493,7 +493,7 @@ def resolve_query_with_order(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Deep Research Resolver")
+    parser = argparse.ArgumentParser(description="Web Doc Resolver")
     parser.add_argument("input", nargs="?", help="URL or query")
     parser.add_argument("--max-chars", type=int, default=MAX_CHARS)
     parser.add_argument("--json", action="store_true")

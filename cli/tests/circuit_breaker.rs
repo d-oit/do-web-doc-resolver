@@ -1,5 +1,5 @@
-use std::time::Duration;
 use do_wdr_lib::circuit_breaker::CircuitBreakerRegistry;
+use std::time::Duration;
 
 #[test]
 fn test_circuit_breaker() {

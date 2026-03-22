@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { loadApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
+import { loadUiState, saveUiState } from "@/lib/ui-state";
 
 const PROVIDERS = [
   { id: "exa_mcp", label: "Exa MCP", free: true },

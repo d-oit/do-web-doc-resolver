@@ -474,6 +474,132 @@ test.describe("Navigation", () => {
   });
 });
 
+test.describe("Collapsible Sidebar", () => {
+  test("sidebar is visible by default", async ({ page }) => {
+    await page.goto("/");
+    // Configuration header should be visible
+    await expect(page.locator("text=Configuration")).toBeVisible();
+    // Profile selector should be visible (sidebar expanded by default)
+    await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
+  });
+
+  test("sidebar collapses when clicking Configuration header", async ({ page }) => {
+    await page.goto("/");
+    // Profile should be visible initially
+    await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
+    // Click the Configuration header to collapse
+    await page.locator("button").filter({ hasText: "Configuration" }).click();
+    // Profile should no longer be visible
+    await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
+  });
+
+  test("sidebar expands when clicking Configuration header again", async ({ page }) => {
+    await page.goto("/");
+    // Collapse
+    await page.locator("button").filter({ hasText: "Configuration" }).click();
+    await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
+    // Expand
+    await page.locator("button").filter({ hasText: "Configuration" }).click();
+    await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
+  });
+
+  test("toggle label shows correct text", async ({ page }) => {
+    await page.goto("/");
+    // Expanded by default — should show "Hide"
+    await expect(page.locator("button").filter({ hasText: "Configuration" }).locator("text=Hide")).toBeVisible();
+    // Collapse
+    await page.locator("button").filter({ hasText: "Configuration" }).click();
+    await expect(page.locator("button").filter({ hasText: "Configuration" }).locator("text=Show")).toBeVisible();
+  });
+
+  test("Keys link is visible in sidebar header", async ({ page }) => {
+    await page.goto("/");
+    const keysLink = page.locator('a[href="/settings"]');
+    await expect(keysLink).toBeVisible();
+    await expect(keysLink).toContainText("Keys");
+  });
+
+  test("Keys link navigates to settings", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('a[href="/settings"]').click();
+    await expect(page).toHaveURL(/\/settings/);
+  });
+});
+
+test.describe("Collapsible API Keys", () => {
+  test("API Keys section is collapsed by default", async ({ page }) => {
+    await page.goto("/");
+    // The API Keys toggle should be visible
+    await expect(page.locator("button").filter({ hasText: "API Keys" })).toBeVisible();
+    // But the key inputs should not be visible
+    await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
+  });
+
+  test("API Keys section expands on click", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("button").filter({ hasText: "API Keys" }).click();
+    // Key inputs should now be visible
+    await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Tavily" })).toBeVisible();
+  });
+
+  test("API Keys section collapses on second click", async ({ page }) => {
+    await page.goto("/");
+    // Expand
+    await page.locator("button").filter({ hasText: "API Keys" }).click();
+    await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
+    // Collapse
+    await page.locator("button").filter({ hasText: "API Keys" }).click();
+    await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
+  });
+});
+
+test.describe("Profile Provider Indicators", () => {
+  test("profile providers are shown as active by default", async ({ page }) => {
+    await page.goto("/");
+    // Free profile is default: exa_mcp, jina, duckduckgo
+    // These providers should have the active style (green border)
+    const exaButton = page.locator("button").filter({ hasText: "Exa MCP" });
+    const jinaButton = page.locator("button").filter({ hasText: "Jina" });
+    const ddgButton = page.locator("button").filter({ hasText: "DuckDuckGo" });
+
+    // Check green border color (rgb(0, 255, 65) = #00ff41)
+    const exaBorder = await exaButton.evaluate((el) => getComputedStyle(el).borderColor);
+    expect(exaBorder).toContain("rgb(0, 255, 65)");
+
+    const jinaBorder = await jinaButton.evaluate((el) => getComputedStyle(el).borderColor);
+    expect(jinaBorder).toContain("rgb(0, 255, 65)");
+
+    const ddgBorder = await ddgButton.evaluate((el) => getComputedStyle(el).borderColor);
+    expect(ddgBorder).toContain("rgb(0, 255, 65)");
+  });
+
+  test("profile status text shows provider count", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("text=Using free profile")).toBeVisible();
+    await expect(page.locator("text=3 providers")).toBeVisible();
+  });
+
+  test("clicking a provider switches to custom selection", async ({ page }) => {
+    await page.goto("/");
+    // Click Serper (not in free profile)
+    await page.locator("button").filter({ hasText: "Serper" }).click();
+    // Status should change to custom selection
+    await expect(page.locator("text=1 selected")).toBeVisible();
+  });
+
+  test("manual selection overrides profile display", async ({ page }) => {
+    await page.goto("/");
+    // Click Serper to manually select
+    await page.locator("button").filter({ hasText: "Serper" }).click();
+    // Serper should now have solid green background (manual selection)
+    const serperButton = page.locator("button").filter({ hasText: "Serper" });
+    const bgColor = await serperButton.evaluate((el) => getComputedStyle(el).backgroundColor);
+    // Solid green = rgb(0, 255, 65)
+    expect(bgColor).toBe("rgb(0, 255, 65)");
+  });
+});
+
 test.describe("Help Page", () => {
   test("loads and displays heading", async ({ page }) => {
     await page.goto("/help");
@@ -501,6 +627,7 @@ test.describe("Help Page", () => {
     await expect(page.getByRole("heading", { name: "FAQ", exact: true })).toBeVisible();
     await expect(page.locator("text=What is this?")).toBeVisible();
     await expect(page.locator("text=Do I need an API key?")).toBeVisible();
+    await expect(page.locator("text=How does the configuration panel work?")).toBeVisible();
   });
 
   test("has back link to home", async ({ page }) => {

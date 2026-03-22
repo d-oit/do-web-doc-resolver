@@ -18,7 +18,7 @@ from scripts.resolve import resolve
 
 def main():
     print("=" * 60)
-    print("web-doc-resolver: Full Cascade with API Keys")
+    print("do-web-doc-resolver: Full Cascade with API Keys")
     print("=" * 60)
     print()
 

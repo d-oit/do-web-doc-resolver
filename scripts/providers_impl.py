@@ -1,5 +1,5 @@
 """
-Individual provider implementations for the Research Resolver.
+Individual provider implementations for the Web Doc Resolver.
 """
 
 import json

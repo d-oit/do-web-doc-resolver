@@ -53,7 +53,7 @@ async function extractViaDirectFetch(url: string, maxChars: number): Promise<str
     const res = await fetchWithTimeout(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; WebDocResolver/1.0; +https://web-eight-ivory-29.vercel.app)",
+          "Mozilla/5.0 (compatible; WebDocResolver/2.0; +https://web-eight-ivory-29.vercel.app)",
         Accept: "text/html",
       },
     });

@@ -1,5 +1,5 @@
 """
-Data models and Enums for the Research Resolver.
+Data models and Enums for the Web Doc Resolver.
 """
 
 from dataclasses import asdict, dataclass, field

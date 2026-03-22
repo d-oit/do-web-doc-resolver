@@ -1,5 +1,5 @@
 """
-Per-domain routing memory for the Research Resolver.
+Per-domain routing memory for the Web Doc Resolver.
 """
 
 from collections import defaultdict
