@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
 
-const MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
+const DEFAULT_MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
 
 // Provider keys - can come from env vars or request body
 interface ProviderKeys {
@@ -32,7 +32,7 @@ async function fetchWithTimeout(
   }
 }
 
-async function extractViaJina(url: string): Promise<string | null> {
+async function extractViaJina(url: string, maxChars: number): Promise<string | null> {
   try {
     const res = await fetchWithTimeout(`https://r.jina.ai/${url}`, {
       headers: {
@@ -42,13 +42,13 @@ async function extractViaJina(url: string): Promise<string | null> {
     });
     if (!res.ok) return null;
     const text = await res.text();
-    return text.length > 50 ? text.slice(0, MAX_CHARS) : null;
+    return text.length > 50 ? text.slice(0, maxChars) : null;
   } catch {
     return null;
   }
 }
 
-async function extractViaDirectFetch(url: string): Promise<string | null> {
+async function extractViaDirectFetch(url: string, maxChars: number): Promise<string | null> {
   try {
     const res = await fetchWithTimeout(url, {
       headers: {
@@ -66,7 +66,7 @@ async function extractViaDirectFetch(url: string): Promise<string | null> {
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    return text.length > 50 ? text.slice(0, MAX_CHARS) : null;
+    return text.length > 50 ? text.slice(0, maxChars) : null;
   } catch {
     return null;
   }
@@ -76,7 +76,7 @@ async function extractViaDirectFetch(url: string): Promise<string | null> {
  * Extract content via Firecrawl API (requires API key)
  * Deep extraction with JavaScript rendering
  */
-async function extractViaFirecrawl(url: string, apiKey: string): Promise<string | null> {
+async function extractViaFirecrawl(url: string, apiKey: string, maxChars: number): Promise<string | null> {
   if (!apiKey) return null;
   try {
     const res = await fetchWithTimeout(
@@ -97,13 +97,13 @@ async function extractViaFirecrawl(url: string, apiKey: string): Promise<string 
     if (!res.ok) return null;
     const data = await res.json();
     const markdown = data?.data?.markdown;
-    return markdown && markdown.length > 50 ? markdown.slice(0, MAX_CHARS) : null;
+    return markdown && markdown.length > 50 ? markdown.slice(0, maxChars) : null;
   } catch {
     return null;
   }
 }
 
-async function searchViaSerper(query: string, apiKey: string): Promise<string | null> {
+async function searchViaSerper(query: string, apiKey: string, maxChars: number): Promise<string | null> {
   if (!apiKey) return null;
   try {
     const res = await fetchWithTimeout(
@@ -127,18 +127,18 @@ async function searchViaSerper(query: string, apiKey: string): Promise<string | 
     // Try to fetch the first result URL for full content
     const firstUrl = data.organic?.[0]?.link;
     if (firstUrl) {
-      const content = await extractViaJina(firstUrl) || await extractViaDirectFetch(firstUrl);
+      const content = await extractViaJina(firstUrl, maxChars) || await extractViaDirectFetch(firstUrl, maxChars);
       if (content && content.length > snippets.length) {
-        return `Source: ${firstUrl}\n\n${content.slice(0, MAX_CHARS)}`;
+        return `Source: ${firstUrl}\n\n${content.slice(0, maxChars)}`;
       }
     }
-    return `Search results for: ${query}\n\n${snippets.slice(0, MAX_CHARS)}`;
+    return `Search results for: ${query}\n\n${snippets.slice(0, maxChars)}`;
   } catch {
     return null;
   }
 }
 
-async function searchViaTavily(query: string, apiKey: string): Promise<string | null> {
+async function searchViaTavily(query: string, apiKey: string, maxChars: number): Promise<string | null> {
   if (!apiKey) return null;
   try {
     const res = await fetchWithTimeout("https://api.tavily.com/search", {
@@ -160,7 +160,7 @@ async function searchViaTavily(query: string, apiKey: string): Promise<string | 
       )
       .join("\n\n---\n\n");
     return results.length > 100
-      ? results.slice(0, MAX_CHARS)
+      ? results.slice(0, maxChars)
       : null;
   } catch {
     return null;
@@ -171,7 +171,7 @@ async function searchViaTavily(query: string, apiKey: string): Promise<string | 
  * Free search via DuckDuckGo using Jina Reader to parse search results
  * This works without any API key by scraping DDG search results
  */
-async function searchViaDuckDuckGoFree(query: string): Promise<string | null> {
+async function searchViaDuckDuckGoFree(query: string, maxChars: number): Promise<string | null> {
   try {
     // Use DuckDuckGo HTML search and parse via Jina Reader
     const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -197,7 +197,7 @@ async function searchViaDuckDuckGoFree(query: string): Promise<string | null> {
     });
 
     const cleaned = lines.join('\n\n').trim();
-    return cleaned.length > 100 ? cleaned.slice(0, MAX_CHARS) : null;
+    return cleaned.length > 100 ? cleaned.slice(0, maxChars) : null;
   } catch {
     return null;
   }
@@ -206,7 +206,7 @@ async function searchViaDuckDuckGoFree(query: string): Promise<string | null> {
 /**
  * Alternative: Use DuckDuckGo Lite search via Jina
  */
-async function searchViaDuckDuckGoLite(query: string): Promise<string | null> {
+async function searchViaDuckDuckGoLite(query: string, maxChars: number): Promise<string | null> {
   try {
     const searchUrl = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
     const res = await fetchWithTimeout(`https://r.jina.ai/${searchUrl}`, {
@@ -230,7 +230,7 @@ async function searchViaDuckDuckGoLite(query: string): Promise<string | null> {
     });
 
     const cleaned = lines.join('\n\n').trim();
-    return cleaned.length > 100 ? cleaned.slice(0, MAX_CHARS) : null;
+    return cleaned.length > 100 ? cleaned.slice(0, maxChars) : null;
   } catch {
     return null;
   }
@@ -240,7 +240,7 @@ async function searchViaDuckDuckGoLite(query: string): Promise<string | null> {
  * Free search via Exa MCP (Model Context Protocol)
  * No API key required, rate limited.
  */
-async function searchViaExaMcp(query: string): Promise<string | null> {
+async function searchViaExaMcp(query: string, maxChars: number): Promise<string | null> {
   try {
     const mcpRequest = {
       jsonrpc: "2.0",
@@ -272,7 +272,7 @@ async function searchViaExaMcp(query: string): Promise<string | null> {
           if (data.result && data.result.content) {
             const content = data.result.content[0]?.text;
             if (content && content.length > 100) {
-              return content.slice(0, MAX_CHARS);
+              return content.slice(0, maxChars);
             }
           }
         } catch {
@@ -287,31 +287,33 @@ async function searchViaExaMcp(query: string): Promise<string | null> {
 }
 
 // Provider mapping for custom selection
-type ProviderFn = (query: string, keys: ProviderKeys) => Promise<string | null>;
+type ProviderFn = (query: string, keys: ProviderKeys, maxChars: number) => Promise<string | null>;
 
 const providerMap: Record<string, ProviderFn> = {
-  exa_mcp: async (query, keys) => searchViaExaMcp(query),
-  serper: async (query, keys) => {
+  exa_mcp: async (query, keys, maxChars) => searchViaExaMcp(query, maxChars),
+  serper: async (query, keys, maxChars) => {
     const key = keys.SERPER_API_KEY || process.env.SERPER_API_KEY;
-    return key ? searchViaSerper(query, key) : null;
+    return key ? searchViaSerper(query, key, maxChars) : null;
   },
-  tavily: async (query, keys) => {
+  tavily: async (query, keys, maxChars) => {
     const key = keys.TAVILY_API_KEY || process.env.TAVILY_API_KEY;
-    return key ? searchViaTavily(query, key) : null;
+    return key ? searchViaTavily(query, key, maxChars) : null;
   },
-  duckduckgo: async (query, keys) => searchViaDuckDuckGoLite(query) || searchViaDuckDuckGoFree(query),
+  duckduckgo: async (query, keys, maxChars) => searchViaDuckDuckGoLite(query, maxChars) || searchViaDuckDuckGoFree(query, maxChars),
+  jina: async (query, keys, maxChars) => extractViaJina(query, maxChars),
 };
 
 // Run providers sequentially until one succeeds
 async function runProvidersSequential(
   query: string,
   keys: ProviderKeys,
-  providerNames: string[]
+  providerNames: string[],
+  maxChars: number
 ): Promise<string> {
   for (const name of providerNames) {
     const fn = providerMap[name];
     if (!fn) continue;
-    const result = await fn(query, keys);
+    const result = await fn(query, keys, maxChars);
     if (result) return result;
   }
   throw new Error("No search results found for query. Try adding API keys for better results.");
@@ -321,14 +323,15 @@ async function runProvidersSequential(
 async function runProvidersParallel(
   query: string,
   keys: ProviderKeys,
-  providerNames: string[]
+  providerNames: string[],
+  maxChars: number
 ): Promise<string> {
   const results = await Promise.all(
     providerNames.map(async (name) => {
       const fn = providerMap[name];
       if (!fn) return null;
       try {
-        return await fn(query, keys);
+        return await fn(query, keys, maxChars);
       } catch {
         return null;
       }
@@ -344,30 +347,30 @@ async function runProvidersParallel(
     .join("\n\n---\n\n");
 }
 
-async function resolveUrl(url: string, keys: ProviderKeys): Promise<string> {
+async function resolveUrl(url: string, keys: ProviderKeys, maxChars: number): Promise<string> {
   // URL cascade: Jina (free) → Firecrawl (paid) → Direct fetch (free)
-  let result = await extractViaJina(url);
+  let result = await extractViaJina(url, maxChars);
   if (result) return result;
 
   // Try Firecrawl if API key is available
   const firecrawlKey = keys.FIRECRAWL_API_KEY || process.env.FIRECRAWL_API_KEY;
   if (firecrawlKey) {
-    result = await extractViaFirecrawl(url, firecrawlKey);
+    result = await extractViaFirecrawl(url, firecrawlKey, maxChars);
     if (result) return result;
   }
 
-  result = await extractViaDirectFetch(url);
+  result = await extractViaDirectFetch(url, maxChars);
   if (result) return result;
 
   throw new Error("Failed to extract content from URL");
 }
 
-async function resolveQuery(query: string, keys: ProviderKeys): Promise<string> {
+async function resolveQuery(query: string, keys: ProviderKeys, maxChars: number): Promise<string> {
   // Query cascade: Exa MCP (free) → Serper → Tavily → DuckDuckGo (free)
   let result: string | null = null;
 
   // 1. Exa MCP (free, no API key required)
-  result = await searchViaExaMcp(query);
+  result = await searchViaExaMcp(query, maxChars);
   if (result) return result;
 
   // 2. Paid providers if keys are available
@@ -375,20 +378,20 @@ async function resolveQuery(query: string, keys: ProviderKeys): Promise<string> 
   const tavilyKey = keys.TAVILY_API_KEY || process.env.TAVILY_API_KEY;
 
   if (serperKey) {
-    result = await searchViaSerper(query, serperKey);
+    result = await searchViaSerper(query, serperKey, maxChars);
     if (result) return result;
   }
 
   if (tavilyKey) {
-    result = await searchViaTavily(query, tavilyKey);
+    result = await searchViaTavily(query, tavilyKey, maxChars);
     if (result) return result;
   }
 
   // 3. Free fallback: DuckDuckGo via Jina Reader
-  result = await searchViaDuckDuckGoLite(query);
+  result = await searchViaDuckDuckGoLite(query, maxChars);
   if (result) return result;
 
-  result = await searchViaDuckDuckGoFree(query);
+  result = await searchViaDuckDuckGoFree(query, maxChars);
   if (result) return result;
 
   throw new Error("No search results found for query. Try adding API keys for better results.");
@@ -398,6 +401,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const input = body.query?.trim() || body.url?.trim();
+    const maxChars = parseInt(body.maxChars) || DEFAULT_MAX_CHARS;
 
     if (!input) {
       return NextResponse.json(
@@ -417,26 +421,32 @@ export async function POST(request: NextRequest) {
 
     const urlMode = isUrl(input);
     let markdown: string;
+    let provider: string;
+
     if (urlMode) {
-      markdown = await resolveUrl(input, userKeys);
+      markdown = await resolveUrl(input, userKeys, maxChars);
+      provider = "jina";
     } else {
       // Query mode: check for provider selection and deep research
       const providers: string[] = body.providers || [];
       const deepResearch: boolean = body.deepResearch || false;
-      
+
       if (providers.length === 0) {
         // Default cascade
-        markdown = await resolveQuery(input, userKeys);
+        markdown = await resolveQuery(input, userKeys, maxChars);
+        provider = "cascade";
       } else if (deepResearch) {
         // Run selected providers in parallel
-        markdown = await runProvidersParallel(input, userKeys, providers);
+        markdown = await runProvidersParallel(input, userKeys, providers, maxChars);
+        provider = providers.join("+");
       } else {
         // Run selected providers sequentially in given order
-        markdown = await runProvidersSequential(input, userKeys, providers);
+        markdown = await runProvidersSequential(input, userKeys, providers, maxChars);
+        provider = providers[0] || "unknown";
       }
     }
 
-    return NextResponse.json({ markdown });
+    return NextResponse.json({ markdown, provider });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal error";
     return NextResponse.json({ error: message }, { status: 500 });
