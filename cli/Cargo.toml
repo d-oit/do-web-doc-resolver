@@ -37,7 +37,7 @@ semantic-cache = ["dep:chaotic_semantic_memory"]
 mockall = "0.14"
 
 [[bin]]
-name = "do-wdr"
+name = "wdr"
 path = "src/main.rs"
 
 [lib]
