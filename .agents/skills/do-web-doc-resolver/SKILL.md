@@ -33,25 +33,37 @@ pip install -r requirements.txt
 
 ## Commands
 
-### CLI Usage
+### CLI Usage (from project root)
 
 ```bash
-# From the skill root directory
-cd .agents/skills/do-web-doc-resolver && python -m scripts.resolve "https://docs.rs/tokio"
-cd .agents/skills/do-web-doc-resolver && python -m scripts.resolve "Rust async runtime comparison"
+# Resolve a URL — uses project root scripts/
+python scripts/resolve.py "https://docs.rs/tokio"
+
+# Resolve a query
+python scripts/resolve.py "Rust async runtime comparison"
 
 # With options
-cd .agents/skills/do-web-doc-resolver && python -m scripts.resolve "query" --log-level INFO --max-chars 5000
+python scripts/resolve.py "query" --log-level INFO --max-chars 5000
+```
 
-# Or via __main__.py (python -m <skill_folder>)
-cd .agents/skills && python -m do-web-doc-resolver "https://example.com"
+### CLI Usage (standalone — after copying skill to any project)
+
+```bash
+# From the skill directory
+cd .agents/skills/do-web-doc-resolver && python -m scripts.resolve "https://docs.rs/tokio"
+
+# Or via PYTHONPATH from anywhere
+PYTHONPATH=.agents/skills/do-web-doc-resolver python -c "from scripts.resolve import main; main()" "https://example.com"
 ```
 
 ### Python Module Usage
 
 ```python
-import sys
-sys.path.insert(0, '/path/to/do-web-doc-resolver')  # path to skill root
+import sys, os
+# Add skill root to path
+skill_root = os.path.join(os.path.dirname(__file__), ".agents", "skills", "do-web-doc-resolver")
+sys.path.insert(0, skill_root)
+
 from scripts.resolve import resolve, resolve_url, resolve_query
 
 # Resolve URL
