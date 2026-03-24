@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { loadApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
-import { loadUiState, saveUiState } from "@/lib/ui-state";
+import { loadUiState, saveUiState, loadStateFromServer, saveStateToServer } from "@/lib/ui-state";
 
 const PROVIDERS = [
   { id: "exa_mcp", label: "Exa MCP", free: true },
@@ -56,23 +56,29 @@ export default function Home() {
       .then((status) => setKeySource(resolveKeySource(keys, status)))
       .catch(() => {});
 
-    const ui = loadUiState();
-    setSidebarOpen(ui.sidebarOpen);
-    setApiKeysOpen(ui.apiKeysOpen);
-    setShowAdvanced(ui.showAdvanced);
-    setProfile(ui.profile);
-    setSelectedProviders(ui.selectedProviders);
-    setMaxChars(ui.maxChars);
-    setSkipCache(ui.skipCache);
-    setDeepResearch(ui.deepResearch);
-    setLoaded(true);
-    inputRef.current?.focus();
+    // Try server state first, fallback to localStorage
+    loadStateFromServer()
+      .then((serverState) => {
+        const ui = serverState || loadUiState();
+        setSidebarOpen(ui.sidebarOpen);
+        setApiKeysOpen(ui.apiKeysOpen);
+        setShowAdvanced(ui.showAdvanced);
+        setProfile(ui.profile);
+        setSelectedProviders(ui.selectedProviders);
+        setMaxChars(ui.maxChars);
+        setSkipCache(ui.skipCache);
+        setDeepResearch(ui.deepResearch);
+        setLoaded(true);
+        inputRef.current?.focus();
+      });
   }, []);
 
   // Persist UI state changes (skip before first load)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!loaded) return;
-    saveUiState({
+    const state = {
       sidebarOpen,
       apiKeysOpen,
       showAdvanced,
@@ -81,7 +87,17 @@ export default function Home() {
       maxChars,
       skipCache,
       deepResearch,
-    });
+    };
+    // localStorage: immediate
+    saveUiState(state);
+    // Server: debounced 2s
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      saveStateToServer(state);
+    }, 2000);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch]);
 
   const handleProviderToggle = (providerId: string) => {
