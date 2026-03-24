@@ -5,7 +5,7 @@ description = "Resolve queries or URLs into compact, LLM-ready markdown using a 
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "d-oit", email = "support@d-oit.com"}
+    {name = "d-oit"}
 ]
 requires-python = ">=3.10"
 classifiers = [

@@ -135,6 +135,7 @@ See [`.agents/skills/do-web-doc-resolver/references/CONFIG.md`](.agents/skills/d
 ## Security
 
 - Never commit API keys; use environment variables or `.env` (gitignored)
+- Never include email addresses in code, configs, or documentation (see `privacy-first` skill)
 - Report vulnerabilities via GitHub private advisories (see `SECURITY.md`)
 - Rate limit state is persisted to avoid unintentional API hammering
 
