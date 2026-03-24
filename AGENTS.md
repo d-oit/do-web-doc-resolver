@@ -43,6 +43,13 @@ cd web && npx playwright test --project=desktop
 ./scripts/quality_gate.sh
 ```
 
+## Disk space
+
+```bash
+# Remove debug build artifacts (~4.9 GB) — keeps release binary
+rm -rf cli/target/debug/
+```
+
 ## Code style
 
 ### Python

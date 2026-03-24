@@ -209,6 +209,7 @@ export default function Home() {
       `}>
         {/* Sidebar Header - Toggle */}
         <button
+          data-testid="sidebar-toggle"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
         >
@@ -327,6 +328,7 @@ export default function Home() {
             {/* API Keys - Collapsible */}
             <div className="flex flex-col gap-2">
               <button
+                data-testid="api-keys-toggle"
                 onClick={() => setApiKeysOpen(!apiKeysOpen)}
                 className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
               >
