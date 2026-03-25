@@ -12,6 +12,7 @@ permissions:
 
 env:
   RUST_TOOLCHAIN: '1.85'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   python-test:
@@ -150,7 +151,7 @@ jobs:
         run: ls -la dist
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.2.1
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
           name: Release ${{ steps.version.outputs.VERSION }}
