@@ -67,7 +67,7 @@ const QUERY_CASCADE = ["exa_mcp", "exa", "tavily", "serper", "mistral_websearch"
 const URL_DEFAULT = ["jina", "firecrawl", "direct_fetch", "mistral_browser"];
 const URL_JS_HEAVY = ["firecrawl", "mistral_browser", "jina", "direct_fetch"];
 
-const PAID_PROVIDERS = new Set(["exa", "serper", "tavily", "firecrawl", "mistral_websearch", "mistral_browser"]);
+const PAID_PROVIDERS = new Set(["exa", "serper", "tavily", "firecrawl", "mistral_websearch", "mistral_browser", "exa_mcp_mistral"]);
 
 export function isPaidProvider(provider: string): boolean {
   return PAID_PROVIDERS.has(provider);

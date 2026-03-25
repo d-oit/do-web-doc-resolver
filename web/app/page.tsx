@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { loadApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
-import { loadUiState, saveUiState, loadStateFromServer, saveStateToServer } from "@/lib/ui-state";
+import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
+import { loadUiState, saveUiState, loadStateFromServer, saveStateToServer, resolveUiState } from "@/lib/ui-state";
 
 type ProfileId = "free" | "balanced" | "fast" | "quality" | "custom";
 
@@ -43,6 +43,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [apiKeys, setApiKeys] = useState<ApiKeys>({});
   const [keySource, setKeySource] = useState<Record<string, KeySource>>({});
+  const [serverKeyStatus, setServerKeyStatus] = useState<Record<string, boolean>>({});
   const [copied, setCopied] = useState(false);
   const [providerStatus, setProviderStatus] = useState<string | null>(null);
   const [resolveTime, setResolveTime] = useState<number | null>(null);
@@ -67,13 +68,17 @@ export default function Home() {
     setApiKeys(keys);
     fetch("/api/key-status")
       .then((r) => r.json())
-      .then((status) => setKeySource(resolveKeySource(keys, status)))
+      .then((status) => {
+        setServerKeyStatus(status);
+        setKeySource(resolveKeySource(keys, status));
+      })
       .catch(() => {});
 
     // Try server state first, fallback to localStorage
     loadStateFromServer()
       .then((serverState) => {
-        const ui = serverState || loadUiState();
+        const localState = loadUiState();
+        const ui = resolveUiState(serverState, localState);
         setSidebarOpen(ui.sidebarOpen);
         setApiKeysOpen(ui.apiKeysOpen);
         setShowAdvanced(ui.showAdvanced);
@@ -83,10 +88,20 @@ export default function Home() {
         setMaxChars(ui.maxChars);
         setSkipCache(ui.skipCache);
         setDeepResearch(ui.deepResearch);
+        if (ui.apiKeys && typeof ui.apiKeys === "object") {
+          const mergedKeys = { ...keys, ...ui.apiKeys } as ApiKeys;
+          setApiKeys(mergedKeys);
+          saveApiKeys(mergedKeys);
+        }
         setLoaded(true);
         inputRef.current?.focus();
       });
   }, []);
+
+  useEffect(() => {
+    if (Object.keys(serverKeyStatus).length === 0) return;
+    setKeySource(resolveKeySource(apiKeys, serverKeyStatus));
+  }, [apiKeys, serverKeyStatus]);
 
   // Persist UI state changes (skip before first load)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -102,9 +117,11 @@ export default function Home() {
       maxChars,
       skipCache,
       deepResearch,
+      apiKeys,
     };
     // localStorage: immediate
     saveUiState(state);
+    saveApiKeys(apiKeys);
     // Server: debounced 2s
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -113,7 +130,7 @@ export default function Home() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch]);
+  }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch, apiKeys]);
 
   const handleProviderToggle = (providerId: string) => {
     setProfile("custom");
@@ -191,23 +208,7 @@ export default function Home() {
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
     const updated = { ...apiKeys, [key]: value || undefined };
     setApiKeys(updated);
-    const keyToSourceId: Partial<Record<keyof ApiKeys, string>> = {
-      serper_api_key: "serper",
-      tavily_api_key: "tavily",
-      exa_api_key: "exa",
-      firecrawl_api_key: "firecrawl",
-      mistral_api_key: "mistral",
-    };
-    const sourceId = keyToSourceId[key];
-    if (sourceId) {
-      setKeySource((prev) => {
-        const fallback = prev[sourceId] === "server" ? "server" : "none";
-        return { ...prev, [sourceId]: value ? "local" : fallback };
-      });
-    }
-    try {
-      localStorage.setItem("web-resolver-api-keys", JSON.stringify(updated));
-    } catch {}
+    saveApiKeys(updated);
   };
 
   const charCount = result.length;

@@ -89,6 +89,64 @@ test.describe("Provider gating", () => {
     await expect(page.locator("select")).toHaveValue("custom");
   });
 
+  test("custom provider selection persists across reload via server state", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "Persistence interaction is desktop-only");
+
+    let serverState: Record<string, unknown> = {
+      sidebarOpen: true,
+      apiKeysOpen: false,
+      showAdvanced: false,
+      profile: "free",
+      selectedProviders: [],
+      maxChars: 8000,
+      skipCache: false,
+      deepResearch: false,
+      updatedAt: 0,
+    };
+
+    await page.route("**/api/key-status", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ exa: false, serper: false, tavily: false, firecrawl: false, mistral: false }),
+      });
+    });
+
+    await page.route("**/api/ui-state", async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(serverState),
+        });
+        return;
+      }
+
+      const payload = route.request().postDataJSON() as Record<string, unknown>;
+      serverState = { ...serverState, ...payload };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      });
+    });
+
+    await page.goto("/");
+    await openSidebarIfMobile(page);
+
+    const duckduckgoButton = page.getByRole("button", { name: /^DuckDuckGo$/ });
+    await duckduckgoButton.scrollIntoViewIfNeeded();
+    await duckduckgoButton.click({ force: true });
+    await expect(page.locator("select")).toHaveValue("custom");
+
+    await page.waitForTimeout(2200);
+    await page.reload();
+    await openSidebarIfMobile(page);
+
+    await expect(page.locator("select")).toHaveValue("custom");
+    await expect(page.locator("text=1 selected")).toBeVisible();
+  });
+
   test("duckduckgo is disabled when mistral key is present", async ({ page }) => {
     await mockUiStateAndKeys(page);
     await page.addInitScript(() => {
