@@ -149,11 +149,32 @@ test.describe("Provider gating", () => {
 
   test("duckduckgo is disabled when mistral key is present", async ({ page }) => {
     await mockUiStateAndKeys(page);
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        "web-resolver-api-keys",
-        JSON.stringify({ mistral_api_key: "test-key" })
-      );
+    await page.route("**/api/ui-state", async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            sidebarOpen: true,
+            apiKeysOpen: false,
+            showAdvanced: false,
+            profile: "free",
+            selectedProviders: [],
+            maxChars: 8000,
+            skipCache: false,
+            deepResearch: false,
+            apiKeys: { mistral_api_key: "test-key" },
+            updatedAt: Date.now(),
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      });
     });
     await page.goto("/");
 
