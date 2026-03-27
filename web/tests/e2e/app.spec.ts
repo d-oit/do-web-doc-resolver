@@ -439,18 +439,19 @@ test.describe("Network Interception", () => {
 });
 
 test.describe("Security Headers", () => {
-  test.skip(
-    ({}, { title }) => title.includes("localhost") || !!process.env.BASE_URL?.includes("localhost"),
-    "Security headers only apply to production deployments"
-  );
-
   test("response has X-Content-Type-Options", async ({ page }) => {
+    // Security headers are only set by Vercel in production
+    test.skip(!!process.env.BASE_URL?.includes("localhost"), "Security headers only apply to production");
+
     const response = await page.goto("/");
     const headers = response?.headers();
     expect(headers?.["x-content-type-options"]).toBe("nosniff");
   });
 
   test("response has X-Frame-Options", async ({ page }) => {
+    // Security headers are only set by Vercel in production
+    test.skip(!!process.env.BASE_URL?.includes("localhost"), "Security headers only apply to production");
+
     const response = await page.goto("/");
     const headers = response?.headers();
     expect(headers?.["x-frame-options"]).toBe("DENY");
