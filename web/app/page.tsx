@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
 import { loadUiState, saveUiState, loadStateFromServer, saveStateToServer, resolveUiState } from "@/lib/ui-state";
+import History, { HistoryEntry } from "@/app/components/History";
 
 type ProfileId = "free" | "balanced" | "fast" | "quality" | "custom";
 
@@ -207,8 +208,18 @@ export default function Home() {
 
       setResult(data.markdown || data.result || "");
       setSourceProvider(data.provider || (activeProviders.length > 0 ? activeProviders.join(", ") : profile));
-      setResolveTime(Date.now() - startTime);
+      const elapsed = Date.now() - startTime;
+      setResolveTime(elapsed);
       setProviderStatus(null);
+
+      // Save to history
+      saveToHistory({
+        query: query.trim(),
+        result: data.markdown || data.result || "",
+        provider: data.provider || activeProviders.join(", "),
+        charCount: (data.markdown || data.result || "").length,
+        resolveTime: elapsed,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
       setProviderStatus(null);
@@ -233,6 +244,32 @@ export default function Home() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1000);
     }
+  };
+
+  const saveToHistory = async (data: {
+    query: string;
+    result: string;
+    provider: string;
+    charCount: number;
+    resolveTime: number;
+  }) => {
+    try {
+      await fetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      // Silent fail
+    }
+  };
+
+  const handleHistoryLoad = (entry: HistoryEntry) => {
+    setQuery(entry.query);
+    setResult(entry.result);
+    setSourceProvider(entry.provider);
+    setResolveTime(entry.resolveTime);
+    inputRef.current?.focus();
   };
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
@@ -447,6 +484,9 @@ export default function Home() {
                 </div>
               )}
             </div>
+
+            {/* History */}
+            <History onLoad={handleHistoryLoad} />
           </div>
         )}
       </aside>
