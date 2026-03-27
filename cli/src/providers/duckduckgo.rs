@@ -1,6 +1,7 @@
 //! DuckDuckGo search provider.
 //!
 //! Free search - no API key required.
+//! Uses Jina Reader to bypass CAPTCHA protection.
 
 use crate::error::{ResolverError, detect_error_type};
 use crate::types::ResolvedResult;
@@ -62,16 +63,19 @@ impl crate::providers::QueryProvider for DuckDuckGoProvider {
             ));
         }
 
-        // Use HTML endpoint for better results
-        let url = format!(
+        // Use Jina Reader as proxy to bypass CAPTCHA
+        // DDG HTML endpoint returns CAPTCHA for automated requests
+        // Jina Reader fetches and converts to markdown
+        let ddg_url = format!(
             "https://html.duckduckgo.com/html/?q={}",
             urlencoding::encode(query)
         );
+        let jina_url = format!("https://r.jina.ai/{}", ddg_url);
 
         let response = self
             .client
-            .get(&url)
-            .header("User-Agent", "Mozilla/5.0 (compatible; WDR/1.0)")
+            .get(&jina_url)
+            .header("Accept", "text/markdown")
             .send()
             .await
             .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
@@ -88,153 +92,125 @@ impl crate::providers::QueryProvider for DuckDuckGoProvider {
             return Err(detect_error_type(&error_text));
         }
 
-        let html = response
+        let markdown = response
             .text()
             .await
             .map_err(|e| ResolverError::ParseError(e.to_string()))?;
 
-        // Parse HTML results
-        let results = parse_ddg_results(&html, limit)?;
+        // Parse markdown results from Jina Reader output
+        let results = parse_ddg_markdown(&markdown, limit)?;
 
         Ok(results)
     }
 }
 
-/// Parse DuckDuckGo HTML results
-fn parse_ddg_results(html: &str, limit: usize) -> Result<Vec<ResolvedResult>, ResolverError> {
+/// Parse DuckDuckGo results from Jina Reader markdown output
+fn parse_ddg_markdown(markdown: &str, limit: usize) -> Result<Vec<ResolvedResult>, ResolverError> {
     let mut results = Vec::new();
-    let mut current_url: Option<String> = None;
-    let mut current_snippet: Option<String> = None;
-    let mut count = 0;
 
-    // Process HTML looking for result elements
-    for line in html.lines() {
-        if count >= limit {
-            break;
-        }
+    // Jina Reader output format:
+    // ## [Title](URL)
+    // [domain.com/path](URL)
+    // Snippet text...
+    //
+    // URLs are DDG redirect format: https://duckduckgo.com/l/?uddg=ENCODED_URL&rut=...
 
-        // Extract URL from DuckDuckGo redirect link
-        // Format: //duckduckgo.com/l/?uddg=ENCODED_URL&rut=...
-        if line.contains("result__url") || line.contains("result__a") {
-            if let Some(url) = extract_ddg_url(line) {
-                current_url = Some(url);
-            }
-        }
+    let lines: Vec<&str> = markdown.lines().collect();
+    let mut i = 0;
 
-        // Extract snippet (may be on different line)
-        if line.contains("result__snippet") {
-            current_snippet = extract_ddg_snippet(line);
-        }
+    while i < lines.len() && results.len() < limit {
+        let line = lines[i];
 
-        // Combine when we have both URL and snippet
-        if let (Some(url), Some(snippet)) = (&current_url, &current_snippet) {
-            results.push(ResolvedResult::new(
-                url.clone(),
-                Some(snippet.clone()),
-                "duckduckgo",
-                0.5,
-            ));
-            current_url = None;
-            current_snippet = None;
-            count += 1;
-        }
-    }
-
-    // Also try to extract from the combined URL+title links (result__a class)
-    // These often appear without explicit snippets
-    if results.len() < limit {
-        for line in html.lines() {
-            if results.len() >= limit {
-                break;
-            }
-            if line.contains("result__a") && line.contains("uddg=") {
-                if let Some(url) = extract_ddg_url(line) {
-                    // Check if we already have this URL
-                    if !results.iter().any(|r| r.url == url) {
-                        // Try to extract title as snippet
-                        let snippet = extract_ddg_title(line);
-                        results.push(ResolvedResult::new(url, snippet, "duckduckgo", 0.4));
+        // Look for result headings: ## [Title](URL)
+        if line.starts_with("## [") {
+            // Extract title and URL from heading
+            if let Some((title, url)) = extract_heading_info(line) {
+                // Look for snippet in next few lines
+                let mut snippet = String::new();
+                for next_line in lines.iter().skip(i + 1).take(5) {
+                    let next_line = next_line.trim();
+                    // Skip empty lines and domain links
+                    if next_line.is_empty() || next_line.starts_with('[') {
+                        continue;
                     }
+                    // Stop at next heading or feedback
+                    if next_line.starts_with('#') || next_line.contains("Feedback") {
+                        break;
+                    }
+                    // This is snippet content
+                    if !snippet.is_empty() {
+                        snippet.push(' ');
+                    }
+                    snippet.push_str(next_line);
+                    break;
                 }
+
+                let content = if snippet.is_empty() {
+                    Some(title.clone())
+                } else {
+                    Some(snippet)
+                };
+
+                results.push(ResolvedResult::new(url, content, "duckduckgo", 0.5));
             }
         }
+
+        i += 1;
     }
 
     Ok(results)
 }
 
-/// Extract URL from DuckDuckGo redirect link
-/// Format: //duckduckgo.com/l/?uddg=ENCODED_URL&rut=...
-fn extract_ddg_url(line: &str) -> Option<String> {
-    // Look for the uddg parameter which contains the actual URL
-    if let Some(start) = line.find("uddg=") {
-        let start = start + 5; // Skip "uddg="
-        // Find the end of the URL (next & or " or end of attribute)
-        let end = line[start..]
-            .find('&')
-            .or_else(|| line[start..].find('"'))
-            .or_else(|| line[start..].find('\''))
-            .unwrap_or_else(|| line[start..].len().min(500)); // Cap at reasonable length
+/// Extract title and URL from markdown heading like: ## [Title](URL)
+fn extract_heading_info(line: &str) -> Option<(String, String)> {
+    // Format: ## [Title](URL)
+    let line = line.trim_start_matches('#').trim();
 
-        let encoded = &line[start..start + end];
-        if let Ok(decoded) = urlencoding::decode(encoded) {
-            let url = decoded.to_string();
-            // Validate it's actually a URL
-            if url.starts_with("http://") || url.starts_with("https://") {
-                return Some(url);
-            }
-        }
+    // Find [Title](URL) pattern
+    if !line.starts_with('[') {
+        return None;
     }
-    None
+
+    // Find closing bracket for title
+    let title_end = line.find(']')?;
+    let title = line[1..title_end].to_string();
+
+    // Find URL in parentheses
+    let url_start = line.find("](")?;
+    let url_end = line[url_start + 2..].find(')')?;
+    let raw_url = &line[url_start + 2..url_start + 2 + url_end];
+
+    // Decode DDG redirect URL if needed
+    let url = decode_ddg_url(raw_url)?;
+
+    Some((title, url))
 }
 
-/// Extract snippet from result__snippet element
-fn extract_ddg_snippet(line: &str) -> Option<String> {
-    // Look for snippet content after result__snippet">
-    if let Some(start) = line.find("result__snippet\">") {
-        let start = start + 17; // Skip "result__snippet">
-        // Find end tag
-        if let Some(end) = line[start..].find('<') {
-            let snippet = &line[start..start + end];
-            // Clean up HTML entities and trim
-            let cleaned = snippet
-                .replace("&amp;", "&")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&quot;", "\"")
-                .replace("&#x27;", "'")
-                .trim()
-                .to_string();
-            if !cleaned.is_empty() {
-                return Some(cleaned);
-            }
-        }
-    }
-    None
-}
+/// Decode DuckDuckGo redirect URL
+/// Format: https://duckduckgo.com/l/?uddg=ENCODED_URL&rut=...
+fn decode_ddg_url(url: &str) -> Option<String> {
+    // Check if it's a DDG redirect URL
+    if url.contains("duckduckgo.com/l/?") && url.contains("uddg=") {
+        // Extract the uddg parameter
+        if let Some(start) = url.find("uddg=") {
+            let start = start + 5;
+            let end = url[start..].find('&').unwrap_or_else(|| url[start..].len());
 
-/// Extract title from result__a link (as fallback snippet)
-fn extract_ddg_title(line: &str) -> Option<String> {
-    // Look for link text between > and <
-    if let Some(start) = line.find("result__a") {
-        if let Some(gt) = line[start..].find('>') {
-            let start = start + gt + 1;
-            if let Some(end) = line[start..].find('<') {
-                let title = &line[start..start + end];
-                let cleaned = title
-                    .replace("&amp;", "&")
-                    .replace("&lt;", "<")
-                    .replace("&gt;", ">")
-                    .replace("&quot;", "\"")
-                    .trim()
-                    .to_string();
-                if !cleaned.is_empty() && cleaned.len() > 3 {
-                    return Some(cleaned);
+            let encoded = &url[start..start + end];
+            if let Ok(decoded) = urlencoding::decode(encoded) {
+                let decoded_url = decoded.to_string();
+                if decoded_url.starts_with("http://") || decoded_url.starts_with("https://") {
+                    return Some(decoded_url);
                 }
             }
         }
+        None
+    } else if url.starts_with("http://") || url.starts_with("https://") {
+        // Direct URL, return as-is
+        Some(url.to_string())
+    } else {
+        None
     }
-    None
 }
 
 #[cfg(test)]
@@ -255,16 +231,38 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_ddg_url() {
-        let line = r#"<a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com&amp;rut=abc">"#;
-        let url = extract_ddg_url(line);
-        assert_eq!(url, Some("https://example.com".to_string()));
+    fn test_extract_heading_info() {
+        let line = "## [Rust Programming Language](https://duckduckgo.com/l/?uddg=https%3A%2F%2Frust-lang.org&rut=abc)";
+        let result = extract_heading_info(line);
+        assert!(result.is_some());
+        let (title, url) = result.unwrap();
+        assert_eq!(title, "Rust Programming Language");
+        assert_eq!(url, "https://rust-lang.org");
     }
 
     #[test]
-    fn test_extract_ddg_snippet() {
-        let line = r#"<a class="result__snippet">This is a test snippet</a>"#;
-        let snippet = extract_ddg_snippet(line);
-        assert_eq!(snippet, Some("This is a test snippet".to_string()));
+    fn test_decode_ddg_url() {
+        let url = "https://duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com&rut=abc";
+        let decoded = decode_ddg_url(url);
+        assert_eq!(decoded, Some("https://example.com".to_string()));
+    }
+
+    #[test]
+    fn test_parse_ddg_markdown() {
+        let markdown = r#"# rust programming language at DuckDuckGo
+
+## [Rust Programming Language](https://duckduckgo.com/l/?uddg=https%3A%2F%2Frust-lang.org&rut=abc)
+
+[rust-lang.org](https://duckduckgo.com/l/?uddg=https%3A%2F%2Frust-lang.org&rut=abc)
+
+Rust is a fast, reliable, and productive programming language.
+
+## [Rust (programming language) - Wikipedia](https://duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FRust&rut=def)
+
+Rust is a general-purpose programming language.
+"#;
+        let results = parse_ddg_markdown(markdown, 5).unwrap();
+        assert!(!results.is_empty());
+        assert_eq!(results[0].url, "https://rust-lang.org");
     }
 }
