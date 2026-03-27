@@ -62,8 +62,36 @@ export default function Home() {
   const [maxChars, setMaxChars] = useState(8000);
   const [skipCache, setSkipCache] = useState(false);
   const [deepResearch, setDeepResearch] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K: Focus input
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      // Ctrl/Cmd + /: Show shortcuts
+      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+        e.preventDefault();
+        setShowShortcuts((prev) => !prev);
+      }
+      // Escape: Clear input or close modals
+      if (e.key === "Escape") {
+        if (showShortcuts) {
+          setShowShortcuts(false);
+        } else if (document.activeElement === inputRef.current) {
+          setQuery("");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showShortcuts]);
 
   useEffect(() => {
     const keys = loadApiKeys();
@@ -539,6 +567,43 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Keyboard Shortcuts Modal */}
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            className="bg-[#0c0c0c] border-2 border-[#333] p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between mb-4">
+              <h2 className="text-[13px] font-bold text-[#e8e6e3]">Keyboard Shortcuts</h2>
+              <button
+                onClick={() => setShowShortcuts(false)}
+                className="text-[#666] hover:text-[#e8e6e3] text-[18px] leading-none"
+                aria-label="Close shortcuts"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[
+                { key: "Ctrl/Cmd + K", action: "Focus input" },
+                { key: "Ctrl/Cmd + /", action: "Show/hide shortcuts" },
+                { key: "Enter", action: "Submit query" },
+                { key: "Escape", action: "Clear input or close modal" },
+              ].map(({ key, action }) => (
+                <div key={key} className="flex justify-between text-[11px]">
+                  <span className="text-[#888]">{action}</span>
+                  <kbd className="bg-[#222] px-2 py-1 text-[#e8e6e3] border border-[#333]">{key}</kbd>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
