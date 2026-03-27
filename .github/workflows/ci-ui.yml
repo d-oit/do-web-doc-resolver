@@ -144,10 +144,17 @@ jobs:
       - run: npx playwright install chromium
         working-directory: web
 
-      - run: npx playwright test --project=desktop
+      - run: npm run build
+        working-directory: web
+
+      - name: Start server and run tests
+        run: |
+          npm run start &
+          npx wait-on http://localhost:3000 -t 60000
+          npx playwright test --project=desktop
         working-directory: web
         env:
-          BASE_URL: https://web-eight-ivory-29.vercel.app/
+          BASE_URL: http://localhost:3000
 
   quality-gate:
     name: Quality Gate
