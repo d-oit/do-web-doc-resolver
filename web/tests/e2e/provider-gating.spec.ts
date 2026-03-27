@@ -83,9 +83,10 @@ test.describe("Provider gating", () => {
     await page.goto("/");
     await openSidebarIfMobile(page);
 
-    const duckduckgoButton = page.getByRole("button", { name: /^DuckDuckGo$/ });
-    await duckduckgoButton.scrollIntoViewIfNeeded();
-    await duckduckgoButton.click({ force: true });
+    // Use Exa MCP instead of DuckDuckGo (DuckDuckGo may be disabled due to Mistral gating)
+    const exaMcpButton = page.getByRole("button", { name: /Exa MCP/ });
+    await exaMcpButton.scrollIntoViewIfNeeded();
+    await exaMcpButton.click({ force: true });
     await expect(page.locator("select")).toHaveValue("custom");
   });
 
@@ -134,9 +135,10 @@ test.describe("Provider gating", () => {
     await page.goto("/");
     await openSidebarIfMobile(page);
 
-    const duckduckgoButton = page.getByRole("button", { name: /^DuckDuckGo$/ });
-    await duckduckgoButton.scrollIntoViewIfNeeded();
-    await duckduckgoButton.click({ force: true });
+    // Use Exa MCP instead of DuckDuckGo (DuckDuckGo may be disabled due to Mistral gating)
+    const exaMcpButton = page.getByRole("button", { name: /Exa MCP/ });
+    await exaMcpButton.scrollIntoViewIfNeeded();
+    await exaMcpButton.click({ force: true });
     await expect(page.locator("select")).toHaveValue("custom");
 
     await page.waitForTimeout(2200);

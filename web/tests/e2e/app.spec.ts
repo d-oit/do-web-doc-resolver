@@ -439,7 +439,10 @@ test.describe("Network Interception", () => {
 });
 
 test.describe("Security Headers", () => {
-  test.skip(() => process.env.BASE_URL?.includes("localhost"), "Security headers only apply to production deployments");
+  test.skip(
+    ({}, { title }) => title.includes("localhost") || !!process.env.BASE_URL?.includes("localhost"),
+    "Security headers only apply to production deployments"
+  );
 
   test("response has X-Content-Type-Options", async ({ page }) => {
     const response = await page.goto("/");
