@@ -38,7 +38,7 @@ describe("records", () => {
 
       const records = list();
       expect(records.length).toBe(2);
-      expect(records[0].query).toBe("second"); // Most recent first
+      expect(records[0]?.query).toBe("second"); // Most recent first
     });
 
     it("respects limit parameter", () => {
@@ -58,7 +58,7 @@ describe("records", () => {
 
       const results = search("react");
       expect(results.length).toBe(1);
-      expect(results[0].query).toBe("react hooks");
+      expect(results[0]?.query).toBe("react hooks");
     });
 
     it("searches by content", () => {
