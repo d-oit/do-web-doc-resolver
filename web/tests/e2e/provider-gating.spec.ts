@@ -180,7 +180,8 @@ test.describe("Provider gating", () => {
     });
     await page.goto("/");
 
-    const duckduckgoButton = page.getByRole("button", { name: /^DuckDuckGo$/ });
+    // Use a more flexible selector that matches the aria-label
+    const duckduckgoButton = page.getByRole("button", { name: /DuckDuckGo/ });
     await expect(duckduckgoButton).toBeDisabled();
   });
 });
