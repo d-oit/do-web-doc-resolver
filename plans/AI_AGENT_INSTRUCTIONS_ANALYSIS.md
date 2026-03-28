@@ -18,7 +18,7 @@ This document analyzes best practices for AI agent instructions (skills, AGENTS.
 
 ### AGENTS.md Analysis
 
-**Current structure (<150 lines)**:
+**Current structure (~272 lines, needs reduction)**:
 - Setup commands
 - Run tests
 - Disk space
@@ -231,7 +231,7 @@ description: Implement CSS-only UI components for the design system. Use when
 
 ### Priority 2: AGENTS.md Conciseness
 
-**Current**: 150 lines (good)
+**Current**: ~272 lines (needs reduction to target)
 
 **Recommendation**: Keep under 150 lines, move detailed docs to agents-docs/
 
@@ -278,7 +278,6 @@ wc -l <file>  # Check line limit
 cargo fmt --check  # Rust formatting
 ruff check .  # Python lint
 ```
-```
 
 ## Skill Quality Metrics
 
@@ -303,7 +302,7 @@ ruff check .  # Python lint
 
 ### For AGENTS.md:
 
-1. ✅ Keep under 150 lines
+1. ⚠️ Reduce from ~272 lines to <150
 2. ✅ Link to detailed docs in agents-docs/
 3. ✅ Include skills table
 4. ✅ Include code style section
