@@ -279,3 +279,30 @@ jobs:
         env:
           EXA_API_KEY: ""
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+
+  semantic-cache-test:
+    name: Semantic Cache Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+
+      - name: Build with semantic-cache feature
+        run: cd cli && cargo build --features semantic-cache
+
+      - name: Run tests with semantic-cache feature
+        run: cd cli && cargo test --features semantic-cache
+
+      - name: Run clippy with semantic-cache feature
+        run: cd cli && cargo clippy --features semantic-cache -- -D warnings
