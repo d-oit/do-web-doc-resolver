@@ -6,7 +6,6 @@ use thiserror::Error;
 
 /// Main error type for the resolver
 #[derive(Debug, Error)]
-#[allow(dead_code)]
 pub enum ResolverError {
     /// Network-related errors
     #[error("Network error: {0}")]
@@ -47,71 +46,32 @@ pub enum ResolverError {
     /// Unknown/internal errors
     #[error("Unknown error: {0}")]
     Unknown(String),
-
-    /// Rate limit error (for detect_error_type function)
-    #[error("Rate limit error: {0}")]
-    RateLimitError(String),
-
-    /// Auth error (for detect_error_type function)
-    #[error("Auth error: {0}")]
-    AuthError(String),
-
-    /// Quota error (for detect_error_type function)
-    #[error("Quota error: {0}")]
-    QuotaError(String),
-
-    /// Not found error (for detect_error_type function)
-    #[error("Not found error: {0}")]
-    NotFoundError(String),
-
-    /// Network error (for detect_error_type function)
-    #[error("Network error: {0}")]
-    NetworkError(String),
-
-    /// Unknown error (for detect_error_type function)
-    #[error("Unknown error: {0}")]
-    UnknownError(String),
-
-    /// Parse error (for provider code)
-    #[error("Parse error: {0}")]
-    ParseError(String),
 }
 
 impl ResolverError {
     /// Create a new error with context
-    #[allow(dead_code)]
     pub fn with_context<E: std::fmt::Display>(error: E, context: &str) -> Self {
         ResolverError::Unknown(format!("{}: {}", context, error))
     }
 
     /// Check if this is a rate limit error
-    #[allow(dead_code)]
     pub fn is_rate_limit(&self) -> bool {
-        matches!(
-            self,
-            ResolverError::RateLimit(_) | ResolverError::RateLimitError(_)
-        )
+        matches!(self, ResolverError::RateLimit(_))
     }
 
     /// Check if this is an auth error
-    #[allow(dead_code)]
     pub fn is_auth(&self) -> bool {
-        matches!(self, ResolverError::Auth(_) | ResolverError::AuthError(_))
+        matches!(self, ResolverError::Auth(_))
     }
 
     /// Check if this is a quota error
-    #[allow(dead_code)]
     pub fn is_quota(&self) -> bool {
-        matches!(self, ResolverError::Quota(_) | ResolverError::QuotaError(_))
+        matches!(self, ResolverError::Quota(_))
     }
 
     /// Check if this is a not found error
-    #[allow(dead_code)]
     pub fn is_not_found(&self) -> bool {
-        matches!(
-            self,
-            ResolverError::NotFound(_) | ResolverError::NotFoundError(_)
-        )
+        matches!(self, ResolverError::NotFound(_))
     }
 }
 
@@ -126,7 +86,7 @@ pub fn detect_error_type(error: &str) -> ResolverError {
         || error_lower.contains("rate limit")
         || error_lower.contains("too many requests")
     {
-        return ResolverError::RateLimitError(error.to_string());
+        return ResolverError::RateLimit(error.to_string());
     }
 
     if error_lower.contains("401")
@@ -135,7 +95,7 @@ pub fn detect_error_type(error: &str) -> ResolverError {
         || error_lower.contains("forbidden")
         || error_lower.contains("invalid api key")
     {
-        return ResolverError::AuthError(error.to_string());
+        return ResolverError::Auth(error.to_string());
     }
 
     if error_lower.contains("402")
@@ -144,21 +104,21 @@ pub fn detect_error_type(error: &str) -> ResolverError {
         || error_lower.contains("insufficient")
         || error_lower.contains("payment required")
     {
-        return ResolverError::QuotaError(error.to_string());
+        return ResolverError::Quota(error.to_string());
     }
 
     if error_lower.contains("404") || error_lower.contains("not found") {
-        return ResolverError::NotFoundError(error.to_string());
+        return ResolverError::NotFound(error.to_string());
     }
 
     if error_lower.contains("network")
         || error_lower.contains("connection")
         || error_lower.contains("timeout")
     {
-        return ResolverError::NetworkError(error.to_string());
+        return ResolverError::Network(error.to_string());
     }
 
-    ResolverError::UnknownError(error.to_string())
+    ResolverError::Unknown(error.to_string())
 }
 
 #[cfg(test)]
@@ -201,6 +161,14 @@ mod tests {
     #[test]
     fn test_network_detection() {
         let err = detect_error_type("Network connection error");
-        assert!(matches!(err, ResolverError::NetworkError(_)));
+        assert!(matches!(err, ResolverError::Network(_)));
+    }
+}
+
+// Semantic cache error conversion (feature-gated)
+#[cfg(feature = "semantic-cache")]
+impl From<chaotic_semantic_memory::MemoryError> for ResolverError {
+    fn from(err: chaotic_semantic_memory::MemoryError) -> Self {
+        ResolverError::Cache(err.to_string())
     }
 }

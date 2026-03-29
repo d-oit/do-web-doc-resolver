@@ -54,14 +54,14 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
 
     async fn extract(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
         if self.is_rate_limited() {
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "llms.txt provider is rate limited".to_string(),
             ));
         }
 
         // Parse the URL and construct llms.txt URL
-        let parsed_url = Url::parse(url)
-            .map_err(|e| ResolverError::ParseError(format!("Invalid URL: {}", e)))?;
+        let parsed_url =
+            Url::parse(url).map_err(|e| ResolverError::Parse(format!("Invalid URL: {}", e)))?;
 
         let llms_txt_url = format!(
             "{}://{}/llms.txt",
@@ -75,19 +75,15 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
             .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
             .send()
             .await
-            .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 404 {
-            return Err(ResolverError::NotFoundError(
-                "llms.txt not found".to_string(),
-            ));
+            return Err(ResolverError::NotFound("llms.txt not found".to_string()));
         }
 
         if response.status() == 429 {
             self.set_rate_limited(true);
-            return Err(ResolverError::RateLimitError(
-                "Rate limit exceeded".to_string(),
-            ));
+            return Err(ResolverError::RateLimit("Rate limit exceeded".to_string()));
         }
 
         if !response.status().is_success() {
@@ -98,7 +94,7 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
         let content = response
             .text()
             .await
-            .map_err(|e| ResolverError::ParseError(e.to_string()))?;
+            .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
         Ok(ResolvedResult::new(
             llms_txt_url,

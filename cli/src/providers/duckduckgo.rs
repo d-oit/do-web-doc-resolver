@@ -58,7 +58,7 @@ impl crate::providers::QueryProvider for DuckDuckGoProvider {
         limit: usize,
     ) -> Result<Vec<ResolvedResult>, ResolverError> {
         if self.is_rate_limited() {
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "DuckDuckGo is rate limited".to_string(),
             ));
         }
@@ -78,11 +78,11 @@ impl crate::providers::QueryProvider for DuckDuckGoProvider {
             .header("Accept", "text/markdown")
             .send()
             .await
-            .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "DuckDuckGo rate limit exceeded".to_string(),
             ));
         }
@@ -95,7 +95,7 @@ impl crate::providers::QueryProvider for DuckDuckGoProvider {
         let markdown = response
             .text()
             .await
-            .map_err(|e| ResolverError::ParseError(e.to_string()))?;
+            .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
         // Parse markdown results from Jina Reader output
         let results = parse_ddg_markdown(&markdown, limit)?;

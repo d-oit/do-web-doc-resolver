@@ -53,9 +53,7 @@ impl crate::providers::UrlProvider for JinaProvider {
 
     async fn extract(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
         if self.is_rate_limited() {
-            return Err(ResolverError::RateLimitError(
-                "Jina is rate limited".to_string(),
-            ));
+            return Err(ResolverError::RateLimit("Jina is rate limited".to_string()));
         }
 
         // Use Jina Reader API
@@ -67,11 +65,11 @@ impl crate::providers::UrlProvider for JinaProvider {
             .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
             .send()
             .await
-            .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Jina rate limit exceeded".to_string(),
             ));
         }
@@ -84,7 +82,7 @@ impl crate::providers::UrlProvider for JinaProvider {
         let content = response
             .text()
             .await
-            .map_err(|e| ResolverError::ParseError(e.to_string()))?;
+            .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
         Ok(ResolvedResult::new(url, Some(content), "jina", 0.9))
     }
