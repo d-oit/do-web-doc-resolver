@@ -59,7 +59,7 @@ impl crate::providers::QueryProvider for ExaMcpProvider {
         limit: usize,
     ) -> Result<Vec<ResolvedResult>, ResolverError> {
         if self.is_rate_limited() {
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Exa MCP is rate limited".to_string(),
             ));
         }
@@ -87,11 +87,11 @@ impl crate::providers::QueryProvider for ExaMcpProvider {
             .json(&mcp_request)
             .send()
             .await
-            .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Exa MCP rate limit exceeded".to_string(),
             ));
         }
@@ -105,7 +105,7 @@ impl crate::providers::QueryProvider for ExaMcpProvider {
         let text = response
             .text()
             .await
-            .map_err(|e| ResolverError::ParseError(e.to_string()))?;
+            .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
         // Extract JSON from SSE data line
         let json_str = text
@@ -114,9 +114,8 @@ impl crate::providers::QueryProvider for ExaMcpProvider {
             .map(|l| &l[6..])
             .unwrap_or("");
 
-        let mcp_response: ExaMcpResponse = serde_json::from_str(json_str).map_err(|e| {
-            ResolverError::ParseError(format!("Failed to parse MCP response: {}", e))
-        })?;
+        let mcp_response: ExaMcpResponse = serde_json::from_str(json_str)
+            .map_err(|e| ResolverError::Parse(format!("Failed to parse MCP response: {}", e)))?;
 
         // Parse the formatted text content into results
         let results = parse_exa_mcp_text(&mcp_response);

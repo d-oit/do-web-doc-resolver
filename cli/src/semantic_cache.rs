@@ -25,6 +25,9 @@ use crate::types::ResolvedResult;
 #[cfg(feature = "semantic-cache")]
 use {chaotic_semantic_memory::prelude::*, serde_json::Value, std::collections::HashMap};
 
+// Use std::result::Result explicitly to avoid conflict with chaotic_semantic_memory::Result
+type StdResult<T, E> = std::result::Result<T, E>;
+
 /// Cache entry stored in semantic memory
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CacheEntry {
@@ -89,7 +92,7 @@ impl Default for SemanticCacheConfig {
 impl SemanticCache {
     /// Initialize semantic cache from config
     #[cfg(feature = "semantic-cache")]
-    pub fn new(config: &Config) -> Result<Option<Self>, ResolverError> {
+    pub fn new(config: &Config) -> StdResult<Option<Self>, ResolverError> {
         if !config.semantic_cache.enabled {
             tracing::debug!("Semantic cache disabled");
             return Ok(None);
@@ -134,7 +137,10 @@ impl SemanticCache {
 
     /// Query the cache for similar results
     #[cfg(feature = "semantic-cache")]
-    pub async fn query(&self, query: &str) -> Result<Option<Vec<ResolvedResult>>, ResolverError> {
+    pub async fn query(
+        &self,
+        query: &str,
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
         // Generate query vector
         let query_vector = self.encode_query(query);
 
@@ -190,7 +196,10 @@ impl SemanticCache {
     /// Query the cache (no-op without feature)
     #[cfg(not(feature = "semantic-cache"))]
     #[allow(dead_code)]
-    pub async fn query(&self, _query: &str) -> Result<Option<Vec<ResolvedResult>>, ResolverError> {
+    pub async fn query(
+        &self,
+        _query: &str,
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
         Ok(None)
     }
 
@@ -201,7 +210,7 @@ impl SemanticCache {
         query: &str,
         results: &[ResolvedResult],
         provider: &str,
-    ) -> Result<(), ResolverError> {
+    ) -> StdResult<(), ResolverError> {
         // Generate query vector
         let query_vector = self.encode_query(query);
 
@@ -240,13 +249,13 @@ impl SemanticCache {
         _query: &str,
         _results: &[ResolvedResult],
         _provider: &str,
-    ) -> Result<(), ResolverError> {
+    ) -> StdResult<(), ResolverError> {
         Ok(())
     }
 
     /// Query the cache for a specific URL (L2 Cache)
     #[cfg(feature = "semantic-cache")]
-    pub async fn query_url(&self, url: &str) -> Result<Option<ResolvedResult>, ResolverError> {
+    pub async fn query_url(&self, url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
         self.query(url)
             .await
             .map(|opt| opt.and_then(|vec| vec.into_iter().next()))
@@ -258,17 +267,18 @@ impl SemanticCache {
         &self,
         query: &str,
         provider: &str,
-    ) -> Result<Option<Vec<ResolvedResult>>, ResolverError> {
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
         let key = format!("{}:{}", provider, query);
         self.query(&key).await
     }
 
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
-    pub async fn stats(&self) -> Result<CacheStats, ResolverError> {
+    pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
+        // Note: concept_count() not available in current API version
         Ok(CacheStats {
-            entries: self.framework.concept_count().await.unwrap_or(0),
-            hit_rate: 0.0, // Needs separate tracking
+            entries: 0,
+            hit_rate: 0.0,
             path: self.config.path.clone(),
         })
     }
@@ -276,7 +286,7 @@ impl SemanticCache {
     /// Get cache statistics (no-op without feature)
     #[cfg(not(feature = "semantic-cache"))]
     #[allow(dead_code)]
-    pub async fn stats(&self) -> Result<CacheStats, ResolverError> {
+    pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
         Ok(CacheStats {
             entries: 0,
             hit_rate: 0.0,
@@ -299,7 +309,7 @@ impl SemanticCache {
         // Use inject_text_with_metadata encoding path via direct hypervector generation
         // The framework's built-in encoder is used for inject_text, but for probe we need
         // to generate a compatible vector. Use the same normalizer for consistency.
-        HVec10240::from_bytes(normalized.as_bytes())
+        HVec10240::from_bytes(normalized.as_bytes()).expect("Failed to encode query vector")
     }
 
     /// Encode query (no-op without feature)

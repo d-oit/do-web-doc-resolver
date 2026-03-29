@@ -40,28 +40,31 @@ This plan addresses 6 open GitHub issues and several code quality improvements. 
 
 **Total Estimated Effort**: 8-13 days
 
-## Current Status (2026-03-24 13:00 UTC)
+## Current Status (2026-03-29 — updated)
 
 | Phase | Focus | Status | Notes |
 |-------|-------|--------|-------|
-| 1 | Skill Self-Containment #135 | ✅ Complete | Self-contained package, directory symlinks |
-| 2 | Semantic Cache Testing #133 | ✅ Complete | Rust semantic cache feature-gated, tests pass |
-| 3 | Records Persistence #132 | ✅ Complete | Web CRUD API with in-memory store |
+| 1 | Skill Self-Containment #135 | ⚠️ Partial | `__main__.py` still uses wrong import (`scripts.resolve` not `.scripts.resolve`); tests only 32 lines; planned test files not created |
+| 2 | Semantic Cache Testing #133 | ❌ Blocked | `--features semantic-cache` fails to compile (14 errors — missing `From<MemoryError>` impl). CI job not added. |
+| 3 | Records Persistence #132 | ✅ Complete | Web CRUD API with in-memory store + FIFO eviction |
 | 4 | Python Semantic Cache #130 | ✅ Complete | Web cache with TTL, stats, API |
 | 5 | UI State Persistence #128 | ✅ Complete | Server sync with localStorage fallback |
 | 6 | E2E Test Fixes | ✅ Complete | data-testid selectors, Vercel root dir |
 | 7 | Binary Name Fix | ✅ Complete | `do-wdr` binary, `do-wdr` crate name |
 
 ### CI Status
-- CI (Python/Rust/lint): ✅ All passing
+- CI (Python/Rust/lint): ✅ All passing (default features only)
 - CI UI (E2E Playwright): ✅ All 55 tests passing
 - Vercel: ✅ Production deployed with latest changes
 - CodeQL: ✅ Passing
 
-### Remaining for Release
-- [ ] Merge PR #136 to main
-- [ ] Patch release (scripts/release.sh patch)
-- [ ] Verify GitHub Actions release workflow
+### Open Issues (2026-03-29)
+- [ ] Fix Phase 1: `__main__.py` import path + expand tests
+- [ ] Fix Phase 2: `semantic-cache` compile errors + add CI job
+- [ ] Phase 6: Split `resolver.rs` (990 lines) and `route.ts` (663 lines)
+- [ ] Phase 6: Consolidate duplicate error variants in `error.rs`
+
+See [CODEBASE_ANALYSIS_2026_03_29.md](./CODEBASE_ANALYSIS_2026_03_29.md) for full gap analysis.
 
 ---
 

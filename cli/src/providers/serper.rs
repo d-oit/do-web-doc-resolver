@@ -122,7 +122,7 @@ impl crate::providers::QueryProvider for SerperProvider {
         let api_key = self
             .api_key
             .as_ref()
-            .ok_or_else(|| ResolverError::AuthError("SERPER_API_KEY not set".to_string()))?;
+            .ok_or_else(|| ResolverError::Auth("SERPER_API_KEY not set".to_string()))?;
 
         // Check credits before making request
         let credits = self.credits_used.load(Ordering::SeqCst);
@@ -138,7 +138,7 @@ impl crate::providers::QueryProvider for SerperProvider {
         }
 
         if self.is_rate_limited() {
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Serper is rate limited".to_string(),
             ));
         }
@@ -156,20 +156,18 @@ impl crate::providers::QueryProvider for SerperProvider {
             })
             .send()
             .await
-            .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         // Handle HTTP errors
         if response.status() == 429 {
             self.set_rate_limited(true);
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Serper rate limit exceeded".to_string(),
             ));
         }
 
         if response.status() == 401 || response.status() == 403 {
-            return Err(ResolverError::AuthError(
-                "Serper API key invalid".to_string(),
-            ));
+            return Err(ResolverError::Auth("Serper API key invalid".to_string()));
         }
 
         if !response.status().is_success() {
@@ -180,7 +178,7 @@ impl crate::providers::QueryProvider for SerperProvider {
         let serper_response: SerperResponse = response
             .json()
             .await
-            .map_err(|e| ResolverError::ParseError(e.to_string()))?;
+            .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
         // Increment and save credits
         let new_credits = self.credits_used.fetch_add(1, Ordering::SeqCst) + 1;

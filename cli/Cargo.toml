@@ -35,6 +35,7 @@ semantic-cache = ["dep:chaotic_semantic_memory"]
 
 [dev-dependencies]
 mockall = "0.14"
+tempfile = "3"
 
 [[bin]]
 name = "do-wdr"

@@ -60,10 +60,10 @@ impl crate::providers::UrlProvider for FirecrawlProvider {
         let api_key = self
             .api_key
             .as_ref()
-            .ok_or_else(|| ResolverError::AuthError("FIRECRAWL_API_KEY not set".to_string()))?;
+            .ok_or_else(|| ResolverError::Auth("FIRECRAWL_API_KEY not set".to_string()))?;
 
         if self.is_rate_limited() {
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Firecrawl is rate limited".to_string(),
             ));
         }
@@ -79,17 +79,17 @@ impl crate::providers::UrlProvider for FirecrawlProvider {
             })
             .send()
             .await
-            .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Firecrawl rate limit exceeded".to_string(),
             ));
         }
 
         if response.status() == 401 {
-            return Err(ResolverError::AuthError(
+            return Err(ResolverError::Auth(
                 "Firecrawl authentication failed".to_string(),
             ));
         }
@@ -102,7 +102,7 @@ impl crate::providers::UrlProvider for FirecrawlProvider {
         let firecrawl_response: FirecrawlResponse = response
             .json()
             .await
-            .map_err(|e| ResolverError::ParseError(e.to_string()))?;
+            .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
         let content = firecrawl_response.data.and_then(|d| d.markdown);
 

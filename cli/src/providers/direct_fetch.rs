@@ -53,7 +53,7 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
 
     async fn extract(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
         if self.is_rate_limited() {
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Direct fetch is rate limited".to_string(),
             ));
         }
@@ -65,17 +65,15 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
             .header("Accept", "text/html,application/xhtml+xml")
             .send()
             .await
-            .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);
-            return Err(ResolverError::RateLimitError(
-                "Rate limit exceeded".to_string(),
-            ));
+            return Err(ResolverError::RateLimit("Rate limit exceeded".to_string()));
         }
 
         if response.status() == 404 {
-            return Err(ResolverError::NotFoundError("URL not found".to_string()));
+            return Err(ResolverError::NotFound("URL not found".to_string()));
         }
 
         if !response.status().is_success() {
@@ -86,7 +84,7 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
         let html = response
             .text()
             .await
-            .map_err(|e| ResolverError::ParseError(e.to_string()))?;
+            .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
         // Simple HTML to text conversion
         let content = strip_html(&html);

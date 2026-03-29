@@ -1,4 +1,4 @@
-# Progress Update - 2026-03-28
+# Progress Update - 2026-03-29
 
 ## Status Summary
 
@@ -15,6 +15,14 @@
 | CLI Bug Fixes | ✅ COMPLETE | exa_mcp, quality gate, duckduckgo URL extraction |
 | DuckDuckGo CAPTCHA Fix | ✅ COMPLETE | Jina Reader proxy bypass |
 | Provider Verification | ✅ COMPLETE | All API keys verified working |
+| **Semantic cache compile** | ❌ BLOCKED | `--features semantic-cache` has 14 compile errors (missing From impl) |
+| **Skill self-containment** | ⚠️ PARTIAL | `__main__.py` wrong import; tests minimal (32 lines) |
+| **File size limits** | ⚠️ OVERDUE | `resolver.rs` (990), `route.ts` (663) exceed 500-line max |
+| **Error variant cleanup** | ⚠️ OVERDUE | 6 duplicate variant pairs in `error.rs` |
+
+## Open Items (2026-03-29)
+
+See [CODEBASE_ANALYSIS_2026_03_29.md](./CODEBASE_ANALYSIS_2026_03_29.md) for the full gap analysis with priorities.
 
 ## Completed Actions
 

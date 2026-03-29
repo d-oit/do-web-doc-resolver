@@ -64,10 +64,10 @@ impl crate::providers::QueryProvider for MistralWebSearchProvider {
         let api_key = self
             .api_key
             .as_ref()
-            .ok_or_else(|| ResolverError::AuthError("MISTRAL_API_KEY not set".to_string()))?;
+            .ok_or_else(|| ResolverError::Auth("MISTRAL_API_KEY not set".to_string()))?;
 
         if self.is_rate_limited() {
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Mistral is rate limited".to_string(),
             ));
         }
@@ -89,11 +89,11 @@ impl crate::providers::QueryProvider for MistralWebSearchProvider {
             })
             .send()
             .await
-            .map_err(|e| ResolverError::NetworkError(e.to_string()))?;
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);
-            return Err(ResolverError::RateLimitError(
+            return Err(ResolverError::RateLimit(
                 "Mistral rate limit exceeded".to_string(),
             ));
         }
@@ -106,7 +106,7 @@ impl crate::providers::QueryProvider for MistralWebSearchProvider {
         let mistral_response: MistralResponse = response
             .json()
             .await
-            .map_err(|e| ResolverError::ParseError(e.to_string()))?;
+            .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
         // Extract text content from the response
         let content = mistral_response
