@@ -243,3 +243,51 @@ export async function searchViaMistralWeb(query: string, apiKey: string, log: Lo
     return null;
   }
 }
+
+export async function searchViaExaMcpWithMistral(query: string, apiKey: string, log: Logger): Promise<string | null> {
+  if (!apiKey) return null;
+  const exaContext = await searchViaExaMcp(query, log);
+  if (!exaContext) return null;
+
+  const start = Date.now();
+  log.info("attempt", "exa_mcp_mistral", { query: query.slice(0, 80) });
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.mistral.ai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "mistral-small-latest",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a documentation research assistant. Use only the supplied Exa MCP context. Produce concise markdown with accurate bullets and include source links that appear in the context.",
+            },
+            {
+              role: "user",
+              content: `User query: ${query}\n\nExa MCP context:\n${exaContext.slice(0, 12000)}`,
+            },
+          ],
+          max_tokens: 4000,
+        }),
+      },
+      25000
+    );
+    if (!res.ok) {
+      log.info("failure", "exa_mcp_mistral", { status: res.status, latencyMs: Date.now() - start });
+      return null;
+    }
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (content && content.length > MIN_CHARS) {
+      log.info("success", "exa_mcp_mistral", { latencyMs: Date.now() - start, chars: content.length });
+      return content.slice(0, MAX_CHARS);
+    }
+    return null;
+  } catch {
+    log.info("failure", "exa_mcp_mistral", { latencyMs: Date.now() - start });
+    return null;
+  }
+}
