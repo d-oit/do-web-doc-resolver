@@ -10,7 +10,6 @@ Usage:
     python scripts/sync_versions.py --set 1.2.0  # set specific version everywhere
 """
 
-import json
 import re
 import sys
 from pathlib import Path
