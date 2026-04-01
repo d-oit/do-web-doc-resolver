@@ -32,6 +32,9 @@ async function runQueryProvider(
   if (provider === "exa_mcp_mistral") {
     return searchViaExaMcpWithMistral(query, keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || "", log);
   }
+  // Validate provider against allowlist before dynamic dispatch
+  const allowedProviders = ["exa_mcp", "exa", "serper", "tavily", "duckduckgo", "mistral_websearch"];
+  if (!allowedProviders.includes(provider)) return null;
   const fn = queryProviders[provider];
   if (!fn) return null;
   // Merge process.env fallbacks into keys
@@ -52,6 +55,9 @@ async function runUrlProvider(
   log: Logger,
   maxChars: number
 ): Promise<string | null> {
+  // Validate provider against allowlist before dynamic dispatch
+  const allowedProviders = ["llms_txt", "jina", "firecrawl", "direct_fetch", "mistral_browser"];
+  if (!allowedProviders.includes(provider)) return null;
   const fn = urlProviders[provider];
   if (!fn) return null;
   // Merge process.env fallbacks into keys
