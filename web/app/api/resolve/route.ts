@@ -24,6 +24,7 @@ import {
   extractViaLlmsTxt,
   MAX_CHARS as URL_MAX_CHARS,
 } from "@/lib/resolvers/url";
+import { validateUrl } from "@/lib/resolvers/index";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -249,6 +250,14 @@ export async function POST(request: NextRequest) {
     const skipCache: boolean = body.skipCache || false;
     const urlMode = isUrl(input);
     const source = urlMode ? "url" : "query";
+
+    // Validate URL for SSRF protection
+    if (urlMode) {
+      const validation = validateUrl(input);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error || "Invalid URL" }, { status: 400 });
+      }
+    }
 
     // Check cache first
     if (!skipCache) {
