@@ -163,22 +163,22 @@ result = resolve_with_order(
 
 ```bash
 # Resolve a URL
-python -m scripts.resolve "https://example.com"
+python -m scripts.cli "https://example.com"
 
 # Resolve a query
-python -m scripts.resolve "machine learning tutorials"
+python -m scripts.cli "machine learning tutorials"
 
 # With options
-python -m scripts.resolve "query" --max-chars 8000 --json --log-level INFO
+python -m scripts.cli "query" --max-chars 8000 --json --log-level INFO
 
 # Skip providers
-python -m scripts.resolve "query" --skip exa_mcp --skip exa
+python -m scripts.cli "query" --skip exa_mcp --skip exa
 
 # Use a specific provider
-python -m scripts.resolve "https://example.com" --provider jina
+python -m scripts.cli "https://example.com" --provider jina
 
 # Custom provider order
-python -m scripts.resolve "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
+python -m scripts.cli "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
 ```
 
 ### Rust CLI (`do-wdr`)
@@ -423,7 +423,6 @@ cd web && npx playwright test --ui
 ```
 do-web-doc-resolver/
 ├── AGENTS.md              # Agent instructions
-├── SKILL.md               # agentskills.io skill definition (symlink)
 ├── README.md              # This file
 ├── scripts/
 │   ├── resolve.py         # Main Python resolver
@@ -435,7 +434,7 @@ do-web-doc-resolver/
 │       ├── main.rs        # Entry point
 │       ├── cli.rs         # Clap CLI definition
 │       ├── config.rs      # Config loading (TOML + env)
-│       ├── resolver.rs    # Cascade orchestrator
+│       ├── resolver/       # Cascade orchestrator
 │       ├── providers/     # 13 provider modules
 │       └── ...            # quality, metrics, synthesis, etc.
 ├── web/                   # Next.js web UI (Vercel)
@@ -446,7 +445,7 @@ do-web-doc-resolver/
 │   └── vercel.json        # Deployment config
 ├── tests/                 # Python test suite
 ├── .agents/skills/        # Canonical skill definitions
-│   └── web-doc-resolver/
+│   └── do-web-doc-resolver/
 │       ├── SKILL.md       # Main skill file
 │       └── references/    # Detailed reference docs
 │           ├── CASCADE.md  # Full cascade decision trees
@@ -460,8 +459,7 @@ do-web-doc-resolver/
 
 ## Related Files
 
-- [`AGENTS.md`](AGENTS.md) - Agent skill specification
-- [`AGENTS.md`](AGENTS.md) - Agent usage documentation
+- [`AGENTS.md`](AGENTS.md) - Agent instructions
 - [`.agents/skills/do-web-doc-resolver/`](.agents/skills/do-web-doc-resolver/) - Skill definition and reference docs
 - [`scripts/resolve.py`](scripts/resolve.py) - Python resolver source
 - [`cli/src/`](cli/src/) - Rust CLI source
