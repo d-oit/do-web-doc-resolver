@@ -165,7 +165,7 @@ impl crate::providers::UrlProvider for MistralBrowserProvider {
 impl MistralBrowserProvider {
     async fn delete_agent(&self, agent_id: &str, api_key: &str) -> Result<(), ResolverError> {
         self.client
-            .delete(&format!(
+            .delete(format!(
                 "https://api.mistral.ai/v1/agents/{}",
                 agent_id
             ))
