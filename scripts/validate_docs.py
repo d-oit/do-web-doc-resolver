@@ -324,7 +324,7 @@ def check_rust_architecture(report: Report):
         return
 
     # Extract documented entries from tree blocks using context-aware resolution
-    for start_line, lang, code in extract_code_blocks(rust_cli_md):
+    for start_line, _lang, code in extract_code_blocks(rust_cli_md):
         if "├──" not in code and "└──" not in code:
             continue
 
@@ -338,7 +338,7 @@ def check_rust_architecture(report: Report):
         dir_stack: list[tuple[int, str]] = []
 
         for offset, tree_line in enumerate(code.splitlines()):
-            line_no = start_line + offset
+            _line_no = start_line + offset
 
             indent_match = re.match(r"^([│ ]*)(?:├──|└──)", tree_line)
             if not indent_match:
@@ -396,17 +396,35 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
     """Verify entries in ASCII tree diagrams exist in the filesystem.
 
     Uses context-aware path resolution: tracks the parent directory stack
-    implied by the tree indentation.
+    implied by the tree indentation. Detects root path lines (e.g., '.agents/skills/')
+    that appear before tree-indented entries.
     """
     for start_line, lang, code in extract_code_blocks(content):
         if "├──" not in code and "└──" not in code:
             continue
 
-        # Build parent stack by tracking indentation
-        dir_stack: list[tuple[int, str]] = []  # (indent_level, relative_path)
-        prev_indent = -1
+        lines = code.splitlines()
 
-        for offset, tree_line in enumerate(code.splitlines()):
+        # Detect tree root: a line before the first tree-char line that looks like a path
+        tree_root = ""
+        for line in lines:
+            stripped = re.sub(r"\s*#.*$", "", line).strip()
+            if re.match(r"^[│ ]*(?:├──|└──)", line):
+                break  # hit tree lines, stop
+            if stripped and re.match(r"^[\w.][\w/._-]*/?$", stripped):
+                candidate = stripped.rstrip("/")
+                # Skip if it's the repo's own directory name or a variant
+                # (e.g., tree says "do-web-doc-resolver/" but repo is "web-doc-resolver")
+                repo_name = REPO_ROOT.name
+                if candidate == repo_name:
+                    continue
+                if candidate.removeprefix("do-") == repo_name or ("do-" + candidate) == repo_name:
+                    continue
+                tree_root = candidate
+
+        dir_stack: list[tuple[int, str]] = []  # (indent_level, relative_path)
+
+        for offset, tree_line in enumerate(lines):
             line_no = start_line + offset
 
             # Measure indentation by counting tree-drawing chars before ├──/└──
@@ -435,21 +453,24 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
             else:
                 rel_path = entry
 
-            # If this entry is a directory (ends with / in original or has child content),
-            # push onto stack
+            # If this entry is a directory (has child tree content), push onto stack
             is_dir = "/" not in entry and any(
                 re.match(rf"^{' ' * (indent + 2)}[│ ]*(?:├──|└──)", l)
-                for l in code.splitlines()[offset + 1:]
+                for l in lines[offset + 1:]
             )
 
-            # Check existence
-            full = REPO_ROOT / rel_path
+            # Check existence (prepend tree_root if set)
+            if tree_root:
+                full = REPO_ROOT / tree_root / rel_path
+            else:
+                full = REPO_ROOT / rel_path
+
             if not full.exists():
-                # Also try without trailing / in case of directory
-                if (REPO_ROOT / rel_path.rstrip("/")).is_dir():
+                if (full.parent / rel_path.rstrip("/")).is_dir():
                     continue
+                display_path = f"{tree_root}/{rel_path}" if tree_root else rel_path
                 report.add("warning", "repo-tree", doc_name,
-                           f"Tree entry '{rel_path}' does not exist", line_no)
+                           f"Tree entry '{display_path}' does not exist", line_no)
 
             if is_dir or entry in ("src", "app", "providers", "resolver", "tests",
                                     "scripts", "cli", "web", "assets", "capture",
