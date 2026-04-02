@@ -18,7 +18,7 @@ Usage:
   python scripts/validate_docs.py              # full report
   python scripts/validate_docs.py --strict     # exit 1 on any warning
   python scripts/validate_docs.py --json       # output JSON report
-  python scripts/validate_docs.py --fix        # print fix suggestions
+  python scripts/validate_docs.py --fix        # auto-fix issues + re-validate + git add
 
 Exit codes:
   0 = all checks passed
@@ -472,7 +472,7 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
                 report.add("warning", "repo-tree", doc_name,
                            f"Tree entry '{display_path}' does not exist", line_no)
 
-            if is_dir or entry in ("src", "app", "providers", "resolver", "tests",
+            if is_dir or full.is_dir() or entry in ("src", "app", "providers", "resolver", "tests",
                                     "scripts", "cli", "web", "assets", "capture",
                                     "skills", "references", "agents-docs",
                                     "do-web-doc-resolver", "do-wdr-cli",
@@ -567,6 +567,247 @@ def check_cross_docs(report: Report):
                     f"Version mismatch: {versions}")
 
 
+# ── Auto-fixers ───────────────────────────────────────────────────────────────
+
+
+def fix_python_cli(report: Report) -> int:
+    """Fix python -m scripts.resolve → scripts.cli in all docs + CI."""
+    fixes = 0
+    targets = [
+        "README.md",
+        ".agents/skills/do-web-doc-resolver/references/CLI.md",
+        ".github/workflows/ci.yml",
+        ".github/workflows/mistral-test.yml",
+        ".github/workflows/firecrawl-test.yml",
+        ".github/workflows/tavily-test.yml",
+    ]
+    for target in targets:
+        path = REPO_ROOT / target
+        content = read_file(path)
+        if not content:
+            continue
+        original = content
+        content = content.replace("python -m scripts.resolve", "python -m scripts.cli")
+        content = content.replace("python scripts/resolve.py", "python scripts/cli.py")
+        if content != original:
+            path.write_text(content, encoding="utf-8")
+            fixes += 1
+    return fixes
+
+
+def fix_cargo_features(report: Report) -> int:
+    """Fix RUST_CLI.md Cargo.toml features section to match actual Cargo.toml."""
+    cargo = read_file(REPO_ROOT / "cli" / "Cargo.toml")
+    rust_cli_path = REPO_ROOT / ".agents/skills/do-web-doc-resolver/references/RUST_CLI.md"
+    rust_cli_md = read_file(rust_cli_path)
+    if not cargo or not rust_cli_md:
+        return 0
+
+    # Extract actual features
+    actual_features = {}
+    in_features = False
+    for line in cargo.splitlines():
+        if line.strip() == "[features]":
+            in_features = True
+            continue
+        if in_features:
+            if line.startswith("["):
+                break
+            m = re.match(r"(\w[\w-]*)\s*=\s*(.+)", line)
+            if m:
+                actual_features[m.group(1)] = m.group(2).strip()
+
+    # Build correct features block
+    correct_lines = ["# Cargo.toml features", "[features]"]
+    for name, val in actual_features.items():
+        correct_lines.append(f'{name} = {val}')
+    correct_block = "\n".join(correct_lines)
+
+    # Replace the block in the doc
+    lines = rust_cli_md.splitlines()
+    new_lines = []
+    i = 0
+    replaced = False
+    while i < len(lines):
+        if lines[i].strip() == "# Cargo.toml features" and not replaced:
+            # Skip old features block
+            new_lines.append(correct_block)
+            i += 1
+            while i < len(lines) and lines[i].startswith("["):
+                if lines[i].startswith("#"):
+                    break
+                i += 1
+            # Skip feature lines
+            while i < len(lines) and re.match(r"^\w", lines[i]) and "=" in lines[i]:
+                i += 1
+            replaced = True
+        else:
+            new_lines.append(lines[i])
+            i += 1
+
+    new_content = "\n".join(new_lines)
+    if new_content != rust_cli_md:
+        rust_cli_path.write_text(new_content, encoding="utf-8")
+        return 1
+    return 0
+
+
+def fix_duplicate_links(report: Report) -> int:
+    """Remove duplicate markdown links from README.md."""
+    path = REPO_ROOT / "README.md"
+    content = read_file(path)
+    if not content:
+        return 0
+
+    links = extract_markdown_links(content)
+    seen = {}
+    dupes = set()
+    for line_no, text, target in links:
+        key = (text, target)
+        if key in seen:
+            dupes.add(line_no)
+        else:
+            seen[key] = line_no
+
+    if not dupes:
+        return 0
+
+    lines = content.splitlines()
+    new_lines = [l for i, l in enumerate(lines, 1) if i not in dupes]
+    new_content = "\n".join(new_lines)
+    if new_content != content:
+        path.write_text(new_content, encoding="utf-8")
+        return 1
+    return 0
+
+
+def fix_repo_trees(report: Report) -> int:
+    """Fix known tree issues in README.md and AGENTS.md."""
+    fixes = 0
+    for doc_name in ["README.md", "AGENTS.md"]:
+        path = REPO_ROOT / doc_name
+        content = read_file(path)
+        if not content:
+            continue
+        original = content
+
+        # Fix 1: Remove SKILL.md from repo root tree (doesn't exist)
+        content = re.sub(r"\n.*SKILL\.md\s*#.*skill definition.*\n", "\n", content)
+
+        # Fix 2: resolver.rs → resolver/ (it's a directory)
+        content = content.replace(
+            "resolver.rs    # Cascade orchestrator",
+            "resolver/       # Cascade orchestrator",
+        )
+
+        # Fix 3: Fix .agents/skills/ tree prefix
+        content = content.replace(
+            "└── web-doc-resolver/",
+            "└── do-web-doc-resolver/",
+        )
+
+        if content != original:
+            path.write_text(content, encoding="utf-8")
+            fixes += 1
+    return fixes
+
+
+def fix_rust_architecture(report: Report) -> int:
+    """Rewrite RUST_CLI.md architecture tree to match actual cli/src/ layout."""
+    rust_cli_path = REPO_ROOT / ".agents/skills/do-web-doc-resolver/references/RUST_CLI.md"
+    content = read_file(rust_cli_path)
+    if not content:
+        return 0
+
+    cli_src = REPO_ROOT / "cli" / "src"
+    if not cli_src.is_dir():
+        return 0
+
+    # Build actual tree
+    def build_tree(path: Path, prefix: str = "") -> list[str]:
+        entries = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name))
+        lines = []
+        for i, entry in enumerate(entries):
+            if entry.name.startswith(".") or entry.name == "__pycache__":
+                continue
+            connector = "└── " if i == len(entries) - 1 else "├── "
+            if entry.is_dir():
+                lines.append(f"{prefix}{connector}{entry.name}/")
+                ext = "    " if i == len(entries) - 1 else "│   "
+                lines.extend(build_tree(entry, prefix + ext))
+            else:
+                comment = ""
+                if entry.name == "main.rs":
+                    comment = "  # Entry point"
+                elif entry.name == "lib.rs":
+                    comment = "  # Library exports"
+                lines.append(f"{prefix}{connector}{entry.name}{comment}")
+        return lines
+
+    tree_lines = ["cli/", "├── Cargo.toml", "└── src/"]
+    src_entries = sorted(cli_src.iterdir(), key=lambda p: (not p.is_dir(), p.name))
+    for i, entry in enumerate(src_entries):
+        if entry.name.startswith("."):
+            continue
+        connector = "└── " if i == len(src_entries) - 1 else "├── "
+        if entry.is_dir():
+            tree_lines.append(f"    {connector}{entry.name}/")
+            ext = "        " if i == len(src_entries) - 1 else "    │   "
+            sub_entries = sorted(entry.iterdir(), key=lambda p: (not p.is_dir(), p.name))
+            for j, sub in enumerate(sub_entries):
+                if sub.name.startswith("."):
+                    continue
+                sub_conn = "└── " if j == len(sub_entries) - 1 else "├── "
+                tree_lines.append(f"{ext}{sub_conn}{sub.name}")
+        else:
+            comment = ""
+            if entry.name == "main.rs":
+                comment = "  # Entry point, CLI parsing"
+            elif entry.name == "lib.rs":
+                comment = "  # Library exports"
+            elif entry.name == "cli.rs":
+                comment = "  # Clap CLI definition"
+            elif entry.name == "config.rs":
+                comment = "  # Configuration loading"
+            tree_lines.append(f"    {connector}{entry.name}{comment}")
+
+    new_tree = "\n".join(tree_lines)
+
+    # Replace old architecture block
+    lines = content.splitlines()
+    new_lines = []
+    in_tree = False
+    i = 0
+    while i < len(lines):
+        if lines[i].strip() == "## Architecture":
+            new_lines.append(lines[i])
+            i += 1
+            # Skip blank lines
+            while i < len(lines) and lines[i].strip() == "":
+                new_lines.append(lines[i])
+                i += 1
+            # Skip old code block
+            if i < len(lines) and lines[i].strip().startswith("```"):
+                i += 1
+                while i < len(lines) and not lines[i].strip().startswith("```"):
+                    i += 1
+                i += 1  # skip closing ```
+            # Insert new tree
+            new_lines.append("")
+            new_lines.append("```")
+            new_lines.append(new_tree)
+            new_lines.append("```")
+        else:
+            new_lines.append(lines[i])
+            i += 1
+
+    new_content = "\n".join(new_lines)
+    if new_content != content:
+        rust_cli_path.write_text(new_content, encoding="utf-8")
+        return 1
+    return 0
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 
@@ -608,14 +849,57 @@ def run_all_checks() -> Report:
     return report
 
 
+def run_fixers(report: Report) -> int:
+    """Apply auto-fixes for known issue categories. Returns count of files fixed."""
+    total = 0
+    categories = {i.category for i in report.issues}
+
+    if "python-cli" in categories:
+        total += fix_python_cli(report)
+    if "cargo-feature" in categories:
+        total += fix_cargo_features(report)
+    if "duplicate-link" in categories:
+        total += fix_duplicate_links(report)
+    if "repo-tree" in categories:
+        total += fix_repo_trees(report)
+    if "rust-arch" in categories:
+        total += fix_rust_architecture(report)
+
+    return total
+
+
 def main():
     parser = argparse.ArgumentParser(description="Validate docs against codebase")
     parser.add_argument("--strict", action="store_true", help="Exit 1 on warnings")
     parser.add_argument("--json", action="store_true", help="Output JSON")
-    parser.add_argument("--fix", action="store_true", help="Print fix suggestions")
+    parser.add_argument("--fix", action="store_true",
+                        help="Auto-fix issues in-place, re-validate, stage fixed files")
     args = parser.parse_args()
 
     report = run_all_checks()
+
+    if args.fix and report.issues:
+        categories = {i.category for i in report.issues}
+        fixable = {"python-cli", "cargo-feature", "duplicate-link", "repo-tree", "rust-arch"}
+        fixable_found = categories & fixable
+
+        if fixable_found:
+            print(f"\033[96mAuto-fixing: {', '.join(sorted(fixable_found))}...\033[0m")
+            files_fixed = run_fixers(report)
+            print(f"\033[96mFixed {files_fixed} file(s). Re-validating...\033[0m")
+
+            # Re-run checks
+            report = run_all_checks()
+
+            # Stage fixed files
+            if files_fixed > 0:
+                import subprocess
+                subprocess.run(
+                    ["git", "add", "-u"],
+                    cwd=str(REPO_ROOT),
+                    capture_output=True,
+                )
+                print("\033[96mFixed files staged for commit.\033[0m")
 
     if args.json:
         output = {
@@ -639,37 +923,6 @@ def main():
                 print(f"{c}{issue}\033[0m")
 
             print(f"\nSummary: {len(report.errors)} errors, {len(report.warnings)} warnings")
-
-            if args.fix:
-                print("\n--- Fix Suggestions ---")
-                categories_seen = set()
-                for issue in report.issues:
-                    if issue.category in categories_seen:
-                        continue
-                    categories_seen.add(issue.category)
-                    if issue.category == "python-cli":
-                        print("  [python-cli] Replace 'python -m scripts.resolve' with "
-                              "'python -m scripts.cli' or 'do-wdr' everywhere in docs.")
-                    elif issue.category == "cargo-feature":
-                        print("  [cargo-feature] Update RUST_CLI.md [features] block to:\n"
-                              '        default = []\n'
-                              '        semantic-cache = ["dep:chaotic_semantic_memory"]')
-                    elif issue.category == "rust-arch":
-                        print("  [rust-arch] Rewrite RUST_CLI.md architecture tree to match "
-                              "actual cli/src/ layout (resolver/ is a dir, providers has "
-                              "exa_sdk.rs not exa.rs, etc).")
-                    elif issue.category == "repo-tree":
-                        print("  [repo-tree] Update repo structure tree in "
-                              f"{issue.doc} to reflect actual files.")
-                    elif issue.category == "duplicate-link":
-                        print("  [duplicate-link] Remove duplicate link entry in README.md "
-                              "Related Files section.")
-                    elif issue.category == "npm-script":
-                        print("  [npm-script] Fix npm run command or add script to "
-                              "web/package.json.")
-                    elif issue.category == "undoc-flag":
-                        print("  [undoc-flag] Document missing Rust CLI flags in "
-                              "README.md and CLI.md.")
 
     if report.errors:
         sys.exit(1)

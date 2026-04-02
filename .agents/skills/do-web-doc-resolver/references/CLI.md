@@ -1,21 +1,21 @@
 # CLI Reference
 
-## Python CLI (`scripts/resolve.py`)
+## Python CLI (`scripts/cli.py`)
 
 ### Basic Usage
 
 ```bash
 # Resolve a URL
-python scripts/resolve.py "https://docs.rs/tokio"
+python scripts/cli.py "https://docs.rs/tokio"
 
 # Resolve a query
-python scripts/resolve.py "Rust async runtime comparison"
+python scripts/cli.py "Rust async runtime comparison"
 
 # JSON output
-python scripts/resolve.py "query" --json
+python scripts/cli.py "query" --json
 
 # Specify max characters
-python scripts/resolve.py "query" --max-chars 5000
+python scripts/cli.py "query" --max-chars 5000
 ```
 
 ### Options
@@ -34,36 +34,36 @@ python scripts/resolve.py "query" --max-chars 5000
 
 ```bash
 # Free-only (no paid APIs)
-python scripts/resolve.py "query" --profile free
+python scripts/cli.py "query" --profile free
 
 # Fast response (max 4s, 1 paid provider)
-python scripts/resolve.py "query" --profile fast
+python scripts/cli.py "query" --profile fast
 
 # Balanced (default)
-python scripts/resolve.py "query" --profile balanced
+python scripts/cli.py "query" --profile balanced
 
 # Quality (max 20s, up to 5 paid providers)
-python scripts/resolve.py "query" --profile quality
+python scripts/cli.py "query" --profile quality
 ```
 
 ### Skip Providers
 
 ```bash
 # Skip specific providers
-python scripts/resolve.py "query" --skip exa_mcp --skip exa
+python scripts/cli.py "query" --skip exa_mcp --skip exa
 
 # Skip multiple at once
-python scripts/resolve.py "query" --skip exa --skip tavily --skip serper
+python scripts/cli.py "query" --skip exa --skip tavily --skip serper
 ```
 
 ### Direct Provider Selection
 
 ```bash
 # Use only DuckDuckGo
-python scripts/resolve.py "query" --provider duckduckgo
+python scripts/cli.py "query" --provider duckduckgo
 
 # Custom provider order
-python scripts/resolve.py "query" --providers-order "exa,jina,duckduckgo"
+python scripts/cli.py "query" --providers-order "exa,jina,duckduckgo"
 ```
 
 ## Rust CLI (`do-wdr` binary)
@@ -144,7 +144,7 @@ path = "~/.cache/do-wdr"
 ## Python Module API
 
 ```python
-from scripts.resolve import resolve, resolve_url, resolve_query
+from scripts.resolve import resolve, resolve_url, resolve_query, resolve_direct, resolve_with_order
 
 # Auto-detect URL vs query
 result = resolve("https://example.com")
@@ -162,7 +162,6 @@ result = resolve("query", profile=Profile.QUALITY)
 
 # Direct provider call
 from scripts.models import ProviderType
-from scripts.resolve import resolve_direct
 result = resolve_direct("query", ProviderType.DUCKDUCKGO)
 
 # Custom provider order

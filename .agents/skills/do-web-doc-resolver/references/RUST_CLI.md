@@ -25,14 +25,8 @@ cargo build --release
 ```toml
 # Cargo.toml features
 [features]
-default = ["full"]
-full = ["exa", "tavily", "firecrawl", "mistral"]
-minimal = []  # Only free providers
-```
-
-```bash
-# Build minimal version (free providers only)
-cargo build --release --no-default-features --features minimal
+default = []
+semantic-cache = ["dep:chaotic_semantic_memory"]
 ```
 
 ## Architecture
@@ -41,27 +35,42 @@ cargo build --release --no-default-features --features minimal
 cli/
 ├── Cargo.toml
 └── src/
-    ├── main.rs           # Entry point, CLI parsing
+    ├── main.rs           # Entry point
     ├── lib.rs            # Library exports
+    ├── cli.rs            # Clap CLI definition
     ├── config.rs         # Configuration loading
-    ├── resolve.rs        # Main resolution logic
-    ├── cascade.rs        # Provider cascade orchestration
+    ├── types.rs          # Common types
+    ├── error.rs          # Error types
+    ├── resolver/         # Cascade orchestrator
+    │   ├── mod.rs
+    │   ├── cascade.rs    # Provider cascade logic
+    │   ├── query.rs      # Query resolution
+    │   └── url.rs        # URL resolution
     ├── quality.rs        # Content quality scoring
-    ├── cache.rs          # Disk-based caching
+    ├── compaction.rs     # Content compaction
+    ├── synthesis.rs      # AI synthesis
     ├── circuit_breaker.rs # Circuit breaker implementation
     ├── routing.rs        # Provider selection logic
+    ├── routing_memory.rs # Per-domain learning
+    ├── bias_scorer.rs    # Domain trust scoring
+    ├── link_validator.rs # Link validation
+    ├── negative_cache.rs # Negative result cache
+    ├── semantic_cache.rs # Semantic cache
+    ├── metrics.rs        # Metrics tracking
+    ├── output.rs         # Output formatting
     └── providers/
         ├── mod.rs        # Provider trait and registry
         ├── exa_mcp.rs    # Exa MCP (free)
-        ├── exa.rs        # Exa SDK
+        ├── exa_sdk.rs    # Exa SDK
         ├── tavily.rs     # Tavily API
         ├── serper.rs     # Serper API
         ├── duckduckgo.rs # DuckDuckGo (free)
         ├── jina.rs       # Jina Reader (free)
         ├── firecrawl.rs  # Firecrawl API
-        ├── direct.rs     # Direct fetch (free)
+        ├── direct_fetch.rs # Direct fetch (free)
         ├── llms_txt.rs   # llms.txt probe (free)
-        ├── mistral.rs    # Mistral browser/websearch
+        ├── mistral_browser.rs # Mistral browser
+        ├── mistral_websearch.rs # Mistral websearch
         ├── docling.rs    # Document processing
         └── ocr.rs        # OCR extraction
 ```
@@ -221,7 +230,7 @@ pub trait Provider: Send + Sync {
 1. Create `src/providers/new_provider.rs`
 2. Implement `Provider` trait
 3. Register in `src/providers/mod.rs`
-4. Add to cascade in `src/cascade.rs`
+4. Add to cascade in `src/resolver/cascade.rs`
 
 ### Example Provider
 
