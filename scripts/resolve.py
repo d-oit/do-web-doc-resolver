@@ -17,6 +17,7 @@ import scripts.providers_impl
 import scripts.quality
 import scripts.routing
 import scripts.routing_memory
+import scripts.semantic_cache
 import scripts.synthesis
 import scripts.utils
 from scripts.models import (
@@ -43,6 +44,7 @@ from scripts.providers_impl import (
     resolve_with_serper,
     resolve_with_tavily,
 )
+from scripts.semantic_cache import get_semantic_cache
 from scripts.utils import (
     _cache_key,
     _detect_error_type,
@@ -70,10 +72,74 @@ logger = logging.getLogger(__name__)
 _circuit_breakers = scripts.circuit_breaker.CircuitBreakerRegistry()
 _routing_memory = scripts.routing_memory.RoutingMemory()
 _cache = None
+_semantic_cache = None
 
 # Aliases for backward compatibility in tests
 is_rate_limited = _is_rate_limited
 set_rate_limit = _set_rate_limit
+
+
+def _get_semantic_cache():
+    """Get or initialize the semantic cache."""
+    global _semantic_cache
+    if _semantic_cache is None:
+        _semantic_cache = get_semantic_cache()
+    return _semantic_cache
+
+
+def _check_semantic_cache(query_or_url: str) -> dict[str, Any] | None:
+    """
+    Check semantic cache for similar query/URL.
+
+    Args:
+        query_or_url: The query string or URL to search for
+
+    Returns:
+        Cached result dict if found above threshold, None otherwise
+    """
+    cache = _get_semantic_cache()
+    if cache is None:
+        return None
+
+    try:
+        entry = cache.query(query_or_url)
+        if entry:
+            logger.info(f"Semantic cache hit for '{query_or_url[:50]}...' (similarity: {entry.similarity:.3f})")
+            result = dict(entry.result)
+            result["semantic_cache_hit"] = True
+            result["semantic_similarity"] = entry.similarity
+            result["semantic_original_query"] = entry.query
+            return result
+    except Exception as e:
+        logger.debug(f"Semantic cache check failed: {e}")
+
+    return None
+
+
+def _store_in_semantic_cache(query_or_url: str, result: dict[str, Any]) -> bool:
+    """
+    Store a successful result in the semantic cache.
+
+    Args:
+        query_or_url: The query string or URL
+        result: The result dictionary to cache
+
+    Returns:
+        True if stored successfully, False otherwise
+    """
+    cache = _get_semantic_cache()
+    if cache is None:
+        return False
+
+    # Don't cache failed results or already-cached results
+    if result.get("source") == "none" or result.get("semantic_cache_hit"):
+        return False
+
+    try:
+        return cache.store(query_or_url, result)
+    except Exception as e:
+        logger.debug(f"Failed to store in semantic cache: {e}")
+        return False
 
 __all__ = [
     "resolve",
@@ -106,6 +172,8 @@ __all__ = [
     "get_cache",
     "_rate_limits",
     "_cache",
+    "_check_semantic_cache",
+    "_store_in_semantic_cache",
 ]
 
 
@@ -159,6 +227,14 @@ def resolve_url_stream(
     url: str, max_chars: int = MAX_CHARS, profile: Profile = Profile.BALANCED
 ) -> Generator[dict[str, Any], None, None]:
     logger.info(f"Resolving URL: {url}")
+
+    # Check semantic cache first
+    cached_result = _check_semantic_cache(url)
+    if cached_result:
+        cached_result["url"] = url
+        yield cached_result
+        return
+
     metrics = ResolveMetrics()
     budget_data = scripts.routing.PROFILE_BUDGETS.get(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
@@ -272,18 +348,22 @@ def resolve_url_stream(
 
                             found_acceptable = True
                             if pt_done == ProviderType.LLMS_TXT:
-                                yield {
+                                result_dict = {
                                     "source": "llms.txt",
                                     "url": url,
                                     "content": compact_content(content, max_chars),
                                     "metrics": metrics,
                                 }
+                                _store_in_semantic_cache(url, result_dict)
+                                yield result_dict
                             elif isinstance(res_or_content, ResolvedResult):
                                 res_or_content.metrics, res_or_content.score = (
                                     metrics,
                                     q_score.score,
                                 )
-                                yield res_or_content.to_dict()
+                                result_dict = res_or_content.to_dict()
+                                _store_in_semantic_cache(url, result_dict)
+                                yield result_dict
                             break
                         else:
                             scripts.cache_negative.write_negative_cache(
@@ -333,6 +413,14 @@ def resolve_query_stream(
     profile: Profile = Profile.BALANCED,
 ) -> Generator[dict[str, Any], None, None]:
     skip = skip_providers or set()
+
+    # Check semantic cache first
+    cached_result = _check_semantic_cache(query)
+    if cached_result:
+        cached_result["query"] = query
+        yield cached_result
+        return
+
     metrics = ResolveMetrics()
     budget_data = scripts.routing.PROFILE_BUDGETS.get(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
@@ -410,7 +498,9 @@ def resolve_query_stream(
 
                             found_acceptable = True
                             res.metrics, res.score = metrics, q_score.score
-                            yield res.to_dict()
+                            result_dict = res.to_dict()
+                            _store_in_semantic_cache(query, result_dict)
+                            yield result_dict
                             break
                         else:
                             scripts.cache_negative.write_negative_cache(
