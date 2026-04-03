@@ -22,12 +22,13 @@ export async function GET(_request: NextRequest) {
 
     // Provider usage distribution
     const totalRecords = recentRecords.length;
-    const providerDistribution: Record<string, { count: number; percentage: number }> = {};
+    const providerDistribution: { [key: string]: { count: number; percentage: number } } = {};
     
     Object.entries(analytics.providerUsage).forEach(([provider, count]) => {
+      const countNum = count as number;
       providerDistribution[provider] = {
-        count,
-        percentage: totalRecords > 0 ? Math.round((count / totalRecords) * 1000) / 10 : 0,
+        count: countNum,
+        percentage: totalRecords > 0 ? Math.round((countNum / totalRecords) * 1000) / 10 : 0,
       };
     });
 
