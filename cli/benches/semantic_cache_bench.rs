@@ -3,8 +3,8 @@
 //! Run with: cargo bench --features semantic-cache
 
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
-use do_wdr_lib::config::{Config, SemanticCacheConfig};
-use do_wdr_lib::semantic_cache::SemanticCache;
+use do_wdr_lib::config::Config;
+use do_wdr_lib::semantic_cache::{SemanticCache, SemanticCacheConfig};
 use do_wdr_lib::types::ResolvedResult;
 use std::time::Duration;
 use tokio::runtime::Runtime;
@@ -43,19 +43,19 @@ fn bench_store(c: &mut Criterion) {
         SemanticCache::new(&config).await.unwrap().unwrap()
     });
     
-    let results = create_test_results(5);
+    let _results = create_test_results(5);
     
     let mut group = c.benchmark_group("semantic_cache_store");
     group.measurement_time(Duration::from_secs(5));
     group.sample_size(50);
     
-    // Benchmark storing different query sizes
+        // Benchmark storing different query sizes
     for size in [1, 5, 10].iter() {
         group.bench_with_input(
             BenchmarkId::new("results", size),
             size,
             |b, _| {
-                let query = format!("rust programming tutorial {}", rand::random::<u32>());
+                let query = format!("rust programming tutorial bench {}", size);
                 let test_results = create_test_results(*size);
                 b.to_async(&rt).iter(|| async {
                     cache.store(&query, &test_results, "test_provider").await.unwrap();
@@ -89,7 +89,7 @@ fn bench_query(c: &mut Criterion) {
             "typescript type system advanced",
         ];
         
-        for (i, query) in queries.iter().enumerate() {
+        for (_i, query) in queries.iter().enumerate() {
             let results = create_test_results(3);
             cache.store(query, &results, "test_provider").await.unwrap();
         }
@@ -171,47 +171,6 @@ fn bench_concurrent(c: &mut Criterion) {
                 let results = create_test_results(2);
                 let _ = cache.store(&query, &results, "test_provider").await;
                 let _ = cache.query(&query).await;
-            }
-        });
-    });
-    
-    group.finish();
-    
-    // Cleanup
-    drop(cache);
-    let _ = std::fs::remove_dir_all(temp_dir);
-}
-            for handle in handles {
-                handle.await.unwrap();
-            }
-        });
-    });
-    
-    // Benchmark mixed read/write
-    group.bench_function("mixed_read_write", |b| {
-        b.to_async(&rt).iter(|| async {
-            let mut handles = vec![];
-            let results = create_test_results(2);
-            
-            for i in 0..5 {
-                let query = format!("write query {}", i);
-                let cache_ref = &cache;
-                let results_ref = &results;
-                handles.push(tokio::spawn(async move {
-                    cache_ref.store(&query, results_ref, "test_provider").await.unwrap();
-                }));
-            }
-            
-            for i in 0..5 {
-                let query = format!("read query {}", i);
-                let cache_ref = &cache;
-                handles.push(tokio::spawn(async move {
-                    cache_ref.query(&query).await.unwrap();
-                }));
-            }
-            
-            for handle in handles {
-                handle.await.unwrap();
             }
         });
     });
