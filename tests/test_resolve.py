@@ -302,7 +302,7 @@ class TestEdgeCases:
     @patch("scripts.resolve.fetch_llms_txt")
     @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_duckduckgo")
-    @patch("scripts.utils.fetch_url_content")
+    @patch("scripts.resolve.fetch_url_content")
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
     def test_url_no_llms_firecrawl_unavailable(
@@ -312,7 +312,7 @@ class TestEdgeCases:
         mock_fetch_llms.return_value = None
         mock_jina.return_value = None
         mock_firecrawl.return_value = None
-        mock_fetch_url.return_value = None
+        mock_fetch_url.return_value = None  # This mocks direct_fetch
         mock_mistral.return_value = None
         mock_ddg.return_value = None
 
@@ -979,14 +979,16 @@ class TestAdditionalEdgeCases:
     @patch("scripts.resolve.fetch_llms_txt")
     @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_firecrawl")
+    @patch("scripts.resolve.fetch_url_content")
     @patch("scripts.resolve.resolve_with_mistral_browser")
     def test_url_cascade_firecrawl_second(
-        self, mock_mistral, mock_firecrawl, mock_jina, mock_fetch
+        self, mock_mistral, mock_fetch_url, mock_firecrawl, mock_jina, mock_fetch_llms
     ):
         """Test that Firecrawl is tried when llms.txt and Jina fail."""
-        mock_fetch.return_value = None
+        mock_fetch_llms.return_value = None
         mock_jina.return_value = None
         mock_firecrawl.return_value = ResolvedResult(source="firecrawl", content="content")
+        mock_fetch_url.return_value = None  # direct_fetch fails
 
         result = resolve("https://example.com")
 
@@ -997,12 +999,14 @@ class TestAdditionalEdgeCases:
     @patch("scripts.resolve.fetch_llms_txt")
     @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_firecrawl")
+    @patch("scripts.resolve.fetch_url_content")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_url_cascade_mistral_last(self, mock_mistral, mock_firecrawl, mock_jina, mock_fetch):
+    def test_url_cascade_mistral_last(self, mock_mistral, mock_fetch_url, mock_firecrawl, mock_jina, mock_fetch_llms):
         """Test that Mistral is tried last for URLs."""
-        mock_fetch.return_value = None
+        mock_fetch_llms.return_value = None
         mock_jina.return_value = None
         mock_firecrawl.return_value = None
+        mock_fetch_url.return_value = None  # direct_fetch fails
         mock_mistral.return_value = ResolvedResult(source="mistral-browser", content="content")
 
         result = resolve("https://example.com")
