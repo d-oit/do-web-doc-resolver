@@ -1,4 +1,4 @@
-export interface Record {
+export interface StoredRecord {
   id: string;
   query: string;
   url: string | null;
@@ -7,6 +7,9 @@ export interface Record {
   score: number;
   timestamp: number;
 }
+
+// Re-export as Record for backward compatibility
+export type Record = StoredRecord;
 
 // Environment-based configuration with defaults
 const DEFAULT_MAX_ENTRIES = parseInt(process.env.RECORDS_MAX_SIZE || "100", 10);
@@ -18,7 +21,7 @@ interface RecordsConfig {
   ttlMs: number;
 }
 
-const store = new Map<string, Record>();
+const store = new Map<string, StoredRecord>();
 const order: string[] = []; // Track insertion order for FIFO eviction
 let config: RecordsConfig = {
   maxEntries: DEFAULT_MAX_ENTRIES,
@@ -32,7 +35,7 @@ export function configure(newConfig: Partial<RecordsConfig>): void {
 /**
  * Check if a record has expired based on TTL
  */
-function isExpired(record: Record): boolean {
+function isExpired(record: StoredRecord): boolean {
   const age = Date.now() - record.timestamp;
   return age > config.ttlMs;
 }
@@ -65,7 +68,7 @@ function evictOldest(count: number): void {
   order.splice(0, count);
 }
 
-export function save(record: Omit<Record, "id" | "timestamp">): Record {
+export function save(record: Omit<StoredRecord, "id" | "timestamp">): StoredRecord {
   // Clean up expired records periodically
   cleanupExpired();
 
@@ -77,13 +80,13 @@ export function save(record: Omit<Record, "id" | "timestamp">): Record {
   }
 
   const id = crypto.randomUUID();
-  const full: Record = { ...record, id, timestamp: Date.now() };
+  const full: StoredRecord = { ...record, id, timestamp: Date.now() };
   store.set(id, full);
   order.push(id);
   return full;
 }
 
-export function get(id: string): Record | undefined {
+export function get(id: string): StoredRecord | undefined {
   const record = store.get(id);
   if (record && isExpired(record)) {
     // Remove expired record on access
@@ -95,7 +98,7 @@ export function get(id: string): Record | undefined {
   return record;
 }
 
-export function list(limit = 50): Record[] {
+export function list(limit = 50): StoredRecord[] {
   cleanupExpired();
   return Array.from(store.values())
     .filter((r) => !isExpired(r))
@@ -119,7 +122,7 @@ export function clear(): number {
   return count;
 }
 
-export function search(query: string, limit = 50): Record[] {
+export function search(query: string, limit = 50): StoredRecord[] {
   const q = query.toLowerCase();
   cleanupExpired();
   return list(limit).filter(
@@ -145,7 +148,7 @@ export function maxSize(): number {
 export function getAnalytics(): {
   totalRecords: number;
   maxRecords: number;
-  providerUsage: Record<string, number>;
+  providerUsage: { [key: string]: number };
   averageScore: number;
   oldestRecord: number | null;
   newestRecord: number | null;
@@ -155,7 +158,7 @@ export function getAnalytics(): {
   const records = Array.from(store.values());
   
   // Provider usage stats
-  const providerUsage: Record<string, number> = {};
+  const providerUsage: { [key: string]: number } = {};
   records.forEach((r) => {
     providerUsage[r.source] = (providerUsage[r.source] || 0) + 1;
   });
