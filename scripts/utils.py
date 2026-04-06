@@ -272,6 +272,8 @@ def fetch_url_content(
 
 def fetch_llms_txt(url: str) -> str | None:
     try:
+        if not is_safe_url(url):
+            return None
         parsed = urlparse(url)
         base_url = f"{parsed.scheme}://{parsed.netloc}"
         llms_url = f"{base_url}/llms.txt"
