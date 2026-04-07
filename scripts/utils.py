@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import socket
+import threading
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
@@ -49,6 +50,7 @@ BLOCKED_NETWORKS = [
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
 _global_session: requests.Session | None = None
+_thread_local = threading.local()
 _cache = None
 
 
@@ -88,6 +90,15 @@ def close_session() -> None:
         _global_session = None
 
 
+def get_thread_local_session() -> requests.Session:
+    """Return a session scoped to the current thread."""
+    session = getattr(_thread_local, "session", None)
+    if session is None:
+        session = create_session_with_retry()
+        _thread_local.session = session
+    return session
+
+
 def is_safe_url(url: str) -> bool:
     try:
         parsed = urlparse(url)
@@ -110,7 +121,6 @@ def is_safe_url(url: str) -> bool:
                 return False
         except ValueError:
             try:
-                socket.setdefaulttimeout(5)
                 infos = socket.getaddrinfo(hostname, None)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
@@ -118,8 +128,6 @@ def is_safe_url(url: str) -> bool:
                         return False
             except Exception:
                 pass
-            finally:
-                socket.setdefaulttimeout(None)
         return True
     except Exception:
         return False
@@ -171,7 +179,7 @@ def _validate_single_link(link: str, timeout: int) -> str | None:
     try:
         if not is_safe_url(link):
             return None
-        session = get_session()
+        session = get_thread_local_session()
         response = session.head(link, timeout=timeout, allow_redirects=True)
         if response.status_code < 400:
             return link
