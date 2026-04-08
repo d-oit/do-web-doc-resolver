@@ -78,6 +78,7 @@ exclude = '''
     | build
     | dist
     | __pycache__
+    | web/node_modules
     | \.agents/skills
     | \.blackbox/skills
     | \.claude/skills
