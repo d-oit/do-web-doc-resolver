@@ -1,0 +1,4 @@
+## 2025-05-15 - [SSRF Bypass via Userinfo and Redirects]
+**Vulnerability:** SSRF protection could be bypassed by using URLs with userinfo (e.g., `http://user@127.0.0.1`) because the code used `netloc.split(":")[0]` to extract the hostname, which returned the username instead of the host. Additionally, 3xx redirects were followed automatically by the HTTP library without validating the destination.
+**Learning:** `urllib.parse.urlparse().hostname` should always be used for host extraction as it correctly handles userinfo. For SSRF-sensitive requests, automatic redirect following must be disabled and each hop must be validated.
+**Prevention:** Use a custom request wrapper that disables `allow_redirects` and manually validates each hop in the redirect chain against the safety filter. Ensure `169.254.0.0/16` is in the blocked IP ranges to protect cloud metadata services.

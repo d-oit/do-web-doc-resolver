@@ -14,6 +14,7 @@ const PRIVATE_IP_RANGES = [
   /^fc/i,
   /^fd/i,
   /^fe80/i,
+  /^169\.254\./,
   /^0\.0\.0\.0$/,
   /^localhost$/i,
 ];

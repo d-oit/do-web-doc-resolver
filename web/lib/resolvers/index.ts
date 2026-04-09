@@ -42,6 +42,7 @@ function isPrivateHost(hostname: string): boolean {
     hostname === "::1" ||
     hostname.startsWith("10.") ||
     hostname.startsWith("192.168.") ||
+    hostname.startsWith("169.254.") ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
     hostname.endsWith(".local") ||
     hostname.endsWith(".internal")

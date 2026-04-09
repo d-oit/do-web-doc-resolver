@@ -94,7 +94,9 @@ def is_safe_url(url: str) -> bool:
             return False
         if parsed.scheme not in ("http", "https"):
             return False
-        hostname = parsed.netloc.split(":")[0]
+        hostname = parsed.hostname
+        if not hostname:
+            return False
         if hostname.lower() in (
             "localhost",
             "localhost.localdomain",
@@ -134,17 +136,41 @@ def is_url(input_str: str) -> bool:
         return False
 
 
+def _safe_request(method: str, url: str, **kwargs) -> requests.Response:
+    """Perform a request while safely following redirects and checking SSRF."""
+    session = kwargs.pop("session", get_session())
+    max_redirects = kwargs.pop("max_redirects", 5)
+    current_url = url
+    history = []
+
+    for _ in range(max_redirects + 1):
+        if not is_safe_url(current_url):
+            raise requests.RequestException(f"SSRF blocked: {current_url}")
+
+        kwargs["allow_redirects"] = False
+        response = session.request(method, current_url, **kwargs)
+
+        if 300 <= response.status_code < 400:
+            history.append(response)
+            location = response.headers.get("Location")
+            if not location:
+                break
+            current_url = requests.compat.urljoin(current_url, location)
+        else:
+            response.history = history
+            return response
+
+    raise requests.TooManyRedirects(f"Exceeded {max_redirects} redirects")
+
+
 def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> ValidationResult:
     if not url or not url.strip():
         return ValidationResult(is_valid=False, error="Empty URL")
     if not is_url(url):
         return ValidationResult(is_valid=False, error="Invalid URL format")
-    if check_ssrf and not is_safe_url(url):
-        return ValidationResult(is_valid=False, error="URL blocked (SSRF)")
 
-    session = get_session()
     try:
-        response = session.head(url, timeout=timeout, allow_redirects=True, verify=True)
+        response = _safe_request("HEAD", url, timeout=timeout, verify=True)
         redirect_chain = [h.url for h in response.history] + [response.url]
         if response.status_code >= 400:
             return ValidationResult(
@@ -250,9 +276,8 @@ def fetch_url_content(
     validation = validate_url(url, timeout=timeout // 2)
     if not validation.is_valid:
         return None
-    session = get_session()
     try:
-        response = session.get(url, timeout=timeout, allow_redirects=True, verify=True)
+        response = _safe_request("GET", url, timeout=timeout, verify=True)
         if response.status_code >= 400:
             return None
         content = (
@@ -280,8 +305,7 @@ def fetch_llms_txt(url: str) -> str | None:
             if cached.get("found"):
                 return str(cached.get("content", ""))
             return None
-        session = get_session()
-        response = session.get(llms_url, timeout=10, allow_redirects=True)
+        response = _safe_request("GET", llms_url, timeout=10)
         if response.status_code == 200:
             content_type = response.headers.get("Content-Type", "")
             if "text" in content_type or "markdown" in content_type:
