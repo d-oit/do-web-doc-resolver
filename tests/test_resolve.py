@@ -44,16 +44,18 @@ class TestIsUrl:
 class TestFetchLlmsTxt:
     """Test llms.txt fetching."""
 
+    @patch("scripts.utils._safe_request")
     @patch("scripts.utils.get_session")
-    def test_llms_txt_found(self, mock_get_session):
+    def test_llms_txt_found(self, mock_get_session, mock_safe_request):
         """Test successful llms.txt fetch."""
-        mock_session = Mock()
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "# Example llms.txt\nContent here"
         mock_response.headers = {"Content-Type": "text/plain"}
-        mock_session.get.return_value = mock_response
-        mock_get_session.return_value = mock_session
+        mock_response.is_redirect = False
+        mock_response.url = "https://example.com/llms.txt"
+        mock_response.history = []
+        mock_safe_request.return_value = mock_response
 
         # Clear cache to ensure fresh test
         import scripts.resolve

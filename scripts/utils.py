@@ -87,6 +87,42 @@ def close_session() -> None:
         _global_session = None
 
 
+def _safe_request(
+    method: str, url: str, session: requests.Session, max_redirects: int = 5, **kwargs
+) -> requests.Response:
+    """Perform a request while proactively validating redirects to prevent SSRF."""
+    current_url = url
+    history = []
+
+    # kwargs might contain allow_redirects, we must control it
+    kwargs.pop("allow_redirects", None)
+
+    for _ in range(max_redirects + 1):
+        if not is_safe_url(current_url):
+            raise requests.exceptions.RequestException(f"SSRF blocked: {current_url}")
+
+        response = session.request(method, current_url, allow_redirects=False, **kwargs)
+        response.history = list(history)
+
+        if response.is_redirect:
+            history.append(response)
+            if "Location" not in response.headers:
+                break
+
+            redirect_url = response.headers["Location"]
+            # Handle relative URLs
+            if not bool(urlparse(redirect_url).netloc):
+                from urllib.parse import urljoin
+
+                redirect_url = urljoin(current_url, redirect_url)
+
+            current_url = redirect_url
+        else:
+            return response
+
+    raise requests.exceptions.TooManyRedirects(f"Exceeded {max_redirects} redirects")
+
+
 def is_safe_url(url: str) -> bool:
     try:
         parsed = urlparse(url)
@@ -144,7 +180,11 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
 
     session = get_session()
     try:
-        response = session.head(url, timeout=timeout, allow_redirects=True, verify=True)
+        if check_ssrf:
+            response = _safe_request("HEAD", url, session, timeout=timeout, verify=True)
+        else:
+            response = session.head(url, timeout=timeout, allow_redirects=True, verify=True)
+
         redirect_chain = [h.url for h in response.history] + [response.url]
         if response.status_code >= 400:
             return ValidationResult(
@@ -170,9 +210,7 @@ def validate_links(links: list[str], timeout: int = 5) -> list[str]:
     session = get_session()
     for link in links:
         try:
-            if not is_safe_url(link):
-                continue
-            response = session.head(link, timeout=timeout, allow_redirects=True)
+            response = _safe_request("HEAD", link, session, timeout=timeout)
             if response.status_code < 400:
                 valid_links.append(link)
         except Exception:
@@ -252,7 +290,7 @@ def fetch_url_content(
         return None
     session = get_session()
     try:
-        response = session.get(url, timeout=timeout, allow_redirects=True, verify=True)
+        response = _safe_request("GET", url, session, timeout=timeout, verify=True)
         if response.status_code >= 400:
             return None
         content = (
@@ -281,7 +319,7 @@ def fetch_llms_txt(url: str) -> str | None:
                 return str(cached.get("content", ""))
             return None
         session = get_session()
-        response = session.get(llms_url, timeout=10, allow_redirects=True)
+        response = _safe_request("GET", llms_url, session, timeout=10)
         if response.status_code == 200:
             content_type = response.headers.get("Content-Type", "")
             if "text" in content_type or "markdown" in content_type:
