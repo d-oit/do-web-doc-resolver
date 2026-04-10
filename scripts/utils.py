@@ -10,7 +10,7 @@ import re
 import socket
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -342,21 +342,16 @@ def normalize_url(url: str) -> str:
     try:
         parsed = urlparse(url)
         # Strip all known tracking params
+        query = ""
         if parsed.query:
-            from urllib.parse import parse_qs, urlencode
-
             params = parse_qs(parsed.query)
             filtered_params = {
                 k: v
                 for k, v in params.items()
-                if k.lower() not in _TRACKING_PARAMS and not k.startswith("utm_")
+                if (kl := k.lower()) not in _TRACKING_PARAMS and not kl.startswith("utm_")
             }
-            query = urlencode(filtered_params, doseq=True)
-        else:
-            query = ""
-
-        # Normalize fragment: strip if empty or just a section ref
-        fragment = "" if not parsed.fragment else parsed.fragment
+            if filtered_params:
+                query = urlencode(filtered_params, doseq=True)
 
         # Normalize trailing slash (keep for root, strip for paths)
         path = parsed.path
@@ -372,7 +367,11 @@ def normalize_url(url: str) -> str:
 
         # Reconstruct
         normalized = parsed._replace(
-            scheme=parsed.scheme.lower(), netloc=netloc, path=path, query=query, fragment=fragment
+            scheme=parsed.scheme.lower(),
+            netloc=netloc,
+            path=path,
+            query=query,
+            fragment=parsed.fragment,
         ).geturl()
         return normalized.strip()
     except Exception:
