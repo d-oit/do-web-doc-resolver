@@ -11,6 +11,13 @@ export interface HistoryEntry {
   timestamp: number;
   charCount: number;
   resolveTime: number;
+  profile?: string;
+  flags?: {
+    skipCache?: boolean;
+    deepResearch?: boolean;
+  };
+  providers?: string[];
+  normalizedUrlHashes?: string[];
 }
 
 interface HistoryProps {
@@ -48,7 +55,9 @@ export default function History({ onLoad }: HistoryProps) {
 
   useEffect(() => {
     return () => {
-      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+      if (deleteTimeoutRef.current) {
+        clearTimeout(deleteTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -56,10 +65,11 @@ export default function History({ onLoad }: HistoryProps) {
     e.stopPropagation();
 
     if (confirmDeleteId !== id) {
-      setConfirmDeleteId(id);
       if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+      setConfirmDeleteId(id);
       deleteTimeoutRef.current = setTimeout(() => {
         setConfirmDeleteId(null);
+        deleteTimeoutRef.current = null;
       }, 3000);
       return;
     }
@@ -68,10 +78,12 @@ export default function History({ onLoad }: HistoryProps) {
     setConfirmDeleteId(null);
 
     try {
-      await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
       setEntries((prev) => prev.filter((e) => e.id !== id));
+      deleteTimeoutRef.current = null;
     } catch {
-      // Silent fail
+      deleteTimeoutRef.current = null;
     }
   };
 
@@ -104,40 +116,67 @@ export default function History({ onLoad }: HistoryProps) {
           />
 
           {/* List */}
-          <div className="max-h-[300px] overflow-y-auto">
+          <div className="max-h-[320px] overflow-y-auto flex flex-col gap-2">
             {loading ? (
               <div className="text-[10px] text-[#555] py-2">Loading...</div>
             ) : entries.length === 0 ? (
               <div className="text-[10px] text-[#555] py-2">No history yet</div>
             ) : (
               entries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="border-b border-[#222] py-2 flex items-center gap-2 group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <button
-                      onClick={() => handleLoad(entry)}
-                      className="text-left text-[11px] text-[#e8e6e3] hover:text-[#00ff41] truncate block w-full"
-                    >
-                      {entry.query}
-                    </button>
-                    <div className="text-[9px] text-[#555] mt-1">
-                      {entry.provider} · {entry.charCount.toLocaleString()} chars ·{" "}
-                      {new Date(entry.timestamp).toLocaleDateString()}
+                <div key={entry.id} className="border border-[#222] p-3 bg-[#101010] group">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <button
+                        onClick={() => handleLoad(entry)}
+                        className="text-left text-[11px] text-[#e8e6e3] hover:text-[#00ff41] block w-full truncate"
+                      >
+                        {entry.query}
+                      </button>
+                      <div className="text-[9px] text-[#555] mt-1 flex flex-wrap gap-2">
+                        <span>{entry.provider}</span>
+                        <span>{entry.charCount.toLocaleString()} chars</span>
+                        <span>{entry.resolveTime}ms</span>
+                        <span>{new Date(entry.timestamp).toLocaleDateString()}</span>
+                      </div>
                     </div>
+                    <button
+                      onClick={(e) => handleDelete(entry.id, e)}
+                      className={`text-[11px] transition-all min-h-[44px] flex items-center justify-center px-3 ${
+                        confirmDeleteId === entry.id
+                          ? "bg-[#e02424] text-white opacity-100 font-bold"
+                          : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      }`}
+                      aria-label={
+                        confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`
+                      }
+                    >
+                      {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
+                    </button>
                   </div>
-                  <button
-                    onClick={(e) => handleDelete(entry.id, e)}
-                    className={`text-[11px] transition-all min-h-[44px] flex items-center justify-center px-3 ${
-                      confirmDeleteId === entry.id
-                        ? "bg-[#e02424] text-white opacity-100 font-bold"
-                        : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus:opacity-100"
-                    }`}
-                    aria-label={confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`}
-                  >
-                    {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
-                  </button>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {entry.profile && (
+                      <span className="text-[9px] uppercase tracking-wide border border-[#333] px-2 py-1">
+                        {entry.profile}
+                      </span>
+                    )}
+                    {entry.flags?.deepResearch && (
+                      <span className="text-[9px] border border-[#333] px-2 py-1">Deep research</span>
+                    )}
+                    {entry.flags?.skipCache && (
+                      <span className="text-[9px] border border-[#333] px-2 py-1">Skip cache</span>
+                    )}
+                    {entry.providers?.slice(0, 3).map((provider) => (
+                      <span
+                        key={`${entry.id}-${provider}`}
+                        className="text-[9px] border border-[#222] px-2 py-1 text-[#888]"
+                      >
+                        {provider}
+                      </span>
+                    ))}
+                    {entry.providers && entry.providers.length > 3 && (
+                      <span className="text-[9px] text-[#666]">+{entry.providers.length - 3}</span>
+                    )}
+                  </div>
                 </div>
               ))
             )}
