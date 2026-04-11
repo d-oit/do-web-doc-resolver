@@ -3,11 +3,13 @@
 //! Checks for site-provided structured documentation.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::ssrf::create_safe_client_builder;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use std::result::Result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 use url::Url;
 
 /// llms.txt provider - checks for structured LLM documentation
@@ -20,7 +22,9 @@ impl LlmsTxtProvider {
     /// Create a new llms.txt provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: create_safe_client_builder(Duration::from_secs(10))
+                .build()
+                .unwrap_or_default(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
