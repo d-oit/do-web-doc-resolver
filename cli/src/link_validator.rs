@@ -1,18 +1,20 @@
 //! Async link validation for research results.
 
+use crate::ssrf::{create_safe_client_builder, is_safe_url};
 use futures::future::join_all;
-use reqwest::Client;
 use std::time::Duration;
 
 /// Validate a list of links using HTTP HEAD requests
 pub async fn validate_links(links: &[String]) -> Vec<String> {
-    let client = Client::builder()
-        .timeout(Duration::from_secs(5))
+    let client = create_safe_client_builder(Duration::from_secs(5))
         .build()
         .unwrap_or_default();
 
     let mut futures = Vec::new();
     for link in links {
+        if !is_safe_url(link) {
+            continue;
+        }
         let client = client.clone();
         let link = link.clone();
         futures.push(tokio::spawn(async move {
