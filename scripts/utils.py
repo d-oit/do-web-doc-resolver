@@ -11,7 +11,7 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -49,6 +49,7 @@ BLOCKED_NETWORKS = [
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
 _global_session: requests.Session | None = None
+_dns_cache: dict[str, list] = {}
 _cache = None
 
 
@@ -152,7 +153,12 @@ def is_safe_url(url: str) -> bool:
                 return False
         except ValueError:
             try:
-                infos = socket.getaddrinfo(hostname, None)
+                if hostname in _dns_cache:
+                    infos = _dns_cache[hostname]
+                else:
+                    infos = socket.getaddrinfo(hostname, None)
+                    _dns_cache[hostname] = infos
+
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
                     if any(ip in network for network in BLOCKED_NETWORKS):
@@ -208,15 +214,13 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
 
 
 def _validate_single_link(link: str, timeout: int) -> str | None:
-    session = create_session_with_retry()
     try:
+        session = get_session()
         response = _safe_request("HEAD", link, session=session, timeout=timeout, verify=True)
         if response.status_code < 400:
             return link
     except Exception:
-        return None
-    finally:
-        session.close()
+        pass
     return None
 
 
@@ -397,13 +401,11 @@ def normalize_url(url: str) -> str:
         parsed = urlparse(url)
         # Strip all known tracking params
         if parsed.query:
-            from urllib.parse import parse_qs, urlencode
-
             params = parse_qs(parsed.query)
             filtered_params = {
                 k: v
                 for k, v in params.items()
-                if k.lower() not in _TRACKING_PARAMS and not k.startswith("utm_")
+                if (kl := k.lower()) not in _TRACKING_PARAMS and not kl.startswith("utm_")
             }
             query = urlencode(filtered_params, doseq=True)
         else:
