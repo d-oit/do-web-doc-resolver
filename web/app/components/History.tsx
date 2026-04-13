@@ -52,6 +52,8 @@ export default function History({ onLoad }: HistoryProps) {
   useEffect(() => {
     if (isOpen) {
       fetchHistory();
+      // Auto-focus search input when history opens
+      setTimeout(() => searchInputRef.current?.focus(), 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, search]);
@@ -128,14 +130,11 @@ export default function History({ onLoad }: HistoryProps) {
             />
             {search && (
               <button
-                onClick={() => {
-                  setSearch("");
-                  searchInputRef.current?.focus();
-                }}
-                className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-[#949494] hover:text-[#00ff41] focus:text-[#00ff41] focus:outline-none transition-colors"
+                onClick={() => setSearch("")}
+                className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-[#949494] hover:text-[#e8e6e3] transition-colors"
                 aria-label="Clear search"
               >
-                ✕
+                ×
               </button>
             )}
           </div>
