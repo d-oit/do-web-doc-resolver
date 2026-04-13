@@ -26,8 +26,10 @@ describe("SSRF Validation", () => {
     }
   });
 
-  it("rejects CGNAT range", () => {
+  it("rejects CGNAT range (100.64.0.0/10)", () => {
     expect(validateUrl("http://100.64.0.1/test").valid).toBe(false);
+    expect(validateUrl("http://100.127.255.255/test").valid).toBe(false);
+    expect(validateUrl("http://100.128.0.1/test").valid).toBe(true);
   });
 
   it("accepts valid public URLs", () => {
