@@ -9,6 +9,7 @@ import os
 import re
 import socket
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -47,6 +48,13 @@ BLOCKED_NETWORKS = [
 ]
 
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
+
+
+@lru_cache(maxsize=1024)
+def _getaddrinfo_cached(hostname: str):
+    """Cached wrapper for socket.getaddrinfo."""
+    return socket.getaddrinfo(hostname, None)
+
 
 _global_session: requests.Session | None = None
 _cache = None
@@ -152,7 +160,7 @@ def is_safe_url(url: str) -> bool:
                 return False
         except ValueError:
             try:
-                infos = socket.getaddrinfo(hostname, None)
+                infos = _getaddrinfo_cached(hostname)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
                     if any(ip in network for network in BLOCKED_NETWORKS):
