@@ -49,7 +49,7 @@ pub async fn is_safe_url(url_str: &str) -> bool {
 
             // Perform DNS resolution to check for IP-based SSRF
             if let Ok(mut addrs) = tokio::net::lookup_host(format!("{}:80", domain)).await {
-                while let Some(addr) = addrs.next() {
+                for addr in addrs.by_ref() {
                     match addr.ip() {
                         std::net::IpAddr::V4(ip) => {
                             if is_private_ipv4(ip) {
@@ -127,7 +127,10 @@ pub async fn safe_request(
 
     for _ in 0..=max_redirects {
         if !is_safe_url(&current_url).await {
-            return Err(ResolverError::Auth(format!("SSRF blocked: {}", current_url)));
+            return Err(ResolverError::Auth(format!(
+                "SSRF blocked: {}",
+                current_url
+            )));
         }
 
         let response = client

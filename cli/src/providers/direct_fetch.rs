@@ -72,13 +72,9 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
             ));
         }
 
-        let response = crate::resolver::cascade::safe_request(
-            &self.client,
-            reqwest::Method::GET,
-            url,
-            5,
-        )
-        .await?;
+        let response =
+            crate::resolver::cascade::safe_request(&self.client, reqwest::Method::GET, url, 5)
+                .await?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);
