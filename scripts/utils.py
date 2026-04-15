@@ -8,8 +8,9 @@ import logging
 import os
 import re
 import socket
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -128,10 +129,31 @@ def _safe_request(
     raise requests.TooManyRedirects(f"Exceeded {max_redirects} redirects")
 
 
-@lru_cache(maxsize=1024)
+_DNS_CACHE: dict[tuple, tuple[float, list[tuple]]] = {}
+_DNS_CACHE_LOCK = threading.Lock()
+_DNS_CACHE_TTL = 60  # seconds
+
+
 def _getaddrinfo_cached(host: str, port: int | str | None = None) -> list[tuple]:
-    """Cached version of socket.getaddrinfo to improve performance for repeated domains."""
-    return socket.getaddrinfo(host, port)
+    """Cached version of socket.getaddrinfo with TTL to balance performance and security."""
+    key = (host, port)
+    now = time.time()
+
+    with _DNS_CACHE_LOCK:
+        if key in _DNS_CACHE:
+            expiry, result = _DNS_CACHE[key]
+            if now < expiry:
+                return result
+
+    result = socket.getaddrinfo(host, port)
+
+    with _DNS_CACHE_LOCK:
+        # Simple cleanup if cache grows too large
+        if len(_DNS_CACHE) >= 1024:
+            _DNS_CACHE.clear()
+        _DNS_CACHE[key] = (now + _DNS_CACHE_TTL, result)
+
+    return result
 
 
 def is_safe_url(url: str) -> bool:
@@ -349,7 +371,7 @@ def fetch_llms_txt(url: str) -> str | None:
                 _save_to_cache(
                     base_url, "llms_txt", {"found": True, "content": response.text}, ttl=3600
                 )
-                return str(response.text)
+                return response.text
         _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=3600)
     except Exception:
         pass
