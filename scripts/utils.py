@@ -41,9 +41,13 @@ BLOCKED_NETWORKS = [
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("100.64.0.0/10"),  # CGNAT
+    ipaddress.ip_network("0.0.0.0/8"),  # Current network
     ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("::/128"),  # Unspecified
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
+    ipaddress.ip_network("2001:db8::/32"),  # Documentation
 ]
 
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
@@ -141,21 +145,38 @@ def is_safe_url(url: str) -> bool:
         if normalized in (
             "localhost",
             "localhost.localdomain",
-            "127.0.0.1",
-            "::1",
-            "0.0.0.0",
         ):
             return False
+
+        def is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+            # First check if it's a global address (standard since Python 3.10)
+            if not ip.is_global:
+                return True
+
+            # Fallback to explicit network checks for safety
+            if any(ip in network for network in BLOCKED_NETWORKS):
+                return True
+
+            # Handle IPv4-mapped IPv6 explicitly
+            if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+                mapped_v4 = ip.ipv4_mapped
+                if not mapped_v4.is_global or any(
+                    mapped_v4 in network for network in BLOCKED_NETWORKS
+                ):
+                    return True
+
+            return False
+
         try:
             ip = ipaddress.ip_address(normalized)
-            if any(ip in network for network in BLOCKED_NETWORKS):
+            if is_blocked_ip(ip):
                 return False
         except ValueError:
             try:
                 infos = socket.getaddrinfo(hostname, None)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
-                    if any(ip in network for network in BLOCKED_NETWORKS):
+                    if is_blocked_ip(ip):
                         return False
             except Exception:
                 pass

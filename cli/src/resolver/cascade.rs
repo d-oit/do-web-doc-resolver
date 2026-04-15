@@ -60,13 +60,30 @@ fn is_private_ipv4(ip: std::net::Ipv4Addr) -> bool {
         || ip.is_documentation()
         || ip.is_broadcast()
         || ip.is_unspecified()
+        || (ip.octets()[0] == 100 && (ip.octets()[1] & 0xc0 == 64)) // 100.64.0.0/10 (CGNAT)
 }
 
 fn is_private_ipv6(ip: std::net::Ipv6Addr) -> bool {
     ip.is_loopback()
         || ip.is_unspecified()
-        || (ip.segments()[0] & 0xfe00) == 0xfc00
-        || (ip.segments()[0] & 0xffc0) == 0xfe80
+        || (ip.segments()[0] & 0xfe00) == 0xfc00 // Unique Local Address (fc00::/7)
+        || (ip.segments()[0] & 0xffc0) == 0xfe80 // Link-local (fe80::/10)
+        || (ip.segments()[0] == 0x2001 && ip.segments()[1] == 0xdb8) // Documentation (2001:db8::/32)
+        || is_ipv4_mapped_private(ip)
+}
+
+fn is_ipv4_mapped_private(ip: std::net::Ipv6Addr) -> bool {
+    let segments = ip.segments();
+    if segments[0] == 0 && segments[1] == 0 && segments[2] == 0 && segments[3] == 0 && segments[4] == 0 && segments[5] == 0xffff {
+        let v4 = std::net::Ipv4Addr::new(
+            (segments[6] >> 8) as u8,
+            (segments[6] & 0xff) as u8,
+            (segments[7] >> 8) as u8,
+            (segments[7] & 0xff) as u8,
+        );
+        return is_private_ipv4(v4);
+    }
+    false
 }
 
 /// Classify error type for routing decisions
@@ -128,6 +145,9 @@ mod tests {
         assert!(!is_safe_url("http://[::1]"));
         assert!(!is_safe_url("http://192.168.0.1"));
         assert!(!is_safe_url("file:///etc/passwd"));
+        assert!(!is_safe_url("http://100.64.0.1")); // CGNAT
+        assert!(!is_safe_url("http://[::ffff:127.0.0.1]")); // IPv4-mapped
+        assert!(!is_safe_url("http://[::ffff:a9fe:a9fe]")); // IPv4-mapped link-local
     }
 
     #[test]
