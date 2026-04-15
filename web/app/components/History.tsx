@@ -31,6 +31,13 @@ export default function History({ onLoad }: HistoryProps) {
   const [loading, setLoading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [isOpen]);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -105,13 +112,28 @@ export default function History({ onLoad }: HistoryProps) {
       {isOpen && (
         <div id="history-panel" className="px-4 pb-4">
           {/* Search */}
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search history..."
-            className="w-full bg-[#141414] border-2 border-[#333] px-2 py-2 text-[11px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none mb-2 min-h-[44px]"
-          />
+          <div className="relative mb-2">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search history..."
+              className="w-full bg-[#141414] border-2 border-[#333] pl-2 pr-10 py-2 text-[11px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
+            />
+            {search && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-[#666] hover:text-[#00ff41] focus:text-[#00ff41] focus:outline-none"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
 
           {/* List */}
           <div className="max-h-[320px] overflow-y-auto flex flex-col gap-2">
