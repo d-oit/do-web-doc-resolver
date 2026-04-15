@@ -9,6 +9,7 @@ import os
 import re
 import socket
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -127,6 +128,12 @@ def _safe_request(
     raise requests.TooManyRedirects(f"Exceeded {max_redirects} redirects")
 
 
+@lru_cache(maxsize=1024)
+def _getaddrinfo_cached(host: str, port: int | str | None = None) -> list[tuple]:
+    """Cached version of socket.getaddrinfo to improve performance for repeated domains."""
+    return socket.getaddrinfo(host, port)
+
+
 def is_safe_url(url: str) -> bool:
     try:
         parsed = urlparse(url)
@@ -152,7 +159,7 @@ def is_safe_url(url: str) -> bool:
                 return False
         except ValueError:
             try:
-                infos = socket.getaddrinfo(hostname, None)
+                infos = _getaddrinfo_cached(hostname, None)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
                     if any(ip in network for network in BLOCKED_NETWORKS):
