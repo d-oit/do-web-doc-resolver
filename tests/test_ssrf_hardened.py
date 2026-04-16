@@ -1,5 +1,5 @@
-import pytest
 from scripts.utils import is_safe_url
+
 
 def test_new_blocked_ranges():
     # CGNAT

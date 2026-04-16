@@ -2,7 +2,7 @@
 //!
 //! Basic content extraction from HTML.
 
-use crate::error::{detect_error_type, ResolverError};
+use crate::error::{ResolverError, detect_error_type};
 use crate::resolver::cascade::safe_request;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
