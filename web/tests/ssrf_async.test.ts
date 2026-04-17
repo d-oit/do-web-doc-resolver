@@ -14,7 +14,7 @@ describe("Async SSRF Validation (DNS-aware)", () => {
   });
 
   it("rejects domains resolving to private IPs", async () => {
-    vi.mocked(dns.lookup).mockResolvedValue([{ address: "127.0.0.1", family: 4 }]);
+    vi.mocked(dns.lookup).mockResolvedValue([{ address: "127.0.0.1", family: 4 }] as any);
 
     const result = await validateUrlForFetchAsync("http://malicious.com");
     expect(result.valid).toBe(false);
@@ -25,7 +25,7 @@ describe("Async SSRF Validation (DNS-aware)", () => {
     vi.mocked(dns.lookup).mockResolvedValue([
       { address: "8.8.8.8", family: 4 },
       { address: "10.0.0.1", family: 4 },
-    ]);
+    ] as any);
 
     const result = await validateUrlForFetchAsync("http://mixed-records.com");
     expect(result.valid).toBe(false);
@@ -33,7 +33,7 @@ describe("Async SSRF Validation (DNS-aware)", () => {
   });
 
   it("accepts domains resolving to public IPs", async () => {
-    vi.mocked(dns.lookup).mockResolvedValue([{ address: "1.1.1.1", family: 4 }]);
+    vi.mocked(dns.lookup).mockResolvedValue([{ address: "1.1.1.1", family: 4 }] as any);
 
     const result = await validateUrlForFetchAsync("http://example.com");
     expect(result.valid).toBe(true);
