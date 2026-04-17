@@ -101,7 +101,7 @@ export default function History({ onLoad }: HistoryProps) {
     <div className="border-t-2 border-[#333]">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors text-[11px] text-[#949494] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus-visible:outline-none"
+        className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors text-[11px] text-[#949494] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
         aria-expanded={isOpen}
         aria-controls="history-panel"
       >
@@ -127,7 +127,7 @@ export default function History({ onLoad }: HistoryProps) {
                   setSearch("");
                   searchInputRef.current?.focus();
                 }}
-                className="absolute right-0 top-0 h-full px-3 text-[#949494] hover:text-[#e8e6e3] transition-colors focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-[-2px] focus-visible:outline-none"
+                className="absolute right-0 top-0 h-full px-3 text-[#949494] hover:text-[#e8e6e3] transition-colors focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-[-2px] focus:outline-none"
                 aria-label="Clear search"
               >
                 ×
@@ -147,13 +147,13 @@ export default function History({ onLoad }: HistoryProps) {
                   <div className="flex items-start justify-between gap-2">
                     <button
                       onClick={() => handleLoad(entry)}
-                      className="text-left text-[11px] text-[#e8e6e3] hover:text-[#00ff41] flex-1 focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus-visible:outline-none"
+                      className="text-left text-[11px] text-[#e8e6e3] hover:text-[#00ff41] flex-1 focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
                     >
                       {entry.query}
                     </button>
                     <button
                       onClick={() => handleDelete(entry.id)}
-                      className={`text-[10px] min-h-[32px] min-w-[32px] flex items-center justify-center transition-all focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus-visible:outline-none ${
+                      className={`text-[10px] min-h-[32px] min-w-[32px] flex items-center justify-center transition-all focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none ${
                         confirmDeleteId === entry.id
                           ? "text-[#ff4444] font-bold"
                           : "text-[#949494] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
