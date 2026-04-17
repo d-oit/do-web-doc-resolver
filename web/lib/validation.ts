@@ -27,10 +27,10 @@ function isPrivateIpAddress(ip: string): boolean {
         // For ::ffff:0:127.0.0.1, parts are [0, 0, 0, 0, 0xffff, 0, 32512, 1]
         const parts = v6addr.parts;
         const ipv4Bytes = [
-          (parts[6] >> 8) & 0xff,
-          parts[6] & 0xff,
-          (parts[7] >> 8) & 0xff,
-          parts[7] & 0xff,
+          ((parts[6] ?? 0) >> 8) & 0xff,
+          (parts[6] ?? 0) & 0xff,
+          ((parts[7] ?? 0) >> 8) & 0xff,
+          (parts[7] ?? 0) & 0xff,
         ];
         effectiveAddr = ipaddr.fromByteArray(ipv4Bytes);
       }

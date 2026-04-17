@@ -139,7 +139,6 @@ export default function Home() {
       });
   }, []);
 
-
   // Persist UI state changes (skip before first load)
   useEffect(() => {
     if (!loaded) return;
