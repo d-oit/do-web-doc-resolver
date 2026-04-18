@@ -2,6 +2,16 @@
 
 Releases follow [Semantic Versioning](https://semver.org/) with conventional commits.
 
+## Version Source Of Truth
+
+The release version is sourced from the package manifests used by `scripts/release.sh`:
+
+- `pyproject.toml`
+- `cli/Cargo.toml`
+- `web/package.json`
+
+If GitHub release tags drift from those package versions, align the next release tag to the manifest versions instead of continuing the stale tag line.
+
 ## Automated Release Scripts
 
 Use the release script to automate version bumping, changelog generation, and tagging:
