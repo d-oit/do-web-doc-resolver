@@ -162,7 +162,7 @@ impl UrlCascade {
             #[cfg(feature = "semantic-cache")]
             {
                 let e = cache.encode_query(url);
-                if let Ok(Some(res)) = cache.query(url, Some(e.clone())).await {
+                if let Ok(Some(res)) = cache.query(url, Some(e)).await {
                     if let Some(mut res) = res.into_iter().next() {
                         metrics.cache_hit = true;
                         res.metrics = Some(metrics);

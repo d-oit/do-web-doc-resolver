@@ -137,7 +137,7 @@ impl QueryCascade {
             #[cfg(feature = "semantic-cache")]
             {
                 let e = cache.encode_query(query);
-                if let Ok(Some(results)) = cache.query(query, Some(e.clone())).await {
+                if let Ok(Some(results)) = cache.query(query, Some(e)).await {
                     if !results.is_empty() {
                         let mut first = results[0].clone();
                         metrics.cache_hit = true;
