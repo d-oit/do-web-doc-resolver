@@ -93,7 +93,10 @@ fn bench_query(c: &mut Criterion) {
 
         for (_i, query) in queries.iter().enumerate() {
             let results = create_test_results(3);
-            cache.store(query, &results, "test_provider", None).await.unwrap();
+            cache
+                .store(query, &results, "test_provider", None)
+                .await
+                .unwrap();
         }
 
         cache
@@ -106,7 +109,10 @@ fn bench_query(c: &mut Criterion) {
     // Benchmark querying with exact match
     group.bench_function("exact_match", |b| {
         b.to_async(&rt).iter(|| async {
-            cache.query("rust programming tutorial", None).await.unwrap();
+            cache
+                .query("rust programming tutorial", None)
+                .await
+                .unwrap();
         });
     });
 
