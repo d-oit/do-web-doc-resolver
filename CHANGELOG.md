@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-04-20
+
+### Changed
+
+- **Dependencies**: Prevent grouped npm major Dependabot updates for `/web` and `/packages` so incompatible toolchain jumps land in isolated PRs.
+- **Dependencies**: Align Dependabot labels with the repository's actual label set to remove configuration-noise warnings.
+- **Docs**: Document deterministic dependency compatibility triage in `AGENTS.md`, `agents-docs/DEVELOPMENT.md`, and the PR sentinel heuristics.
+
+### Fixed
+
+- **CI UI**: Close the incompatible grouped npm major update path that broke the Next.js lint stack under `eslint@10`.
+- **Rust CLI**: Update patchable transitive dependencies in `cli/Cargo.lock`, including `rustls-webpki` and `rand`, without widening the direct dependency surface.
+- **Release Prep**: Verify production deployment and core resolve flow on the live Vercel site across desktop, tablet, and mobile sanity checks.
+
+### Known Issues
+
+- The optional `semantic-cache` feature still pulls an upstream-constrained `chaotic_semantic_memory -> libsql` dependency chain that keeps several Rust security alerts open.
+- Upstream tracking issue: `d-o-hub/chaotic_semantic_memory#88`.
+
 ## [0.3.0] - 2026-03-25
 
 ### Changed
