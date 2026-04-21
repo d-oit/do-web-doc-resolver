@@ -35,8 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known Issues
 
-- The optional `semantic-cache` feature still pulls an upstream-constrained `chaotic_semantic_memory -> libsql` dependency chain that keeps several Rust security alerts open.
-- Upstream tracking issue: `d-o-hub/chaotic_semantic_memory#88`.
+- **Semantic Cache**: Python semantic cache tests failing due to sqlite-vec compatibility issues. Temporarily disabled in release workflow. See [Issue #251](https://github.com/d-oit/do-web-doc-resolver/issues/251).
+- **Semantic Cache**: Deprecated `get_sentence_embedding_dimension` API method needs update. See [Issue #252](https://github.com/d-oit/do-web-doc-resolver/issues/252).
+- **Security**: The optional `semantic-cache` feature pulls an upstream-constrained `chaotic_semantic_memory -> libsql` dependency chain with open Rust security alerts. See [Issue #253](https://github.com/d-oit/do-web-doc-resolver/issues/253).
+- **Security**: 5 Dependabot security vulnerabilities (1 moderate, 4 low) pending review. See [Issue #255](https://github.com/d-oit/do-web-doc-resolver/issues/255).
 
 ## [0.3.1] - 2026-04-20
 
