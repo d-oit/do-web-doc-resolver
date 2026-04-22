@@ -8,15 +8,15 @@ The all-MiniLM-L6-v2 model is used (small, ~80MB, fast) and runs entirely locall
 import json
 import logging
 import os
+import struct
+import time
+from dataclasses import dataclass, field
+from typing import Any
 
 try:
     from pysqlite3 import dbapi2 as sqlite3
 except ImportError:
     import sqlite3
-import struct
-import time
-from dataclasses import dataclass, field
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

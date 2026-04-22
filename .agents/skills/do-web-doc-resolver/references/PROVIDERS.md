@@ -248,21 +248,6 @@ AI-powered web search via Mistral.
 - Paid only
 - Higher latency
 
-## Known Issues
-
-### DuckDuckGo Provider (#254, #260)
-
-The `duckduckgo_search` Python package has been renamed to `ddgs`. This has been updated in the codebase.
-
-**Import implementation**:
-```python
-from ddgs import DDGS
-```
-
-### DuckDuckGo Reliability
-
-DuckDuckGo is deprioritized in the cascade due to frequent CAPTCHA/rate limiting issues. It serves as a fallback only.
-
 ## Rate Limits
 
 | Provider | Rate Limit | Notes |

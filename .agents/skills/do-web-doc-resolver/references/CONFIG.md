@@ -204,10 +204,6 @@ Blocked schemes:
 
 **Status**: **Fixed** - Switched from `get_sentence_embedding_dimension()` to `get_embedding_dimension()`.
 
-### Rust Security Alerts (#253)
-
-The optional `semantic-cache` Cargo feature has upstream security alerts. Avoid in production.
-
 ## Logging
 
 ### Log Levels

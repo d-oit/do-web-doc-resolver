@@ -277,11 +277,7 @@ cargo flamegraph --bin do-wdr -- resolve "query"
 
 ### Deprecated sentence-transformers API (#252)
 
-The `get_sentence_embedding_dimension()` method was deprecated in sentence-transformers 5.x.
-
-**Location**: `scripts/semantic_cache.py:180`
-
-**Status**: **Fixed** - Changed to `get_embedding_dimension()`.
+**Status**: **Fixed** - Switched from `get_sentence_embedding_dimension()` to `get_embedding_dimension()`.
 
 ### Rust semantic-cache security alerts (#253)
 
@@ -295,7 +291,7 @@ The optional `semantic-cache` feature pulls an upstream-constrained dependency c
 
 ### DuckDuckGo package renamed
 
-The `duckduckgo_search` package is now `ddgs`. This has been updated throughout the codebase.
+The `duckduckgo_search` package is now `ddgs`. Update `requirements.txt` when updating dependencies.
 
 ## Issue Resolution Workflow
 
