@@ -8,6 +8,7 @@ The all-MiniLM-L6-v2 model is used (small, ~80MB, fast) and runs entirely locall
 import json
 import logging
 import os
+
 try:
     from pysqlite3 import dbapi2 as sqlite3
 except ImportError:

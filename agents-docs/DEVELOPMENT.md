@@ -266,16 +266,14 @@ cargo flamegraph --bin do-wdr -- resolve "query"
 
 ### Python Semantic Cache (#251)
 
-The sqlite-vec vec0 virtual table insert syntax is causing cache retrieval failures.
+**Status**: **Fixed** - The sqlite-vec vec0 virtual table insert syntax and linkage has been corrected.
 
-**Symptom**: `query()` returns None even after `store()` succeeds.
-
-**Workaround**: Disable semantic cache in tests:
-```bash
-DO_WDR_SEMANTIC_CACHE=0 python -m pytest tests/ -v -m "not live"
-```
-
-**Investigation needed**: Verify vec0 schema and insert syntax compatibility with sqlite-vec 0.1.9.
+**Resolution**:
+- Corrected `vec0` syntax by linking to metadata via `rowid` (mapping to `cache_entries.id`).
+- Implemented a manual `DELETE` then `INSERT` pattern because `INSERT OR REPLACE` is unreliable on `rowid` columns in virtual tables.
+- Added a fallback to `pysqlite3` to ensure `load_extension` support in restricted environments.
+- Fixed a bug in distance-to-similarity conversion where exact matches (distance 0.0) were incorrectly filtered.
+- Removed redundant table dropping on initialization to ensure persistent caching.
 
 ### Deprecated sentence-transformers API (#252)
 
@@ -297,7 +295,7 @@ The optional `semantic-cache` feature pulls an upstream-constrained dependency c
 
 ### DuckDuckGo package renamed
 
-The `duckduckgo_search` package is now `ddgs`. Update `requirements.txt` when updating dependencies.
+The `duckduckgo_search` package is now `ddgs`. This has been updated throughout the codebase.
 
 ## Issue Resolution Workflow
 

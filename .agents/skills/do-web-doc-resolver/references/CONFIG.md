@@ -196,17 +196,13 @@ Blocked schemes:
 
 ### Semantic Cache (#251)
 
-Python semantic cache may fail to retrieve stored results due to sqlite-vec vec0 insert syntax.
+**Status**: **Fixed** - The sqlite-vec vec0 virtual table insert syntax and linkage has been corrected.
 
-**Workaround**: Disable with environment variable:
-```bash
-DO_WDR_SEMANTIC_CACHE=0
-```
+**Resolution**: Corrected `vec0` syntax by linking to metadata via `rowid` and added a fallback to `pysqlite3` to ensure `load_extension` support.
 
 ### Deprecated API (#252)
 
-`sentence_transformers.SentenceTransformer.get_sentence_embedding_dimension()` is deprecated.
-Use `get_embedding_dimension()` instead.
+**Status**: **Fixed** - Switched from `get_sentence_embedding_dimension()` to `get_embedding_dimension()`.
 
 ### Rust Security Alerts (#253)
 
