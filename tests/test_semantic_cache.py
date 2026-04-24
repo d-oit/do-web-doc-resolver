@@ -427,9 +427,11 @@ class TestSemanticCacheIntegration:
 
             # Test the helper functions directly
             # Reset global cache to use our test cache
-            resolve._semantic_cache = cache
+            from scripts import _query_resolve, semantic_cache
 
-            result = resolve._check_semantic_cache(test_query)
+            with mock.patch("scripts.semantic_cache._semantic_cache_instance", cache):
+                with mock.patch("scripts._query_resolve.get_semantic_cache", return_value=cache):
+                    result = resolve._check_semantic_cache(test_query)
             assert result is not None
             assert result.get("semantic_cache_hit") is True
 
