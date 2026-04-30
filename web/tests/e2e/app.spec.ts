@@ -44,9 +44,9 @@ async function waitForApp(page: import("@playwright/test").Page): Promise<void> 
   await expect(page.getByTestId("app-loaded")).toBeVisible({ timeout: 10000 });
 }
 
-// Helper to ensure sidebar is open (needed for small viewports)
+// Helper to ensure sidebar is open on mobile/tablet viewports
 async function ensureSidebarOpen(page: import("@playwright/test").Page): Promise<void> {
-  const isMobile = await page.evaluate(() => window.innerWidth < 1024);
+  const isMobile = (page.viewportSize()?.width || 0) < 1024;
   if (isMobile) {
     const backdrop = page.locator("div.fixed.inset-0.bg-black\\/80");
     const menuButton = page.getByRole("button", { name: "Open menu" });
@@ -546,6 +546,7 @@ test.describe("Navigation", () => {
 test.describe("Collapsible Sidebar", () => {
   test("sidebar is visible by default", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     await expect(page.getByTestId("sidebar-toggle")).toBeVisible();
     await expect(page.locator("text=Configuration")).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();

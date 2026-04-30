@@ -44,14 +44,9 @@ async function waitForApp(page: import("@playwright/test").Page): Promise<void> 
   await expect(page.getByTestId("app-loaded")).toBeVisible({ timeout: 10000 });
 }
 
-// Helper to scope locators to the history panel
-function historyPanel(page: import("@playwright/test").Page) {
-  return page.locator("#history-panel");
-}
-
-// Helper to ensure sidebar is open (needed for small viewports)
+// Helper to ensure sidebar is open on mobile/tablet viewports
 async function ensureSidebarOpen(page: import("@playwright/test").Page): Promise<void> {
-  const isMobile = await page.evaluate(() => window.innerWidth < 1024);
+  const isMobile = (page.viewportSize()?.width || 0) < 1024;
   if (isMobile) {
     const backdrop = page.locator("div.fixed.inset-0.bg-black\\/80");
     const menuButton = page.getByRole("button", { name: "Open menu" });
@@ -65,11 +60,17 @@ async function ensureSidebarOpen(page: import("@playwright/test").Page): Promise
   }
 }
 
+// Helper to scope locators to the history panel
+function historyPanel(page: import("@playwright/test").Page) {
+  return page.locator("#history-panel");
+}
+
 test.describe("History Panel", () => {
   test("history panel is collapsed by default", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     // History toggle should be visible
-    await expect(page.getByText(/History/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /History/ })).toBeVisible();
     // History panel content should not be visible
     await expect(page.locator("input[placeholder*='Search history']")).not.toBeVisible();
   });
