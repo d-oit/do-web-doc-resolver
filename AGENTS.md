@@ -25,8 +25,8 @@
 ./
 ├── scripts/               # Core Python logic
 ├── cli/                   # Rust CLI (do-wdr)
-│   └── ui/                # Design system
-├── web/                   # Next.js web UI
+│   └── ui/                # Design system (tokens, components, Storybook)
+├── web/                   # Next.js web UI (Vercel deployment)
 ├── tests/                 # Python test suite
 ├── docs/                  # Standards & examples
 ├── agents-docs/           # Reference for agents
