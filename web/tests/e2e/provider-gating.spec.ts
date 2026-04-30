@@ -1,58 +1,16 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { mockAppState, ensureSidebarOpen } from "./test-utils";
 
 const baseUrl = process.env.BASE_URL || "";
 const isLocalBaseUrl = baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1");
-
-async function mockUiStateAndKeys(page: Page): Promise<void> {
-  await page.route("**/api/key-status", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ exa: false, serper: false, tavily: false, firecrawl: false, mistral: false }),
-    });
-  });
-
-  await page.route("**/api/ui-state", async (route) => {
-    if (route.request().method() === "GET") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          sidebarCollapsed: false,
-          showApiKeys: false,
-          showAdvanced: false,
-          activeProfile: "free",
-          selectedProviders: [],
-          maxChars: 8000,
-          skipCache: false,
-          deepResearch: false,
-        }),
-      });
-      return;
-    }
-
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ok: true }),
-    });
-  });
-}
-
-async function openSidebarIfMobile(page: Page): Promise<void> {
-  const openMenuButton = page.getByRole("button", { name: "Open menu" });
-  if (await openMenuButton.isVisible()) {
-    await openMenuButton.click();
-  }
-}
 
 test.describe("Provider gating", () => {
   test.skip(!isLocalBaseUrl, "This suite validates local UI behavior only");
 
   test("paid providers show needs key when API keys absent", async ({ page }) => {
-    await mockUiStateAndKeys(page);
+    await mockAppState(page);
     await page.goto("/");
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
 
     const tavilyButton = page.getByRole("button", { name: /Tavily/i });
     // Button is NOT disabled - clicking shows helpful feedback
@@ -64,9 +22,9 @@ test.describe("Provider gating", () => {
 
   test("provider enables after entering local API key", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Enabled-state interaction is desktop-only");
-    await mockUiStateAndKeys(page);
+    await mockAppState(page);
     await page.goto("/");
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
 
     const apiKeysToggle = page.getByTestId("api-keys-toggle");
     await apiKeysToggle.scrollIntoViewIfNeeded();
@@ -83,9 +41,9 @@ test.describe("Provider gating", () => {
 
   test("manual provider toggle switches profile to custom", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Profile toggle interaction is desktop-only");
-    await mockUiStateAndKeys(page);
+    await mockAppState(page);
     await page.goto("/");
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
 
     // Use Exa MCP instead of DuckDuckGo (DuckDuckGo may be disabled due to Mistral gating)
     const exaMcpButton = page.getByRole("button", { name: /Exa MCP/ });
@@ -139,7 +97,7 @@ test.describe("Provider gating", () => {
     });
 
     await page.goto("/");
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
 
     // Use Exa MCP instead of DuckDuckGo (DuckDuckGo may be disabled due to Mistral gating)
     const exaMcpButton = page.getByRole("button", { name: /Exa MCP/ });
@@ -151,7 +109,7 @@ test.describe("Provider gating", () => {
 
     await page.waitForTimeout(2200);
     await page.reload();
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
 
     // Profile should still be custom after reload
     await expect(profileButton).toContainText("Custom");
@@ -159,7 +117,7 @@ test.describe("Provider gating", () => {
   });
 
   test("duckduckgo is styled as unavailable when mistral key is present", async ({ page }) => {
-    await mockUiStateAndKeys(page);
+    await mockAppState(page);
     await page.route("**/api/ui-state", async (route) => {
       if (route.request().method() === "GET") {
         await route.fulfill({
@@ -188,7 +146,7 @@ test.describe("Provider gating", () => {
       });
     });
     await page.goto("/");
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
 
     // Use a more flexible selector that matches the aria-label
     const duckduckgoButton = page.getByRole("button", { name: /DuckDuckGo/ });
