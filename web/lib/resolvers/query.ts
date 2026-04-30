@@ -19,7 +19,7 @@ async function fetchWithTimeout(
 }
 
 export async function searchViaExaMcp(query: string, log: Logger): Promise<string | null> {
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "exa_mcp", { query: query.slice(0, 80) });
   try {
     const mcpRequest = {
@@ -38,7 +38,7 @@ export async function searchViaExaMcp(query: string, log: Logger): Promise<strin
     });
     if (!res.ok) {
       const err = classifyError("exa_mcp", new Error(`HTTP ${res.status}`), res.status);
-      log.info("failure", "exa_mcp", { status: res.status, latencyMs: Date.now() - start, errorType: err.type });
+      log.info("failure", "exa_mcp", { status: res.status, latencyMs: performance.now() - start, errorType: err.type });
       return null;
     }
     const text = await res.text();
@@ -49,24 +49,24 @@ export async function searchViaExaMcp(query: string, log: Logger): Promise<strin
           if (data.result?.content) {
             const content = data.result.content[0]?.text;
             if (content && content.length > MIN_CHARS) {
-              log.info("success", "exa_mcp", { latencyMs: Date.now() - start, chars: content.length });
+              log.info("success", "exa_mcp", { latencyMs: performance.now() - start, chars: content.length });
               return content.slice(0, MAX_CHARS);
             }
           }
         } catch { /* ignore */ }
       }
     }
-    log.info("failure", "exa_mcp", { latencyMs: Date.now() - start, reason: "no_content" });
+    log.info("failure", "exa_mcp", { latencyMs: performance.now() - start, reason: "no_content" });
     return null;
   } catch {
-    log.info("failure", "exa_mcp", { latencyMs: Date.now() - start });
+    log.info("failure", "exa_mcp", { latencyMs: performance.now() - start });
     return null;
   }
 }
 
 export async function searchViaExaSdk(query: string, apiKey: string, log: Logger): Promise<string | null> {
   if (!apiKey) return null;
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "exa", { query: query.slice(0, 80) });
   try {
     const res = await fetchWithTimeout("https://api.exa.ai/search", {
@@ -76,7 +76,7 @@ export async function searchViaExaSdk(query: string, apiKey: string, log: Logger
     });
     if (!res.ok) {
       const err = classifyError("exa", new Error(`HTTP ${res.status}`), res.status);
-      log.info("failure", "exa", { status: res.status, latencyMs: Date.now() - start, errorType: err.type });
+      log.info("failure", "exa", { status: res.status, latencyMs: performance.now() - start, errorType: err.type });
       return null;
     }
     const data = await res.json();
@@ -85,19 +85,19 @@ export async function searchViaExaSdk(query: string, apiKey: string, log: Logger
         `## ${r.title || "Untitled"}\nSource: ${r.url}\n\n${r.text || ""}`)
       .join("\n\n---\n\n");
     if (results.length > MIN_CHARS) {
-      log.info("success", "exa", { latencyMs: Date.now() - start, chars: results.length });
+      log.info("success", "exa", { latencyMs: performance.now() - start, chars: results.length });
       return results.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "exa", { latencyMs: Date.now() - start });
+    log.info("failure", "exa", { latencyMs: performance.now() - start });
     return null;
   }
 }
 
 export async function searchViaSerper(query: string, apiKey: string, log: Logger): Promise<string | null> {
   if (!apiKey) return null;
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "serper", { query: query.slice(0, 80) });
   try {
     const res = await fetchWithTimeout("https://google.serper.dev/search", {
@@ -107,27 +107,27 @@ export async function searchViaSerper(query: string, apiKey: string, log: Logger
     });
     if (!res.ok) {
       const err = classifyError("serper", new Error(`HTTP ${res.status}`), res.status);
-      log.info("failure", "serper", { status: res.status, latencyMs: Date.now() - start, errorType: err.type });
+      log.info("failure", "serper", { status: res.status, latencyMs: performance.now() - start, errorType: err.type });
       return null;
     }
     const data = await res.json();
     const snippets = (data.organic || [])
       .map((r: { snippet?: string }) => r.snippet).filter(Boolean).join("\n\n");
     if (snippets.length < MIN_CHARS) {
-      log.info("failure", "serper", { latencyMs: Date.now() - start, reason: "thin_content" });
+      log.info("failure", "serper", { latencyMs: performance.now() - start, reason: "thin_content" });
       return null;
     }
-    log.info("success", "serper", { latencyMs: Date.now() - start, chars: snippets.length, mode: "snippets" });
+    log.info("success", "serper", { latencyMs: performance.now() - start, chars: snippets.length, mode: "snippets" });
     return `Search results for: ${query}\n\n${snippets.slice(0, MAX_CHARS)}`;
   } catch {
-    log.info("failure", "serper", { latencyMs: Date.now() - start });
+    log.info("failure", "serper", { latencyMs: performance.now() - start });
     return null;
   }
 }
 
 export async function searchViaTavily(query: string, apiKey: string, log: Logger): Promise<string | null> {
   if (!apiKey) return null;
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "tavily", { query: query.slice(0, 80) });
   try {
     const res = await fetchWithTimeout("https://api.tavily.com/search", {
@@ -137,7 +137,7 @@ export async function searchViaTavily(query: string, apiKey: string, log: Logger
     });
     if (!res.ok) {
       const err = classifyError("tavily", new Error(`HTTP ${res.status}`), res.status);
-      log.info("failure", "tavily", { status: res.status, latencyMs: Date.now() - start, errorType: err.type });
+      log.info("failure", "tavily", { status: res.status, latencyMs: performance.now() - start, errorType: err.type });
       return null;
     }
     const data = await res.json();
@@ -146,19 +146,19 @@ export async function searchViaTavily(query: string, apiKey: string, log: Logger
         `## ${r.title}\nSource: ${r.url}\n\n${r.raw_content || r.content || ""}`)
       .join("\n\n---\n\n");
     if (results.length > MIN_CHARS) {
-      log.info("success", "tavily", { latencyMs: Date.now() - start, chars: results.length });
+      log.info("success", "tavily", { latencyMs: performance.now() - start, chars: results.length });
       return results.slice(0, MAX_CHARS);
     }
-    log.info("failure", "tavily", { latencyMs: Date.now() - start, reason: "thin_content" });
+    log.info("failure", "tavily", { latencyMs: performance.now() - start, reason: "thin_content" });
     return null;
   } catch {
-    log.info("failure", "tavily", { latencyMs: Date.now() - start });
+    log.info("failure", "tavily", { latencyMs: performance.now() - start });
     return null;
   }
 }
 
 export async function searchViaDuckDuckGoLite(query: string, log: Logger): Promise<string | null> {
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "duckduckgo", { query: query.slice(0, 80) });
   try {
     const searchUrl = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
@@ -166,7 +166,7 @@ export async function searchViaDuckDuckGoLite(query: string, log: Logger): Promi
       headers: { Accept: "text/plain", "X-Return-Format": "text" },
     });
     if (!res.ok) {
-      log.info("failure", "duckduckgo", { status: res.status, latencyMs: Date.now() - start });
+      log.info("failure", "duckduckgo", { status: res.status, latencyMs: performance.now() - start });
       return null;
     }
     const text = await res.text();
@@ -176,18 +176,18 @@ export async function searchViaDuckDuckGoLite(query: string, log: Logger): Promi
     });
     const cleaned = lines.join("\n\n").trim();
     if (cleaned.length > MIN_CHARS) {
-      log.info("success", "duckduckgo", { latencyMs: Date.now() - start, chars: cleaned.length });
+      log.info("success", "duckduckgo", { latencyMs: performance.now() - start, chars: cleaned.length });
       return cleaned.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "duckduckgo", { latencyMs: Date.now() - start });
+    log.info("failure", "duckduckgo", { latencyMs: performance.now() - start });
     return null;
   }
 }
 
 export async function searchViaDuckDuckGoFree(query: string, log: Logger): Promise<string | null> {
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "duckduckgo", { variant: "html", query: query.slice(0, 80) });
   try {
     const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -195,7 +195,7 @@ export async function searchViaDuckDuckGoFree(query: string, log: Logger): Promi
       headers: { Accept: "text/plain", "X-Return-Format": "text" },
     });
     if (!res.ok) {
-      log.info("failure", "duckduckgo", { variant: "html", status: res.status, latencyMs: Date.now() - start });
+      log.info("failure", "duckduckgo", { variant: "html", status: res.status, latencyMs: performance.now() - start });
       return null;
     }
     const text = await res.text();
@@ -205,19 +205,19 @@ export async function searchViaDuckDuckGoFree(query: string, log: Logger): Promi
     });
     const cleaned = lines.join("\n\n").trim();
     if (cleaned.length > MIN_CHARS) {
-      log.info("success", "duckduckgo", { variant: "html", latencyMs: Date.now() - start, chars: cleaned.length });
+      log.info("success", "duckduckgo", { variant: "html", latencyMs: performance.now() - start, chars: cleaned.length });
       return cleaned.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "duckduckgo", { variant: "html", latencyMs: Date.now() - start });
+    log.info("failure", "duckduckgo", { variant: "html", latencyMs: performance.now() - start });
     return null;
   }
 }
 
 export async function searchViaMistralWeb(query: string, apiKey: string, log: Logger): Promise<string | null> {
   if (!apiKey) return null;
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "mistral_websearch", { query: query.slice(0, 80) });
   try {
     const res = await fetchWithTimeout("https://api.mistral.ai/v1/chat/completions", {
@@ -231,18 +231,18 @@ export async function searchViaMistralWeb(query: string, apiKey: string, log: Lo
     }, 25000);
     if (!res.ok) {
       const err = classifyError("mistral_websearch", new Error(`HTTP ${res.status}`), res.status);
-      log.info("failure", "mistral_websearch", { status: res.status, latencyMs: Date.now() - start, errorType: err.type });
+      log.info("failure", "mistral_websearch", { status: res.status, latencyMs: performance.now() - start, errorType: err.type });
       return null;
     }
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
     if (content && content.length > MIN_CHARS) {
-      log.info("success", "mistral_websearch", { latencyMs: Date.now() - start, chars: content.length });
+      log.info("success", "mistral_websearch", { latencyMs: performance.now() - start, chars: content.length });
       return content.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "mistral_websearch", { latencyMs: Date.now() - start });
+    log.info("failure", "mistral_websearch", { latencyMs: performance.now() - start });
     return null;
   }
 }
@@ -252,7 +252,7 @@ export async function searchViaExaMcpWithMistral(query: string, apiKey: string, 
   const exaContext = await searchViaExaMcp(query, log);
   if (!exaContext) return null;
 
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "exa_mcp_mistral", { query: query.slice(0, 80) });
   try {
     const res = await fetchWithTimeout(
@@ -279,18 +279,18 @@ export async function searchViaExaMcpWithMistral(query: string, apiKey: string, 
       25000
     );
     if (!res.ok) {
-      log.info("failure", "exa_mcp_mistral", { status: res.status, latencyMs: Date.now() - start });
+      log.info("failure", "exa_mcp_mistral", { status: res.status, latencyMs: performance.now() - start });
       return null;
     }
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
     if (content && content.length > MIN_CHARS) {
-      log.info("success", "exa_mcp_mistral", { latencyMs: Date.now() - start, chars: content.length });
+      log.info("success", "exa_mcp_mistral", { latencyMs: performance.now() - start, chars: content.length });
       return content.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "exa_mcp_mistral", { latencyMs: Date.now() - start });
+    log.info("failure", "exa_mcp_mistral", { latencyMs: performance.now() - start });
     return null;
   }
 }

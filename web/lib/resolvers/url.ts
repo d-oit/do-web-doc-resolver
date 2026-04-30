@@ -64,7 +64,7 @@ async function fetchWithTimeout(
 }
 
 export async function extractViaLlmsTxt(url: string, log: Logger): Promise<string | null> {
-  const start = Date.now();
+  const start = performance.now();
   log.info("probing llms.txt", "llms_txt", { url });
   try {
     const parsed = new URL(url);
@@ -73,24 +73,24 @@ export async function extractViaLlmsTxt(url: string, log: Logger): Promise<strin
       headers: { Accept: "text/plain" },
     }, 8000);
     if (!res.ok) {
-      log.info("no llms.txt found", "llms_txt", { status: res.status, latencyMs: Date.now() - start });
+      log.info("no llms.txt found", "llms_txt", { status: res.status, latencyMs: Math.round(performance.now() - start) });
       return null;
     }
     const text = await res.text();
     if (text.length > MIN_CHARS) {
-      log.info("success", "llms_txt", { latencyMs: Date.now() - start, chars: text.length });
+      log.info("success", "llms_txt", { latencyMs: Math.round(performance.now() - start), chars: text.length });
       return text.slice(0, MAX_CHARS);
     }
     log.info("llms.txt too short", "llms_txt", { chars: text.length });
     return null;
   } catch {
-    log.info("failure", "llms_txt", { latencyMs: Date.now() - start });
+    log.info("failure", "llms_txt", { latencyMs: Math.round(performance.now() - start) });
     return null;
   }
 }
 
 export async function extractViaJina(url: string, log: Logger): Promise<string | null> {
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "jina", { url });
   try {
     const validation = await validateUrlForFetchAsync(url);
@@ -102,23 +102,23 @@ export async function extractViaJina(url: string, log: Logger): Promise<string |
       headers: { Accept: "text/plain", "X-Return-Format": "text" },
     });
     if (!res.ok) {
-      log.info("failure", "jina", { status: res.status, latencyMs: Date.now() - start });
+      log.info("failure", "jina", { status: res.status, latencyMs: Math.round(performance.now() - start) });
       return null;
     }
     const text = await res.text();
     if (text.length > MIN_CHARS) {
-      log.info("success", "jina", { latencyMs: Date.now() - start, chars: text.length });
+      log.info("success", "jina", { latencyMs: Math.round(performance.now() - start), chars: text.length });
       return text.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "jina", { latencyMs: Date.now() - start });
+    log.info("failure", "jina", { latencyMs: Math.round(performance.now() - start) });
     return null;
   }
 }
 
 export async function extractViaDirectFetch(url: string, log: Logger): Promise<string | null> {
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "direct_fetch", { url });
   try {
     const res = await safeFetch(url, {
@@ -128,30 +128,30 @@ export async function extractViaDirectFetch(url: string, log: Logger): Promise<s
       },
     });
     if (!res.ok) {
-      log.info("failure", "direct_fetch", { status: res.status, latencyMs: Date.now() - start });
+      log.info("failure", "direct_fetch", { status: res.status, latencyMs: Math.round(performance.now() - start) });
       return null;
     }
     const html = await res.text();
     const text = html
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi, "")
+      .replace(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
     if (text.length > MIN_CHARS) {
-      log.info("success", "direct_fetch", { latencyMs: Date.now() - start, chars: text.length });
+      log.info("success", "direct_fetch", { latencyMs: Math.round(performance.now() - start), chars: text.length });
       return text.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "direct_fetch", { latencyMs: Date.now() - start });
+    log.info("failure", "direct_fetch", { latencyMs: Math.round(performance.now() - start) });
     return null;
   }
 }
 
 export async function extractViaFirecrawl(url: string, apiKey: string, log: Logger): Promise<string | null> {
   if (!apiKey) return null;
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "firecrawl", { url });
   try {
     const res = await fetchWithTimeout(
@@ -167,25 +167,25 @@ export async function extractViaFirecrawl(url: string, apiKey: string, log: Logg
       30000
     );
     if (!res.ok) {
-      log.info("failure", "firecrawl", { status: res.status, latencyMs: Date.now() - start });
+      log.info("failure", "firecrawl", { status: res.status, latencyMs: Math.round(performance.now() - start) });
       return null;
     }
     const data = await res.json();
     const markdown = data?.data?.markdown;
     if (markdown && markdown.length > MIN_CHARS) {
-      log.info("success", "firecrawl", { latencyMs: Date.now() - start, chars: markdown.length });
+      log.info("success", "firecrawl", { latencyMs: Math.round(performance.now() - start), chars: markdown.length });
       return markdown.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "firecrawl", { latencyMs: Date.now() - start });
+    log.info("failure", "firecrawl", { latencyMs: Math.round(performance.now() - start) });
     return null;
   }
 }
 
 export async function extractViaMistralBrowser(url: string, apiKey: string, log: Logger): Promise<string | null> {
   if (!apiKey) return null;
-  const start = Date.now();
+  const start = performance.now();
   log.info("attempt", "mistral_browser", { url });
   try {
     const res = await fetchWithTimeout(
@@ -205,18 +205,18 @@ export async function extractViaMistralBrowser(url: string, apiKey: string, log:
       25000
     );
     if (!res.ok) {
-      log.info("failure", "mistral_browser", { status: res.status, latencyMs: Date.now() - start });
+      log.info("failure", "mistral_browser", { status: res.status, latencyMs: Math.round(performance.now() - start) });
       return null;
     }
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
     if (content && content.length > MIN_CHARS) {
-      log.info("success", "mistral_browser", { latencyMs: Date.now() - start, chars: content.length });
+      log.info("success", "mistral_browser", { latencyMs: Math.round(performance.now() - start), chars: content.length });
       return content.slice(0, MAX_CHARS);
     }
     return null;
   } catch {
-    log.info("failure", "mistral_browser", { latencyMs: Date.now() - start });
+    log.info("failure", "mistral_browser", { latencyMs: Math.round(performance.now() - start) });
     return null;
   }
 }

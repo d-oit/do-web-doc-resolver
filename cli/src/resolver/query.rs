@@ -131,10 +131,13 @@ impl QueryCascade {
 
         // Check semantic cache
         if let Some(cache) = cache {
+            let cache_started = Instant::now();
             if let Ok(Some(results)) = cache.query(query).await {
                 if !results.is_empty() {
+                    let cache_latency = cache_started.elapsed().as_millis() as u64;
                     let mut first = results[0].clone();
                     metrics.cache_hit = true;
+                    metrics.total_latency_ms = cache_latency;
                     first.metrics = Some(metrics);
                     return Ok(first);
                 }
