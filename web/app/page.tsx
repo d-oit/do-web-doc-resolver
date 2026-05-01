@@ -288,7 +288,16 @@ export default function Home() {
   };
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
-    setApiKeys((prev) => ({ ...prev, [key]: value || undefined }));
+    setApiKeys((prev) => {
+      const next = { ...prev };
+      const trimmed = value.trim();
+      if (!trimmed) {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      return next;
+    });
   };
 
   const handleCopyResult = async () => {

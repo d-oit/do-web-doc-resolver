@@ -22,12 +22,13 @@ export function resolveKeySource(
   localKeys: ApiKeys,
   serverStatus: Record<string, boolean>
 ): Record<string, KeySource> {
+  const hasKey = (key: string | undefined) => !!(key && key.trim());
   return {
-    serper: localKeys.serper_api_key ? "local" : serverStatus.serper ? "server" : "none",
-    tavily: localKeys.tavily_api_key ? "local" : serverStatus.tavily ? "server" : "none",
-    exa: localKeys.exa_api_key ? "local" : serverStatus.exa ? "server" : "none",
-    firecrawl: localKeys.firecrawl_api_key ? "local" : serverStatus.firecrawl ? "server" : "none",
-    mistral: localKeys.mistral_api_key ? "local" : serverStatus.mistral ? "server" : "none",
+    serper: hasKey(localKeys.serper_api_key) ? "local" : serverStatus.serper ? "server" : "none",
+    tavily: hasKey(localKeys.tavily_api_key) ? "local" : serverStatus.tavily ? "server" : "none",
+    exa: hasKey(localKeys.exa_api_key) ? "local" : serverStatus.exa ? "server" : "none",
+    firecrawl: hasKey(localKeys.firecrawl_api_key) ? "local" : serverStatus.firecrawl ? "server" : "none",
+    mistral: hasKey(localKeys.mistral_api_key) ? "local" : serverStatus.mistral ? "server" : "none",
     exa_mcp: "free",
     duckduckgo: "free",
   };
