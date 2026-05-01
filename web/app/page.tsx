@@ -212,12 +212,27 @@ export default function Home() {
     }
   }, []);
 
-  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
+  const handleSubmit = useCallback(async (
+    e?: React.FormEvent,
+    override?: {
+      query?: string;
+      providers?: string[];
+      deepResearch?: boolean;
+      maxChars?: number;
+      skipCache?: boolean;
+      isHistoryLoad?: boolean;
+    }
+  ) => {
     e?.preventDefault();
-    if (!query.trim() || loading) return;
+    const activeQuery = override?.query ?? query;
+    if (!activeQuery.trim() || loading) return;
 
     setLoading(true);
     setError("");
+    if (!override?.isHistoryLoad) {
+      setParsedResults([]);
+      setResult("");
+    }
     setProviderStatus("Fetching...");
     const startTime = performance.now();
 
@@ -226,12 +241,12 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: query.trim(),
+          query: activeQuery.trim(),
           ...apiKeys,
-          providers: requestProviders,
-          deepResearch,
-          maxChars,
-          skipCache,
+          providers: override?.providers ?? requestProviders,
+          deepResearch: override?.deepResearch ?? deepResearch,
+          maxChars: override?.maxChars ?? maxChars,
+          skipCache: override?.skipCache ?? skipCache,
         }),
       });
 
@@ -256,16 +271,24 @@ export default function Home() {
       const timeTaken = Math.round(endTime - startTime);
       setResolveTime(timeTaken);
 
+      // If we're overriding providers, they might be different from activeProviders state
+      const historyProviders = override?.providers
+        ? PROVIDERS.filter(p => override.providers!.includes(toApiProviderId(p.id))).map(p => p.id)
+        : activeProviders;
+
       saveToHistory({
-        query: query.trim(),
+        query: activeQuery.trim(),
         result: markdown,
         provider: data.provider,
         charCount: markdown.length,
         resolveTime: timeTaken,
-        url: isUrl ? query.trim() : null,
+        url: activeQuery.trim().startsWith("http") ? activeQuery.trim() : null,
         profile,
-        flags: { skipCache, deepResearch },
-        providers: activeProviders,
+        flags: {
+          skipCache: override?.skipCache ?? skipCache,
+          deepResearch: override?.deepResearch ?? deepResearch,
+        },
+        providers: historyProviders,
         normalizedUrlHashes,
       });
 
@@ -285,6 +308,30 @@ export default function Home() {
     setResolveTime(entry.resolveTime);
     setParsedResults(parseProviderResults(entry.result));
     setError("");
+
+    // Restore associated settings
+    if (entry.profile && PROFILES.some((p) => p.id === entry.profile)) {
+      setProfile(entry.profile as ProfileId);
+    }
+    if (entry.providers) {
+      setSelectedProviders(entry.providers);
+    }
+    if (entry.flags) {
+      setSkipCache(!!entry.flags.skipCache);
+      setDeepResearch(!!entry.flags.deepResearch);
+    }
+
+    // Re-run the search to ensure results are fresh and state is synced
+    handleSubmit(undefined, {
+      query: entry.query,
+      providers: entry.providers?.map(toApiProviderId),
+      skipCache: entry.flags?.skipCache,
+      deepResearch: entry.flags?.deepResearch,
+      maxChars, // Keep current maxChars or could also store/restore it
+      isHistoryLoad: true,
+    });
+
+    inputRef.current?.focus();
   };
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
