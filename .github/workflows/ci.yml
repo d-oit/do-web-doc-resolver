@@ -92,7 +92,6 @@ jobs:
 
       - name: Run mypy
         run: mypy scripts/ --ignore-missing-imports
-        continue-on-error: true
 
   test:
     name: Test (Python ${{ matrix.python-version }})
