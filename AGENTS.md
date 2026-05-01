@@ -13,6 +13,7 @@
   - Python: `pytest -m "not live"`
   - Rust: `cd cli && cargo test`
   - Web: `cd web && npx playwright test --project=desktop`
+- **Web dependencies**: Use `npm ci --legacy-peer-deps` (ESLint 10 peer conflict)
 - **PR Checklist**:
   - `scripts/quality_gate.sh` passes
   - Linting clean (ruff/black, cargo fmt/clippy, npm run lint)
