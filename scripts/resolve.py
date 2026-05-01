@@ -4,6 +4,7 @@ Web Doc Resolver - Resolve queries or URLs into compact, LLM-ready markdown.
 Main orchestrator. CLI entrypoint moved to scripts/cli.py.
 """
 
+import concurrent.futures
 import logging
 import os
 
@@ -64,6 +65,18 @@ _circuit_breakers = scripts.circuit_breaker.CircuitBreakerRegistry()
 _routing_memory = scripts.routing_memory.RoutingMemory()
 _cache = None
 _semantic_cache = None
+_executor = None
+
+
+def _get_executor(max_workers: int = 10) -> concurrent.futures.ThreadPoolExecutor:
+    """Get or create shared ThreadPoolExecutor."""
+    global _executor
+    if _executor is None:
+        _executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=max_workers, thread_name_prefix="resolver"
+        )
+    return _executor
+
 
 # Keep facade and extracted submodules on the same shared state so callers,
 # tests, and future monkeypatches still observe one resolver runtime.
