@@ -216,11 +216,11 @@ export default function Home() {
     e?: React.FormEvent,
     override?: {
       query?: string;
-      providers?: string[];
-      deepResearch?: boolean;
-      maxChars?: number;
-      skipCache?: boolean;
-      isHistoryLoad?: boolean;
+      providers?: string[] | undefined;
+      deepResearch?: boolean | undefined;
+      maxChars?: number | undefined;
+      skipCache?: boolean | undefined;
+      isHistoryLoad?: boolean | undefined;
     }
   ) => {
     e?.preventDefault();
