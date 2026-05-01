@@ -289,6 +289,7 @@ export default function Home() {
     const restoredDeepResearch = Boolean(entry.flags?.deepResearch);
     setSkipCache(restoredSkipCache);
     setDeepResearch(restoredDeepResearch);
+    setMobileMenuOpen(false);
 
     // Re-run the search to ensure results are fresh and state is synced
     handleSubmit(undefined, {
