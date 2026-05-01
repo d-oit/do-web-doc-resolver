@@ -1,18 +1,14 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
 import js from "@eslint/js";
 import globals from "globals";
 import nextPlugin from "@next/eslint-plugin-next";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
+import playwrightPlugin from "eslint-plugin-playwright";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 
-const __filename = fileURLToPath(import.meta.url);
-// __dirname not needed for this config
-
 export default [
   {
-    ignores: [".next/*", "node_modules/*", "dist/*"],
+    ignores: [".next/*", "node_modules/*", "dist/*", ".vercel/output/**", "playwright-report/**", "test-results/**"],
   },
   js.configs.recommended,
   {
@@ -62,7 +58,69 @@ export default [
     },
   },
   {
-    files: ["**/*.test.ts", "**/*.spec.ts", "app/api/**/*.ts", "lib/resolvers/*.ts", "lib/circuit-breaker.ts", "lib/rate-limit.ts", "lib/ui-state.ts", "lib/cache.ts", "lib/records.ts"],
+    // Vitest unit tests - not Playwright
+    files: ["tests/**/*.test.ts", "tests/**/*.spec.ts"],
+    ignores: ["tests/e2e/**"],
+    languageOptions: {
+      globals: {
+        // Vitest globals
+        ...globals.vitest,
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        vi: "readonly",
+      },
+    },
+    rules: {
+      "no-restricted-syntax": "off",
+    }
+  },
+  {
+    // Playwright e2e tests
+    files: ["tests/e2e/**/*.test.ts", "tests/e2e/**/*.spec.ts"],
+    plugins: {
+      playwright: playwrightPlugin,
+    },
+    languageOptions: {
+      globals: {
+        // Playwright test globals
+        ...globals.playwright,
+        test: "readonly",
+        expect: "readonly",
+        describe: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        page: "readonly",
+        browser: "readonly",
+        context: "readonly",
+        locator: "readonly",
+      },
+    },
+    rules: {
+      ...playwrightPlugin.configs.recommended.rules,
+      "no-restricted-syntax": "off",
+      // Warnings for test style issues (can be fixed over time)
+      "playwright/no-skipped-test": "warn",
+      "playwright/no-focused-test": "error",
+      "playwright/no-standalone-expect": "off",
+      "playwright/no-networkidle": "warn",
+      "playwright/no-useless-not": "warn",
+      "playwright/no-wait-for-selector": "warn",
+      "playwright/no-wait-for-timeout": "warn",
+      "playwright/no-force-option": "warn",
+      "playwright/prefer-locator": "warn",
+      "playwright/prefer-web-first-assertions": "warn",
+    }
+  },
+  {
+    files: ["app/api/**/*.ts", "lib/resolvers/*.ts", "lib/circuit-breaker.ts", "lib/rate-limit.ts", "lib/ui-state.ts", "lib/cache.ts", "lib/records.ts"],
     rules: {
       "no-restricted-syntax": "off",
     }
