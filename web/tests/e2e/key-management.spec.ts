@@ -1,4 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function openSidebarIfMobile(page: Page): Promise<void> {
+  const openMenuButton = page.getByRole("button", { name: "Open menu" });
+  if (await openMenuButton.isVisible()) {
+    await openMenuButton.click();
+  }
+}
 
 test("provider button reverts to needs key when API key is cleared on main page", async ({ page }) => {
   await page.route("**/api/key-status", async (route) => {
@@ -23,12 +30,14 @@ test("provider button reverts to needs key when API key is cleared on main page"
 
   await page.goto("/");
   await expect(page.getByTestId("app-loaded")).toBeVisible();
+  await openSidebarIfMobile(page);
 
   const mistralButton = page.getByRole("button", { name: /^Mistral/i });
   await expect(mistralButton).toContainText("(needs key)");
 
   const apiKeysToggle = page.getByTestId("api-keys-toggle");
-  await apiKeysToggle.click();
+  await apiKeysToggle.scrollIntoViewIfNeeded();
+  await apiKeysToggle.click({ force: true });
 
   const mistralInput = page.locator('label', { hasText: /^Mistral/ }).locator('xpath=..').locator('input');
 
