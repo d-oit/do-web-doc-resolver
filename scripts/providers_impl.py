@@ -7,7 +7,6 @@ import logging
 import os
 import subprocess
 import time
-from typing import Any
 
 from scripts.models import ResolvedResult
 from scripts.utils import (

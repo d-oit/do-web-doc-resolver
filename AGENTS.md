@@ -22,8 +22,6 @@
   - Linting clean (ruff/black, cargo fmt/clippy, npm run lint)
   - Markdown linting passes (`markdownlint`)
   - No new secrets committed (Gitleaks)
-  - Check `plans/README.md` — ensure changes align with roadmap
-  - Consult relevant [Regression Prevention](#regression-prevention) references before merging
   - `AGENTS.md` updated if repository structure changed
 
 ## Repository Structure
@@ -37,7 +35,6 @@
 ├── tests/                 # Python test suite
 ├── docs/                  # Standards & examples
 ├── agents-docs/           # Reference for agents
-├── plans/                 # Roadmap & architecture plans (see plans/README.md)
 ├── .agents/skills/        # Canonical skill definitions
 ├── .githooks/             # Git hooks (pre-commit, etc.)
 ├── .github/               # GitHub workflows & templates
@@ -82,25 +79,3 @@ Detailed domain knowledge is located in `agents-docs/`.
 | readme-best-practices | .agents/skills/readme-best-practices/ |
 | anti-ai-slop | .agents/skills/anti-ai-slop/ |
 | vercel-cli | .agents/skills/vercel-cli/ |
-
-## Regression Prevention
-
-Key reference files in `.agents/skills/` that help prevent regressions:
-
-| Topic | Reference File | Prevents |
-|---|---|---|
-| Provider cascade logic | [.agents/skills/do-web-doc-resolver/references/CASCADE.md](.agents/skills/do-web-doc-resolver/references/CASCADE.md) | Provider status, cascade order issues |
-| Provider configuration | [.agents/skills/do-web-doc-resolver/references/PROVIDERS.md](.agents/skills/do-web-doc-resolver/references/PROVIDERS.md) | API key validation, provider availability |
-| Testing strategy | [.agents/skills/do-web-doc-resolver/references/TESTING.md](.agents/skills/do-web-doc-resolver/references/TESTING.md) | CI gaps, missing test coverage |
-| CI automation | [.agents/skills/vercel-cli/references/ci-automation.md](.agents/skills/vercel-cli/references/ci-automation.md) | Redundant builds, workflow inefficiencies |
-| Browser testing | [.agents/skills/agent-browser/references/commands.md](.agents/skills/agent-browser/references/commands.md) | UI regressions, state management bugs |
-| UI components | [.agents/skills/do-wdr-ui-component/](.agents/skills/do-wdr-ui-component/) | Frontend component inconsistencies |
-| Architecture plans | [plans/README.md](plans/README.md) | Design regressions, architectural drift |
-
-### Pre-implementation Checklist
-
-Before implementing changes, consult:
-1. `plans/README.md` — Check if change aligns with roadmap
-2. Relevant skill reference files above — Understand existing patterns
-3. Run `agent-browser` tests for web UI changes (see [agent-browser skill](.agents/skills/agent-browser/))
-4. Update `AGENTS.md` if new skills or plans affect workflow
