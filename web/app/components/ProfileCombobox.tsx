@@ -64,8 +64,11 @@ export default function ProfileCombobox({ value, onChange, options }: ProfileCom
       case " ":
         e.preventDefault();
         if (activeIndex >= 0 && activeIndex < options.length) {
-          onChange(options[activeIndex].id);
-          setOpen(false);
+          const option = options[activeIndex];
+          if (option) {
+            onChange(option.id);
+            setOpen(false);
+          }
         }
         break;
       case "Escape":
