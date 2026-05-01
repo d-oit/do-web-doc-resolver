@@ -9,15 +9,19 @@
 - **Commit format**: Conventional Commits (`type(scope): description`)
 - **File size limit**: 500 lines max per source file
 - **Quality gate command**: `./scripts/quality_gate.sh`
+- **Pre-commit hooks**: `pre-commit run --all-files` (requires `pip install pre-commit`)
+- **Secret scanning**: Gitleaks (`.gitleaks.toml`)
 - **Test commands**:
   - Python: `pytest -m "not live"`
   - Rust: `cd cli && cargo test`
   - Web: `cd web && npx playwright test --project=desktop`
+- **Local CI**: `act` (requires Docker, see `.actrc`)
 - **Web dependencies**: Use `npm ci --legacy-peer-deps` (ESLint 10 peer conflict)
 - **PR Checklist**:
   - `scripts/quality_gate.sh` passes
   - Linting clean (ruff/black, cargo fmt/clippy, npm run lint)
-  - No new secrets committed
+  - Markdown linting passes (`markdownlint`)
+  - No new secrets committed (Gitleaks)
   - `AGENTS.md` updated if repository structure changed
 
 ## Repository Structure
@@ -32,8 +36,17 @@
 ├── docs/                  # Standards & examples
 ├── agents-docs/           # Reference for agents
 ├── .agents/skills/        # Canonical skill definitions
+├── .githooks/             # Git hooks (pre-commit, etc.)
+├── .github/               # GitHub workflows & templates
 └── assets/                # Visual assets
 ```
+
+### Configuration Files (from github-template-ai-agents)
+- `.gitleaks.toml` - Secret scanning configuration
+- `.pre-commit-config.yaml` - Pre-commit hooks (Gitleaks, shellcheck, markdownlint)
+- `commitlint.config.cjs` - Commit message linting
+- `markdownlint.toml` - Markdown linting rules
+- `.actrc` - Local CI testing with `act`
 
 ## Project Documentation
 

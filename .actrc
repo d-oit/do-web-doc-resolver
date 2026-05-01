@@ -1,0 +1,8 @@
+# Options for nektos/act (local GitHub Actions testing)
+# See: https://github.com/nektos/act
+
+# Use medium-sized container (balances speed and capability)
+-P medium
+
+# Display entire output (not just failures)
+-v
