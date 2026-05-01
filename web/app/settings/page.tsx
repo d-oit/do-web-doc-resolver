@@ -65,13 +65,7 @@ export default function SettingsPage() {
   };
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
-    const newKeys = { ...apiKeys };
-    const trimmed = value.trim();
-    if (!trimmed) {
-      delete newKeys[key];
-    } else {
-      newKeys[key] = value;
-    }
+    const newKeys = { ...apiKeys, [key]: value || undefined };
     setApiKeys(newKeys);
     persistKeys(newKeys);
     setSaved(true);

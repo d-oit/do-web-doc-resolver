@@ -1,11 +1,21 @@
 #!/bin/bash
 # Pre-commit hook for do-web-doc-resolver
-# Runs quality gate before commit
-# Note: Gitleaks runs via GitHub Action (.github/workflows/gitleaks.yml)
+# Integrates Gitleaks secret scanning with quality gate
 
 set -e
 
 echo "Running pre-commit checks..."
+
+# Run Gitleaks secret scan
+if command -v gitleaks &> /dev/null; then
+    echo "Scanning for secrets with Gitleaks..."
+    gitleaks protect --verbose --redact --staged --config=.gitleaks.toml || {
+        echo "❌ Gitleaks detected potential secrets. Please review and fix."
+        exit 1
+    }
+else
+    echo "⚠️  Gitleaks not installed. Install with: brew install gitleaks (macOS) or go install github.com/gitleaks/gitleaks@latest"
+fi
 
 # Run quality gate
 if [ -f "./scripts/quality_gate.sh" ]; then
@@ -14,4 +24,3 @@ if [ -f "./scripts/quality_gate.sh" ]; then
 fi
 
 echo "✅ Pre-commit checks passed!"
-echo "ℹ️  Secret scanning (Gitleaks) runs via GitHub Actions on push/PR."
