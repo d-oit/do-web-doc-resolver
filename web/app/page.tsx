@@ -1,13 +1,46 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import Link from "next/link";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource } from "@/lib/keys";
 import { loadUIState, saveUIState, type UIState } from "@/lib/ui-state";
-import { HistoryEntry } from "@/app/components/History";
+import History, { HistoryEntry } from "@/app/components/History";
+import ProfileCombobox from "@/app/components/ProfileCombobox";
+import ResultCard from "@/app/components/ResultCard";
 import { parseProviderResults, extractNormalizedUrls, type ProviderResult } from "@/lib/results";
-import { PROVIDERS, PROFILES, ProfileId, UiProvider, toApiProviderId } from "@/app/constants";
-import Sidebar from "@/app/components/Sidebar";
-import MainContent from "@/app/components/MainContent";
+
+type ProfileId = "free" | "balanced" | "fast" | "quality" | "custom";
+
+interface UiProvider {
+  id: string;
+  label: string;
+  free: boolean;
+  sourceKey?: string;
+}
+
+// Providers in CLI cascade order (see web/lib/routing.ts QUERY_CASCADE)
+const PROVIDERS: UiProvider[] = [
+  { id: "exa_mcp", label: "Exa MCP", free: true },
+  { id: "exa", label: "Exa SDK", free: false, sourceKey: "exa" },
+  { id: "tavily", label: "Tavily", free: false },
+  { id: "serper", label: "Serper", free: false },
+  { id: "mistral", label: "Mistral", free: false, sourceKey: "mistral" },
+  { id: "duckduckgo", label: "DuckDuckGo", free: true },
+];
+
+// Profiles with providers in cascade order
+const PROFILES: Array<{ id: ProfileId; label: string; providers: string[] }> = [
+  { id: "free", label: "Free", providers: ["exa_mcp", "duckduckgo"] },
+  { id: "fast", label: "Fast", providers: ["exa_mcp", "serper"] },
+  { id: "balanced", label: "Balanced", providers: ["exa_mcp", "tavily", "serper", "duckduckgo"] },
+  { id: "quality", label: "Quality", providers: ["exa_mcp", "exa", "tavily", "serper", "mistral", "duckduckgo"] },
+  { id: "custom", label: "Custom", providers: [] },
+];
+
+function toApiProviderId(providerId: string): string {
+  if (providerId === "mistral") return "mistral_websearch";
+  return providerId;
+}
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -87,8 +120,8 @@ export default function Home() {
         setProfile(savedProfile);
         setSelectedProviders(ui.selectedProviders || []);
         setMaxChars(ui.maxChars || 8000);
-        setSkipCache(Boolean(ui.skipCache));
-        setDeepResearch(Boolean(ui.deepResearch));
+        setSkipCache(!!ui.skipCache);
+        setDeepResearch(!!ui.deepResearch);
         if (ui.apiKeys && typeof ui.apiKeys === "object") {
           const keys = loadApiKeys();
           const mergedKeys = { ...keys, ...ui.apiKeys } as ApiKeys;
@@ -135,8 +168,9 @@ export default function Home() {
     });
   };
 
+  const charCount = result.length;
   const isUrl = query.trim().startsWith("http");
-  const mistralActive = keySource["mistral"] === "local" || keySource["mistral"] === "server";
+  const mistralActive = keySource.mistral === "local" || keySource.mistral === "server";
 
   const isProviderAvailable = useCallback((providerId: string): boolean => {
     if (providerId === "duckduckgo" && mistralActive) return false;
@@ -178,28 +212,12 @@ export default function Home() {
     }
   }, []);
 
-  const handleSubmit = useCallback(async (
-    e?: React.FormEvent,
-    override?: {
-      query?: string;
-      profile?: ProfileId | undefined;
-      providers?: string[] | undefined;
-      deepResearch?: boolean | undefined;
-      maxChars?: number | undefined;
-      skipCache?: boolean | undefined;
-      isHistoryLoad?: boolean | undefined;
-    }
-  ) => {
+  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const activeQuery = override?.query ?? query;
-    if (!activeQuery.trim() || loading) return;
+    if (!query.trim() || loading) return;
 
     setLoading(true);
     setError("");
-    if (!override?.isHistoryLoad) {
-      setParsedResults([]);
-      setResult("");
-    }
     setProviderStatus("Fetching...");
     const startTime = performance.now();
 
@@ -208,12 +226,12 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: activeQuery.trim(),
+          query: query.trim(),
           ...apiKeys,
-          providers: override?.providers ?? requestProviders,
-          deepResearch: override?.deepResearch ?? deepResearch,
-          maxChars: override?.maxChars ?? maxChars,
-          skipCache: override?.skipCache ?? skipCache,
+          providers: requestProviders,
+          deepResearch,
+          maxChars,
+          skipCache,
         }),
       });
 
@@ -238,24 +256,16 @@ export default function Home() {
       const timeTaken = Math.round(endTime - startTime);
       setResolveTime(timeTaken);
 
-      // If we're overriding providers, they might be different from activeProviders state
-      const historyProviders = override?.providers
-        ? PROVIDERS.filter(p => override.providers!.includes(toApiProviderId(p.id))).map(p => p.id)
-        : activeProviders;
-
       saveToHistory({
-        query: activeQuery.trim(),
+        query: query.trim(),
         result: markdown,
         provider: data.provider,
         charCount: markdown.length,
         resolveTime: timeTaken,
-        url: activeQuery.trim().startsWith("http") ? activeQuery.trim() : null,
-        profile: override?.profile ?? profile,
-        flags: {
-          skipCache: override?.skipCache ?? skipCache,
-          deepResearch: override?.deepResearch ?? deepResearch,
-        },
-        providers: historyProviders,
+        url: isUrl ? query.trim() : null,
+        profile,
+        flags: { skipCache, deepResearch },
+        providers: activeProviders,
         normalizedUrlHashes,
       });
 
@@ -266,7 +276,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [query, apiKeys, requestProviders, deepResearch, maxChars, skipCache, profile, activeProviders, saveToHistory, loading]);
+  }, [query, apiKeys, requestProviders, deepResearch, maxChars, skipCache, isUrl, profile, activeProviders, saveToHistory, loading]);
 
   const handleHistoryLoad = (entry: HistoryEntry) => {
     setQuery(entry.query);
@@ -275,33 +285,7 @@ export default function Home() {
     setResolveTime(entry.resolveTime);
     setParsedResults(parseProviderResults(entry.result));
     setError("");
-
-    // Restore associated settings or reset to defaults
-    const restoredProfile = (entry.profile && PROFILES.some((p) => p.id === entry.profile))
-      ? (entry.profile as ProfileId)
-      : "free";
-    setProfile(restoredProfile);
-
-    const restoredProviders = entry.providers ?? [];
-    setSelectedProviders(restoredProviders);
-
-    const restoredSkipCache = Boolean(entry.flags?.skipCache);
-    const restoredDeepResearch = Boolean(entry.flags?.deepResearch);
-    setSkipCache(restoredSkipCache);
-    setDeepResearch(restoredDeepResearch);
-
-    // Re-run the search to ensure results are fresh and state is synced
-    handleSubmit(undefined, {
-      query: entry.query,
-      profile: restoredProfile,
-      providers: restoredProviders.length > 0 ? restoredProviders.map(toApiProviderId) : undefined,
-      skipCache: restoredSkipCache,
-      deepResearch: restoredDeepResearch,
-      maxChars, // Keep current maxChars or could also store/restore it
-      isHistoryLoad: true,
-    });
-
-    inputRef.current?.focus();
+    setMobileMenuOpen(false);
   };
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
@@ -354,65 +338,357 @@ export default function Home() {
         />
       )}
 
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        profile={profile}
-        setProfile={setProfile}
-        selectedProviders={selectedProviders}
-        setSelectedProviders={setSelectedProviders}
-        maxChars={maxChars}
-        setMaxChars={setMaxChars}
-        skipCache={skipCache}
-        setSkipCache={setSkipCache}
-        deepResearch={deepResearch}
-        setDeepResearch={setDeepResearch}
-        apiKeysOpen={apiKeysOpen}
-        setApiKeysOpen={setApiKeysOpen}
-        apiKeys={apiKeys}
-        handleKeyChange={handleKeyChange}
-        handleProviderToggle={handleProviderToggle}
-        isProviderAvailable={isProviderAvailable}
-        activeProviders={activeProviders}
-        mistralActive={mistralActive}
-        keySource={keySource as Record<string, string>}
-        handleHistoryLoad={handleHistoryLoad}
-        isCustomSelection={isCustomSelection}
-      />
+      {/* Sidebar - Configuration */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-72 bg-background border-r-2 border-border-muted transition-transform duration-300 lg:relative lg:translate-x-0
+          ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${sidebarOpen ? "lg:w-72" : "lg:w-16"}
+        `}
+      >
+        <button
+          data-testid="sidebar-toggle"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
+          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {sidebarOpen ? (
+            <>
+              <span className="text-[11px] uppercase tracking-[0.1em] text-text-muted">
+                Configuration
+              </span>
+              <div className="flex items-center gap-2">
+                <Link href="/settings" className="text-[11px] text-text-muted hover:text-accent">
+                  Keys
+                </Link>
+                <span className="text-[10px] text-text-dim">Hide</span>
+              </div>
+            </>
+          ) : (
+            <span className="w-full text-center text-[10px] text-text-dim">Show</span>
+          )}
+        </button>
 
-      <MainContent
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        query={query}
-        setQuery={setQuery}
-        handleSubmit={handleSubmit}
-        loading={loading}
-        inputRef={inputRef}
-        error={error}
-        result={result}
-        setResult={setResult}
-        setError={setError}
-        providerStatus={providerStatus}
-        setProviderStatus={setProviderStatus}
-        sourceProvider={sourceProvider}
-        setSourceProvider={setSourceProvider}
-        resolveTime={resolveTime}
-        setResolveTime={setResolveTime}
-        qualityScore={qualityScore}
-        setQualityScore={setQualityScore}
-        parsedResults={parsedResults}
-        setParsedResults={setParsedResults}
-        viewRaw={viewRaw}
-        setViewRaw={setViewRaw}
-        helpfulIds={helpfulIds}
-        toggleHelpful={toggleHelpful}
-        handleCopyResult={handleCopyResult}
-        handleCardCopy={handleCardCopy}
-        copied={copied}
-        isUrl={isUrl}
-      />
+        {sidebarOpen && (
+          <div className="p-4 flex flex-col gap-8 overflow-y-auto max-h-[calc(100vh-44px)]">
+            {/* Profile */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[11px] text-text-muted">Profile</label>
+              <ProfileCombobox
+                value={profile}
+                onChange={(p) => {
+                  setProfile(p as ProfileId);
+                  setSelectedProviders([]);
+                }}
+                options={PROFILES.map((p) => ({
+                  id: p.id,
+                  label: p.label,
+                  description: p.providers.join(", "),
+                }))}
+              />
+              <span className="text-[10px] text-text-dim">
+                {isCustomSelection ? `${selectedProviders.length} selected` : `Using ${profile} profile`}
+              </span>
+              <div className="flex flex-col gap-1 mt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] text-text-muted">Max chars</label>
+                  <span className="text-[9px] text-accent">{(maxChars / 1000).toFixed(0)}k</span>
+                </div>
+                <input
+                  type="range"
+                  min="1000"
+                  max="32000"
+                  step="1000"
+                  value={maxChars}
+                  onChange={(e) => setMaxChars(parseInt(e.target.value))}
+                  className="w-full h-1 bg-border-muted accent-accent appearance-none cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Provider Selection */}
+            <div className="flex flex-col gap-2">
+              <div className="text-[11px] text-text-muted">Providers</div>
+              <div className="flex flex-wrap gap-1">
+                {PROVIDERS.map((provider) => {
+                  const available = isProviderAvailable(provider.id);
+                  const isActive = activeProviders.includes(provider.id);
+                  const isManual = selectedProviders.includes(provider.id);
+                  const needsKey = !provider.free && !available;
+                  const tooltipId = `provider-hint-${provider.id}`;
+                  const showHint = needsKey || (provider.id === "duckduckgo" && mistralActive);
+                  return (
+                    <div key={provider.id} className="relative group">
+                      <button
+                        onClick={() => {
+                          if (!available) {
+                            setApiKeysOpen(true);
+                            return;
+                          }
+                          handleProviderToggle(provider.id);
+                        }}
+                        aria-describedby={showHint ? tooltipId : undefined}
+                        className={`
+                          px-2 py-1 text-[10px] border-2 transition-colors min-h-[36px]
+                          ${
+                            isActive
+                              ? isManual
+                                ? "bg-accent text-background border-accent font-bold"
+                                : "border-accent text-accent"
+                              : "bg-transparent text-text-dim border-border-muted hover:border-border-strong"
+                          }
+                        `}
+                      >
+                        {provider.label}
+                        {needsKey && <span className="ml-1 text-[9px] text-text-muted">(needs key)</span>}
+                      </button>
+                      {showHint && (
+                        <div
+                          id={tooltipId}
+                          role="tooltip"
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#222] border border-border-muted text-[9px] text-text-muted opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
+                        >
+                          {needsKey ? "Requires API key" : "Disabled while Mistral active"}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-text-dim">
+                {isCustomSelection
+                  ? "Custom selection active. Deselect all to return to profile defaults."
+                  : "Profile-recommended providers are outlined in green."}
+              </p>
+            </div>
+
+            {/* API Keys */}
+            <div className="flex flex-col gap-2">
+              <button
+                data-testid="api-keys-toggle"
+                onClick={() => setApiKeysOpen(!apiKeysOpen)}
+                className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2"
+              >
+                {apiKeysOpen ? "▼" : "▶"} API Keys
+              </button>
+              {apiKeysOpen && (
+                <div className="flex flex-col gap-3 pl-2">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] text-text-muted">Max chars</label>
+                      <span className="text-[9px] text-accent">{(maxChars / 1000).toFixed(0)}k</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1000"
+                      max="32000"
+                      step="1000"
+                      value={maxChars}
+                      onChange={(e) => setMaxChars(parseInt(e.target.value))}
+                      className="w-full h-1 bg-border-muted accent-accent appearance-none cursor-pointer"
+                    />
+                  </div>
+                  <label className="flex items-center gap-3 text-[11px] text-text-muted min-h-[44px] py-2">
+                    <input
+                      type="checkbox"
+                      checked={skipCache}
+                      onChange={(e) => setSkipCache(e.target.checked)}
+                      className="w-5 h-5 bg-[#141414] border-2 border-border-muted accent-accent"
+                    />
+                    Skip cache
+                  </label>
+                  <label className="flex items-center gap-3 text-[11px] text-text-muted min-h-[44px] py-2">
+                    <input
+                      type="checkbox"
+                      checked={deepResearch}
+                      onChange={(e) => setDeepResearch(e.target.checked)}
+                      className="w-5 h-5 bg-[#141414] border-2 border-border-muted accent-accent"
+                    />
+                    Deep research
+                  </label>
+                  <hr className="border-border-muted my-1" />
+                  {PROVIDERS.filter((p) => !p.free).map((provider) => {
+                    const key = `${provider.id}_api_key` as keyof ApiKeys;
+                    const value = apiKeys[key] || "";
+                    const source = keySource[provider.sourceKey || provider.id];
+                    const hasServer = source === "server";
+                    return (
+                      <div key={provider.id} className="flex flex-col gap-1">
+                        <label className="text-[10px] text-text-muted">{provider.label} {hasServer && !value && "(server)"}</label>
+                        <input
+                          type="password"
+                          value={value}
+                          onChange={(e) => handleKeyChange(key, e.target.value)}
+                          placeholder={hasServer && !value ? "Using server key" : "sk-..."}
+                          className="bg-[#141414] border-2 border-border-muted px-2 py-2 text-[12px] text-foreground placeholder:text-text-dim focus:border-accent min-h-[44px]"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* History */}
+            <History onLoad={handleHistoryLoad} />
+          </div>
+        )}
+      </aside>
+
+      {/* Center - Input/Output */}
+      <div id="main-content" className="flex-1 flex flex-col min-h-0">
+        {/* Header */}
+        <div className="border-b-2 border-border-muted p-2 flex items-center justify-between min-h-[44px]">
+          <div className="flex items-center gap-2">
+            {/* Hamburger menu - mobile only */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 text-text-muted hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Open menu"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <span className="text-[11px] text-text-muted">do-web-doc-resolver</span>
+          </div>
+          <Link href="/help" className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2">
+            Help
+          </Link>
+        </div>
+
+        {/* Input */}
+        <div className="border-b-2 border-border-muted p-4">
+          <div className="flex items-center gap-4">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              placeholder="URL or search query..."
+              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim tracking-tight"
+            />
+            {query.trim() && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleSubmit()}
+                  disabled={loading}
+                  aria-label={loading ? "Fetching results..." : "Fetch results"}
+                  className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
+                >
+                  {loading ? "..." : "Fetch"}
+                </button>
+                <button
+                  onClick={() => {
+                    setQuery("");
+                    setResult("");
+                    setError("");
+                    setProviderStatus(null);
+                    setResolveTime(null);
+                    setSourceProvider(null);
+                    setQualityScore(null);
+                    setParsedResults([]);
+                    setHelpfulIds(new Set());
+                    setViewRaw(false);
+                  }}
+                  aria-label="Clear input and results"
+                  className="bg-transparent text-text-dim px-4 py-2 text-[13px] border-2 border-border-muted hover:border-accent hover:text-accent min-h-[44px]"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+          {query.trim() && (
+            <div className="text-[11px] text-text-muted mt-2 uppercase tracking-wider">
+              {isUrl ? "Resolving as URL" : "Searching"}
+            </div>
+          )}
+          {providerStatus && (
+            <div className="text-[11px] text-accent mt-2 animate-pulse">
+              {providerStatus}
+            </div>
+          )}
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="p-4 border-b-2 border-border-muted text-error text-[13px]">
+            {error}
+          </div>
+        )}
+
+        {/* Output */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {result ? (
+            <>
+              {/* Metadata bar */}
+              <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-2 border-b-2 border-border-muted text-[11px] text-text-muted">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <span>
+                    Source: <span className="text-accent">{sourceProvider}</span>
+                  </span>
+                  {resolveTime && <span>{resolveTime}ms</span>}
+                  <span>{charCount.toLocaleString()} chars</span>
+                  {qualityScore !== null && (
+                    <span title="Quality score (0-100)">
+                      Quality: <span className={qualityScore >= 70 ? "text-accent" : qualityScore >= 40 ? "text-[#ffaa00]" : "text-error"}>{qualityScore}</span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setViewRaw(false)}
+                    className={`px-3 py-1 border border-border-muted ${!viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
+                    aria-pressed={!viewRaw}
+                  >
+                    Cards
+                  </button>
+                  <button
+                    onClick={() => setViewRaw(true)}
+                    className={`px-3 py-1 border border-border-muted ${viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
+                    aria-pressed={viewRaw}
+                  >
+                    Raw
+                  </button>
+                  <button
+                    onClick={handleCopyResult}
+                    aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
+                    aria-live="polite"
+                    className="hover:text-foreground transition-colors min-h-[36px] px-2"
+                  >
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
+              {viewRaw || parsedResults.length === 0 ? (
+                <textarea
+                  readOnly
+                  value={result}
+                  className="flex-1 bg-[#141414] p-4 text-[13px] text-foreground font-mono resize-none whitespace-pre-wrap overflow-auto min-h-[200px]"
+                />
+              ) : (
+                <div className="flex-1 overflow-auto bg-background p-4 space-y-4">
+                  {parsedResults.map((parsed) => (
+                    <ResultCard
+                      key={parsed.id}
+                      result={parsed}
+                      onCopy={handleCardCopy}
+                      onHelpfulToggle={toggleHelpful}
+                      helpful={helpfulIds.has(parsed.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-text-dim text-[13px] p-4 text-center">
+              Paste a URL or enter a search query
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Keyboard Shortcuts Modal */}
       {showShortcuts && (
