@@ -136,10 +136,25 @@ export default function Sidebar({
               {PROVIDERS.map((provider) => {
                 const available = isProviderAvailable(provider.id);
                 const isActive = activeProviders.includes(provider.id);
+                const isInProfile = PROFILES.find((p) => p.id === profile)?.providers.includes(provider.id) || false;
                 const isManual = selectedProviders.includes(provider.id);
                 const needsKey = !provider.free && !available;
                 const tooltipId = `provider-hint-${provider.id}`;
                 const showHint = needsKey || (provider.id === "duckduckgo" && mistralActive);
+
+                let buttonClasses = "px-2 py-1 text-[10px] border-2 transition-colors min-h-[36px] ";
+                if (isActive) {
+                  if (isManual) {
+                    buttonClasses += "bg-accent text-background border-accent font-bold";
+                  } else {
+                    buttonClasses += "border-accent text-accent";
+                  }
+                } else if (isInProfile) {
+                  buttonClasses += "border-dashed border-accent/40 text-text-muted";
+                } else {
+                  buttonClasses += "bg-transparent text-text-dim border-border-muted hover:border-border-strong";
+                }
+
                 return (
                   <div key={provider.id} className="relative group">
                     <button
@@ -151,18 +166,12 @@ export default function Sidebar({
                         handleProviderToggle(provider.id);
                       }}
                       aria-describedby={showHint ? tooltipId : undefined}
-                      className={`
-                        px-2 py-1 text-[10px] border-2 transition-colors min-h-[36px]
-                        ${
-                          isActive
-                            ? isManual
-                              ? "bg-accent text-background border-accent font-bold"
-                              : "border-accent text-accent"
-                            : "bg-transparent text-text-dim border-border-muted hover:border-border-strong"
-                        }
-                      `}
+                      className={buttonClasses}
                     >
-                      {provider.label}
+                      <span className="flex items-center gap-1">
+                        {isActive && <span className="text-[12px] leading-none">●</span>}
+                        {provider.label}
+                      </span>
                       {needsKey && <span className="ml-1 text-[9px] text-text-muted">(needs key)</span>}
                     </button>
                     {showHint && (
