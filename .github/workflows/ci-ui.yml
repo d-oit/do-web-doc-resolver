@@ -74,7 +74,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
         working-directory: web
 
       - run: npm run lint
@@ -93,7 +93,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
         working-directory: web
 
       - run: npm run typecheck
@@ -112,7 +112,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
         working-directory: web
 
       - run: npm test
@@ -131,7 +131,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
         working-directory: web
 
       - run: npm run build
@@ -152,7 +152,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
         working-directory: web
 
       - name: Cache Playwright browsers
