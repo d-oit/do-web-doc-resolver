@@ -24,7 +24,11 @@ repos:
         args: ['--fix=lf']
       - id: trailing-whitespace
 
-  # Secret scanning disabled in pre-commit (runs via GitHub Action: .github/workflows/gitleaks.yml)
+  # Secret scanning — catches API keys, tokens, credentials before commit
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.27.2
+    hooks:
+      - id: gitleaks
 
   # Shell script checks
   - repo: https://github.com/shellcheck-py/shellcheck-py
