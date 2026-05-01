@@ -135,7 +135,10 @@ def resolve_query_stream(
     cache = _get_cache()
     eligible = [p for p in provider_names if p in cascade_map]
     active_futures = {}
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(eligible)))
+
+    from scripts import resolve as resolve_module
+
+    executor = resolve_module._get_executor(max_workers=max(10, len(eligible)))
     try:
         for i, p_name in enumerate(eligible):
             pt, func = cascade_map[p_name]
@@ -210,7 +213,9 @@ def resolve_query_stream(
                 if not active_futures:
                     break
     finally:
-        executor.shutdown(wait=False, cancel_futures=True)
+        # We don't shut down the shared executor, but we should cancel our own futures
+        for f in active_futures:
+            f.cancel()
 
     yield {
         "source": "none",
