@@ -72,7 +72,7 @@ test.describe("History Panel", () => {
     // History toggle should be visible
     await expect(page.getByRole("button", { name: /History/ })).toBeVisible();
     // History panel content should not be visible
-    await expect(page.locator("input[placeholder*='Search history']")).not.toBeVisible();
+    await expect(page.locator("input[placeholder*='Search history']")).toBeHidden();
   });
 
   test("clicking History toggle opens the panel", async ({ page }) => {
@@ -100,7 +100,7 @@ test.describe("History Panel", () => {
     await expect(page.locator("input[placeholder*='Search history']")).toBeVisible();
     // Close panel
     await toggle.click();
-    await expect(page.locator("input[placeholder*='Search history']")).not.toBeVisible();
+    await expect(page.locator("input[placeholder*='Search history']")).toBeHidden();
   });
 });
 
@@ -295,7 +295,7 @@ test.describe("History Search", () => {
 
     // Only rust entry should be visible
     await expect(page.locator("text=rust programming")).toBeVisible();
-    await expect(page.locator("text=python tutorial")).not.toBeVisible();
+    await expect(page.locator("text=python tutorial")).toBeHidden();
   });
 });
 
@@ -335,16 +335,28 @@ test.describe("History Delete", () => {
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=test entry to delete")).toBeVisible();
 
-    await page.getByLabel("Delete test entry to delete").click({ force: true });
+    await page.getByLabel("Delete test entry to delete").scrollIntoViewIfNeeded(); await page.getByLabel("Delete test entry to delete").click({ force: true });
     await expect(page.getByRole("button", { name: /Confirm delete/ })).toBeVisible();
     await page.getByRole("button", { name: /Confirm delete/ }).click();
 
-    await expect(page.locator("text=test entry to delete")).not.toBeVisible();
+    await expect(page.locator("text=test entry to delete")).toBeHidden();
   });
 });
 
 test.describe("History Load", () => {
   test("clicking entry loads it into form", async ({ page }) => {
+    // Mock resolve API to return consistent content
+    await page.route("**/api/resolve", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          markdown: "Previously resolved content",
+          provider: "jina",
+        }),
+      })
+    );
+
     await page.route("**/api/history**", async (route) => {
       return route.fulfill({
         status: 200,
@@ -432,7 +444,11 @@ test.describe("History Persistence", () => {
     await page.getByRole("button", { name: /History/ }).click();
 
     // Wait a bit for the cookie to be set
-    await page.waitForTimeout(500);
+    // Wait for the cookie to be set
+    await expect(async () => {
+      const cookies = await page.context().cookies();
+      expect(cookies.find((c) => c.name === "ui-session")).toBeTruthy();
+    }).toPass({ timeout: 5000 });
 
     // Check that ui-session cookie exists
     const cookies = await page.context().cookies();
@@ -462,8 +478,7 @@ test.describe("History Accessibility", () => {
     const toggle = page.getByRole("button", { name: /History/ });
 
     // Check aria-controls points to panel
-    const controlsId = await toggle.getAttribute("aria-controls");
-    expect(controlsId).toBe("history-panel");
+    await expect(toggle).toHaveAttribute("aria-controls", "history-panel");
 
     // Panel should exist with that id
     await toggle.click();
