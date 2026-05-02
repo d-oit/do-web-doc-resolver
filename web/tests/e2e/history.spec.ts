@@ -72,7 +72,7 @@ test.describe("History Panel", () => {
     // History toggle should be visible
     await expect(page.getByRole("button", { name: /History/ })).toBeVisible();
     // History panel content should not be visible
-    await expect(page.locator("input[placeholder*='Search history']")).not.toBeVisible();
+    await expect(page.locator("input[placeholder*='Search history']")).toBeHidden();
   });
 
   test("clicking History toggle opens the panel", async ({ page }) => {
@@ -100,7 +100,7 @@ test.describe("History Panel", () => {
     await expect(page.locator("input[placeholder*='Search history']")).toBeVisible();
     // Close panel
     await toggle.click();
-    await expect(page.locator("input[placeholder*='Search history']")).not.toBeVisible();
+    await expect(page.locator("input[placeholder*='Search history']")).toBeHidden();
   });
 });
 
@@ -295,7 +295,7 @@ test.describe("History Search", () => {
 
     // Only rust entry should be visible
     await expect(page.locator("text=rust programming")).toBeVisible();
-    await expect(page.locator("text=python tutorial")).not.toBeVisible();
+    await expect(page.locator("text=python tutorial")).toBeHidden();
   });
 });
 
@@ -339,7 +339,7 @@ test.describe("History Delete", () => {
     await expect(page.getByRole("button", { name: /Confirm delete/ })).toBeVisible();
     await page.getByRole("button", { name: /Confirm delete/ }).click();
 
-    await expect(page.locator("text=test entry to delete")).not.toBeVisible();
+    await expect(page.locator("text=test entry to delete")).toBeHidden();
   });
 });
 
@@ -462,8 +462,8 @@ test.describe("History Accessibility", () => {
     const toggle = page.getByRole("button", { name: /History/ });
 
     // Check aria-controls points to panel
-    const controlsId = await toggle.getAttribute("aria-controls");
-    expect(controlsId).toBe("history-panel");
+    const controlsId = toggle;
+    await expect(controlsId).toHaveAttribute("aria-controls", "history-panel");
 
     // Panel should exist with that id
     await toggle.click();

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource } from "@/lib/keys";
-import { loadUIState, saveUIState, type UIState } from "@/lib/ui-state";
+import { loadUIState, saveUIState, loadUiState, type UIState } from "@/lib/ui-state";
 import { HistoryEntry } from "@/app/components/History";
 import { parseProviderResults, extractNormalizedUrls, type ProviderResult } from "@/lib/results";
 import { PROVIDERS, PROFILES, ProfileId, UiProvider, toApiProviderId } from "@/app/constants";
@@ -42,6 +42,19 @@ export default function Home() {
 
   const keySource = useMemo(() => resolveKeySource(apiKeys, serverKeyStatus), [apiKeys, serverKeyStatus]);
 
+  // Expose setters to window for programmatic access
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__WDR_INTERNAL_STATE_SETTERS__ = {
+        setMaxChars,
+        setProfile,
+        setSelectedProviders,
+        setSkipCache,
+        setDeepResearch,
+      };
+    }
+  }, []);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -78,6 +91,17 @@ export default function Home() {
       .catch(() => {});
 
     // Load UI state from server with localStorage fallback
+    const local = loadUiState();
+    setSidebarOpen(!local.sidebarCollapsed);
+    setApiKeysOpen(local.showApiKeys);
+    setShowAdvanced(local.showAdvanced);
+    const initialProfile = PROFILES.some((p) => p.id === local.activeProfile) ? (local.activeProfile as ProfileId) : "free";
+    setProfile(initialProfile);
+    setSelectedProviders(local.selectedProviders || []);
+    setMaxChars(local.maxChars || 8000);
+    setSkipCache(Boolean(local.skipCache));
+    setDeepResearch(Boolean(local.deepResearch));
+
     loadUIState()
       .then((ui) => {
         setSidebarOpen(!ui.sidebarCollapsed);

@@ -147,7 +147,7 @@ test.describe("Form Interaction", () => {
     await page.goto("/");
     // In Swiss brutalist design, button only shows when there's text
     const button = page.getByRole("button", { name: "Fetch" });
-    await expect(button).not.toBeVisible();
+    await expect(button).toBeHidden();
   });
 
   test("button is enabled when input has text", async ({ page }) => {
@@ -225,7 +225,7 @@ test.describe("Form Interaction", () => {
     const input = page.locator("input[type='text']");
     await input.fill("   ");
     const button = page.getByRole("button", { name: "Fetch" });
-    await expect(button).not.toBeVisible();
+    await expect(button).toBeHidden();
   });
 });
 
@@ -557,14 +557,14 @@ test.describe("Collapsible Sidebar", () => {
     await ensureSidebarOpen(page);
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
     await page.getByTestId("sidebar-toggle").click();
-    await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Profile" })).toBeHidden();
   });
 
   test("sidebar expands when clicking Configuration header again", async ({ page }) => {
     await waitForApp(page);
     await ensureSidebarOpen(page);
     await page.getByTestId("sidebar-toggle").click();
-    await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Profile" })).toBeHidden();
     await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
   });
@@ -598,7 +598,7 @@ test.describe("Collapsible API Keys", () => {
     await waitForApp(page);
     await ensureSidebarOpen(page);
     await expect(page.getByTestId("api-keys-toggle")).toBeVisible();
-    await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Serper" })).toBeHidden();
   });
 
   test("API Keys section expands on click", async ({ page }) => {
@@ -615,7 +615,7 @@ test.describe("Collapsible API Keys", () => {
     await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
     await page.getByTestId("api-keys-toggle").click();
-    await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Serper" })).toBeHidden();
   });
 });
 

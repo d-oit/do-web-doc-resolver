@@ -55,6 +55,11 @@ function normalizeUIState(value: unknown): UIState {
     : DEFAULTS.activeProfile;
 
   return {
+    ...DEFAULTS,
+    ...parsed,
+    activeProfile,
+    theme,
+    selectedProviders,
     sidebarCollapsed: typeof parsed.sidebarCollapsed === "boolean" 
       ? parsed.sidebarCollapsed 
       : DEFAULTS.sidebarCollapsed,
@@ -64,9 +69,6 @@ function normalizeUIState(value: unknown): UIState {
     showAdvanced: typeof parsed.showAdvanced === "boolean" 
       ? parsed.showAdvanced 
       : DEFAULTS.showAdvanced,
-    activeProfile,
-    theme,
-    selectedProviders,
     maxChars: typeof parsed.maxChars === "number" ? parsed.maxChars : DEFAULTS.maxChars,
     skipCache: typeof parsed.skipCache === "boolean" ? parsed.skipCache : DEFAULTS.skipCache,
     deepResearch: typeof parsed.deepResearch === "boolean" ? parsed.deepResearch : DEFAULTS.deepResearch,
