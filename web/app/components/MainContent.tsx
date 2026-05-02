@@ -197,6 +197,7 @@ export default function MainContent({
             </div>
             {viewRaw || parsedResults.length === 0 ? (
               <textarea
+                data-testid="result-textarea"
                 readOnly
                 value={result}
                 className="flex-1 bg-[#141414] p-4 text-[13px] text-foreground font-mono resize-none whitespace-pre-wrap overflow-auto min-h-[200px]"

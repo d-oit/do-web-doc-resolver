@@ -62,7 +62,7 @@ export default function Sidebar({
   isCustomSelection,
 }: SidebarProps) {
   return (
-    <aside
+    <aside data-testid="sidebar"
       className={`
         fixed inset-y-0 left-0 z-50 w-72 bg-background border-r-2 border-border-muted transition-transform duration-300 lg:relative lg:translate-x-0
         ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}

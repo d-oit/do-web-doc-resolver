@@ -289,6 +289,7 @@ export default function Home() {
     const restoredDeepResearch = Boolean(entry.flags?.deepResearch);
     setSkipCache(restoredSkipCache);
     setDeepResearch(restoredDeepResearch);
+    setMobileMenuOpen(false);
 
     // Re-run the search to ensure results are fresh and state is synced
     handleSubmit(undefined, {
@@ -349,6 +350,7 @@ export default function Home() {
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
         <div
+          data-testid="mobile-backdrop"
           className="fixed inset-0 bg-black/80 z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
