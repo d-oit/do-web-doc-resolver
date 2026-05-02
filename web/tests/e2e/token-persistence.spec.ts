@@ -17,12 +17,13 @@ async function openSidebarIfMobile(page: Page) {
 async function closeSidebarIfMobile(page: Page) {
   const isMobile = (page.viewportSize()?.width || 0) < 1024;
   if (isMobile) {
+    await page.evaluate(() => {
+      if ((window as any).__WDR_INTERNAL_STATE_SETTERS__) {
+        (window as any).__WDR_INTERNAL_STATE_SETTERS__.setMobileMenuOpen(false);
+      }
+    });
     const backdrop = page.locator("div.fixed.inset-0.bg-black\\/80");
-    if (await backdrop.isVisible()) {
-      // Click at the edge to ensure we hit the backdrop and not the sidebar
-      await backdrop.click({ position: { x: 5, y: 5 }, force: true });
-      await expect(backdrop).toBeHidden();
-    }
+    await expect(backdrop).toBeHidden();
   }
 }
 

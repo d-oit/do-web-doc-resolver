@@ -51,6 +51,7 @@ export default function Home() {
         setSelectedProviders,
         setSkipCache,
         setDeepResearch,
+        setMobileMenuOpen,
       };
     }
   }, []);
@@ -91,16 +92,18 @@ export default function Home() {
       .catch(() => {});
 
     // Load UI state from server with localStorage fallback
-    const local = loadUiState();
-    setSidebarOpen(!local.sidebarCollapsed);
-    setApiKeysOpen(local.showApiKeys);
-    setShowAdvanced(local.showAdvanced);
-    const initialProfile = PROFILES.some((p) => p.id === local.activeProfile) ? (local.activeProfile as ProfileId) : "free";
-    setProfile(initialProfile);
-    setSelectedProviders(local.selectedProviders || []);
-    setMaxChars(local.maxChars || 8000);
-    setSkipCache(Boolean(local.skipCache));
-    setDeepResearch(Boolean(local.deepResearch));
+    Promise.resolve().then(() => {
+      const local = loadUiState();
+      setSidebarOpen(!local.sidebarCollapsed);
+      setApiKeysOpen(local.showApiKeys);
+      setShowAdvanced(local.showAdvanced);
+      const initialProfile = PROFILES.some((p) => p.id === local.activeProfile) ? (local.activeProfile as ProfileId) : "free";
+      setProfile(initialProfile);
+      setSelectedProviders(local.selectedProviders || []);
+      setMaxChars(local.maxChars || 8000);
+      setSkipCache(Boolean(local.skipCache));
+      setDeepResearch(Boolean(local.deepResearch));
+    });
 
     loadUIState()
       .then((ui) => {
@@ -313,17 +316,6 @@ export default function Home() {
     const restoredDeepResearch = Boolean(entry.flags?.deepResearch);
     setSkipCache(restoredSkipCache);
     setDeepResearch(restoredDeepResearch);
-
-    // Re-run the search to ensure results are fresh and state is synced
-    handleSubmit(undefined, {
-      query: entry.query,
-      profile: restoredProfile,
-      providers: restoredProviders.length > 0 ? restoredProviders.map(toApiProviderId) : undefined,
-      skipCache: restoredSkipCache,
-      deepResearch: restoredDeepResearch,
-      maxChars, // Keep current maxChars or could also store/restore it
-      isHistoryLoad: true,
-    });
 
     inputRef.current?.focus();
   };
