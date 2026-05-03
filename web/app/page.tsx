@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource } from "@/lib/keys";
-import { loadUIState, saveUIState, loadUiState, type UIState } from "@/lib/ui-state";
+import { loadUIState, loadUiState, saveUIState, type UIState } from "@/lib/ui-state";
 import { HistoryEntry } from "@/app/components/History";
 import { parseProviderResults, extractNormalizedUrls, type ProviderResult } from "@/lib/results";
 import { PROVIDERS, PROFILES, ProfileId, UiProvider, toApiProviderId } from "@/app/constants";

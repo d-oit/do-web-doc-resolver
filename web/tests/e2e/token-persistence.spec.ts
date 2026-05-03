@@ -39,7 +39,7 @@ test("token limit slider persists value across refresh", async ({ page }) => {
   await slider.fill("4000");
 
   await expect(label).toHaveText(/4k/i);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(500); // eslint-disable-line playwright/no-wait-for-timeout
 
   await page.reload();
   await expect(page.getByTestId("app-loaded")).toBeVisible({ timeout: 15000 });
@@ -61,13 +61,13 @@ test("token limit slider persists value across navigation", async ({ page }) => 
   await slider.fill("12000");
   await expect(label).toHaveText(/12k/i);
 
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(500); // eslint-disable-line playwright/no-wait-for-timeout
 
   await closeSidebarIfMobile(page);
-  await page.click('a[href="/help"]');
+  await page.locator('a[href="/help"]').click();
   await expect(page).toHaveURL(/\/help/);
 
-  await page.click('text=← Back');
+  await page.locator('text=← Back').click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("app-loaded")).toBeVisible({ timeout: 15000 });
   await openSidebarIfMobile(page);

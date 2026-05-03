@@ -432,7 +432,7 @@ test.describe("History Persistence", () => {
     await page.getByRole("button", { name: /History/ }).click();
 
     // Wait a bit for the cookie to be set
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(500); // eslint-disable-line playwright/no-wait-for-timeout
 
     // Check that ui-session cookie exists
     const cookies = await page.context().cookies();
