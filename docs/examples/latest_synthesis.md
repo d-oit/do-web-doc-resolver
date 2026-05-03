@@ -1,24 +1,29 @@
 ---
-relevance_score: 0.95
+relevance_score: 0.98
 intent_category: Technical
-token_estimate: 450
-last_updated: 2026-05-01
+token_estimate: 420
+last_updated: 2026-05-03
 ---
 
-# Web Doc Resolver: 2026 Synthesis Example
+# LLM-Ready Synthesis: Web Doc Resolver Standards
 
 [ANCHOR: SUMMARY]
-The Web Doc Resolver produces LLM-ready documentation using token-efficiency headers and standardized structural anchors to optimize RAG performance [1].
+The Web Doc Resolver implements a 2026-standard synthesis engine designed to produce highly efficient, RAG-optimized documentation. By utilizing Token-Efficiency Headers and Structural Anchors, the system ensures that downstream LLMs can rapidly assess relevance and retrieve specific technical details without processing excessive tokens [1].
 
 [ANCHOR: TECHNICAL_DETAILS]
-The synthesis engine employs two-stage gating to choose between deterministic merging and LLM-powered synthesis. System prompts enforce YAML frontmatter for quick metadata assessment. Content partitions like `[ANCHOR: SUMMARY]` and `[ANCHOR: CITATIONS]` enable precise retrieval by downstream models [1][2].
+The synthesis process involves two primary stages:
+1. **Gating Logic**: Determines whether to perform a deterministic merge or an LLM-powered synthesis based on content quality, conflicts, and fragmentation [2].
+2. **Standardized Formatting**: Enforces a strict YAML frontmatter for metadata (relevance score, intent category, token estimate) and partitions content using predefined anchors such as `[ANCHOR: SUMMARY]` and `[ANCHOR: CITATIONS]` [1].
+
+The system prompt explicitly requires aggressive deduplication and precise citation mapping to ensure technical accuracy and auditability [2].
 
 [ANCHOR: COMPARISON]
-| Feature | 2024 Baseline | 2026 Standard |
-|---------|---------------|---------------|
-| Metadata | None | Mandatory YAML Frontmatter |
-| Structure | Unstructured | Standardized Structural Anchors |
-| RAG Optimization | Basic | Anchor-based retrieval |
+| Feature | Legacy Synthesis (2024) | 2026 LLM-Ready Standard |
+|---------|-------------------------|--------------------------|
+| Metadata | Optional/None | Mandatory YAML Frontmatter |
+| Structure | Freeform Markdown | Required Structural Anchors |
+| RAG Utility | Low (Sequential) | High (Anchor-based) |
+| Token Usage | Non-optimized | Efficiency-first |
 
 [ANCHOR: CITATIONS]
 [1] https://github.com/d-oit/do-web-doc-resolver/docs/standards.md

@@ -316,6 +316,7 @@ export default function Home() {
     const restoredDeepResearch = Boolean(entry.flags?.deepResearch);
     setSkipCache(restoredSkipCache);
     setDeepResearch(restoredDeepResearch);
+    setMobileMenuOpen(false);
 
     inputRef.current?.focus();
   };
