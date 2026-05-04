@@ -57,13 +57,13 @@ export default function History({ onLoad }: HistoryProps) {
 
   useEffect(() => {
     let ignore = false;
-    // Always fetch history on mount to ensure count is accurate
-    // Wrapped in Promise.resolve().then() to avoid synchronous setState during render
-    Promise.resolve().then(() => fetchHistory(ignore));
+    if (isOpen) {
+      setTimeout(() => fetchHistory(ignore), 0);
+    }
     return () => {
       ignore = true;
     };
-  }, [fetchHistory]);
+  }, [isOpen, fetchHistory]);
 
   useEffect(() => {
     return () => {

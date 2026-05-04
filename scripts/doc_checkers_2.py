@@ -105,7 +105,7 @@ def check_cross_docs(report: Report):
     re.search(r"version\s*(\d+\.\d+\.\d+)", readme)
 
     # Check for duplicate links in README
-    seen: dict[tuple[str, str], int] = {}
+    seen = {}
     for line_no, text, target in extract_markdown_links(readme):
         key = (text, target)
         if key in seen:
