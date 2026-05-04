@@ -48,6 +48,14 @@ pub enum ResolverError {
     Unknown(String),
 }
 
+// Semantic cache error conversion (feature-gated)
+#[cfg(feature = "semantic-cache")]
+impl From<chaotic_semantic_memory::MemoryError> for ResolverError {
+    fn from(err: chaotic_semantic_memory::MemoryError) -> Self {
+        ResolverError::Cache(err.to_string())
+    }
+}
+
 impl ResolverError {
     /// Create a new error with context
     pub fn with_context<E: std::fmt::Display>(error: E, context: &str) -> Self {
@@ -162,13 +170,5 @@ mod tests {
     fn test_network_detection() {
         let err = detect_error_type("Network connection error");
         assert!(matches!(err, ResolverError::Network(_)));
-    }
-}
-
-// Semantic cache error conversion (feature-gated)
-#[cfg(feature = "semantic-cache")]
-impl From<chaotic_semantic_memory::MemoryError> for ResolverError {
-    fn from(err: chaotic_semantic_memory::MemoryError) -> Self {
-        ResolverError::Cache(err.to_string())
     }
 }

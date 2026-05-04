@@ -157,14 +157,13 @@ impl UrlCascade {
         // Check semantic cache
         if let Some(cache) = cache {
             let cache_started = Instant::now();
-            if let Ok(Some(res)) = cache.query(url).await {
-                if let Some(mut res) = res.into_iter().next() {
-                    let cache_latency = cache_started.elapsed().as_millis() as u64;
-                    metrics.cache_hit = true;
-                    metrics.total_latency_ms = cache_latency;
-                    res.metrics = Some(metrics);
-                    return Ok(res);
-                }
+            if let Ok(Some(res)) = cache.query_url(url).await {
+                let cache_latency = cache_started.elapsed().as_millis() as u64;
+                let mut res = res;
+                metrics.cache_hit = true;
+                metrics.total_latency_ms = cache_latency;
+                res.metrics = Some(metrics);
+                return Ok(res);
             }
         }
 

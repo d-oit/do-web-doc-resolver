@@ -198,7 +198,9 @@ impl Resolver {
             // Store in semantic cache
             if let Some(cache) = self.cache.as_ref() {
                 let cache_key = format!("aggregated:{}", input);
-                let _ = cache.store(&cache_key, &[res.clone()], &res.source).await;
+                let _ = cache
+                    .store(&cache_key, std::slice::from_ref(&res), &res.source)
+                    .await;
             }
 
             return Ok(res);
@@ -224,7 +226,14 @@ impl Resolver {
         input: &str,
         provider: ProviderType,
     ) -> Result<ResolvedResult, ResolverError> {
-        if is_url(input) {
+        // Check cache first
+        if let Some(cache) = self.cache.as_ref() {
+            if let Ok(Some(res)) = cache.query_url(input).await {
+                return Ok(res);
+            }
+        }
+
+        let result = if is_url(input) {
             self.url_cascade
                 .extract_with_provider(input, provider)
                 .await
@@ -242,7 +251,18 @@ impl Resolver {
                 .into_iter()
                 .next()
                 .ok_or_else(|| ResolverError::Provider("No results from provider".to_string()))
+        };
+
+        // Store in cache if successful
+        if let Ok(res) = &result {
+            if let Some(cache) = self.cache.as_ref() {
+                let _ = cache
+                    .store(input, std::slice::from_ref(res), &res.source)
+                    .await;
+            }
         }
+
+        result
     }
 
     /// Resolve with custom provider order

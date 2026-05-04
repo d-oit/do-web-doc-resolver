@@ -60,6 +60,8 @@ Detailed domain knowledge is located in `agents-docs/`.
 | Releases | [agents-docs/RELEASES.md](agents-docs/RELEASES.md) |
 | Assets | [agents-docs/ASSETS.md](agents-docs/ASSETS.md) |
 | Overview | [agents-docs/OVERVIEW.md](agents-docs/OVERVIEW.md) |
+| Semantic Health | [agents-docs/SEMANTIC_HEALTH.md](agents-docs/SEMANTIC_HEALTH.md) |
+| Issues | [agents-docs/ISSUES.md](agents-docs/ISSUES.md) |
 | Cascade | [.agents/skills/do-web-doc-resolver/references/CASCADE.md](.agents/skills/do-web-doc-resolver/references/CASCADE.md) |
 
 ## Skills

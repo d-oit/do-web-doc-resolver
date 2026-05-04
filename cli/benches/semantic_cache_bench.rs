@@ -11,14 +11,15 @@ use tokio::runtime::Runtime;
 
 /// Create a test configuration with semantic cache enabled
 fn test_config(path: &str) -> Config {
-    let mut config = Config::default();
-    config.semantic_cache = SemanticCacheConfig {
-        enabled: true,
-        path: path.to_string(),
-        threshold: 0.85,
-        max_entries: 10000,
-    };
-    config
+    Config {
+        semantic_cache: SemanticCacheConfig {
+            enabled: true,
+            path: path.to_string(),
+            threshold: 0.85,
+            max_entries: 10000,
+        },
+        ..Default::default()
+    }
 }
 
 /// Create sample resolved results for testing
@@ -83,7 +84,7 @@ fn bench_query(c: &mut Criterion) {
         let cache = SemanticCache::new(&config).await.unwrap().unwrap();
 
         // Pre-populate cache with test data
-        let queries = vec![
+        let queries = [
             "rust programming tutorial",
             "python machine learning guide",
             "javascript async await patterns",
@@ -91,7 +92,7 @@ fn bench_query(c: &mut Criterion) {
             "typescript type system advanced",
         ];
 
-        for (_i, query) in queries.iter().enumerate() {
+        for query in queries.iter() {
             let results = create_test_results(3);
             cache.store(query, &results, "test_provider").await.unwrap();
         }
