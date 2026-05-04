@@ -55,7 +55,6 @@ export default function Home() {
       };
     }
   }, []);
-  const SEARCH_STORAGE_KEY = "wdr-search-state";
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -123,29 +122,6 @@ export default function Home() {
           setApiKeys(mergedKeys);
           saveApiKeys(mergedKeys);
         }
-
-        // Load search state from localStorage
-        const savedSearch = localStorage.getItem(SEARCH_STORAGE_KEY);
-        if (savedSearch) {
-          try {
-            const search = JSON.parse(savedSearch);
-            if (search.query) setQuery(search.query);
-            if (search.result) {
-              setResult(search.result);
-              setParsedResults(parseProviderResults(search.result));
-            }
-            if (search.error) setError(search.error);
-            if (search.resolveTime) setResolveTime(search.resolveTime);
-            if (search.sourceProvider) setSourceProvider(search.sourceProvider);
-            if (search.qualityScore) setQualityScore(search.qualityScore);
-            if (Array.isArray(search.helpfulIds)) {
-              setHelpfulIds(new Set(search.helpfulIds));
-            }
-          } catch (e) {
-            console.error("Failed to parse saved search state", e);
-          }
-        }
-
         setLoaded(true);
         inputRef.current?.focus();
       })
@@ -174,21 +150,6 @@ export default function Home() {
     saveUIState(state);
     saveApiKeys(apiKeys);
   }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch, apiKeys]);
-
-  // Persist search state changes
-  useEffect(() => {
-    if (!loaded) return;
-    const searchState = {
-      query,
-      result,
-      error,
-      resolveTime,
-      sourceProvider,
-      qualityScore,
-      helpfulIds: Array.from(helpfulIds),
-    };
-    localStorage.setItem(SEARCH_STORAGE_KEY, JSON.stringify(searchState));
-  }, [loaded, query, result, error, resolveTime, sourceProvider, qualityScore, helpfulIds]);
 
   const handleProviderToggle = (providerId: string) => {
     setProfile("custom");
@@ -355,7 +316,6 @@ export default function Home() {
     const restoredDeepResearch = Boolean(entry.flags?.deepResearch);
     setSkipCache(restoredSkipCache);
     setDeepResearch(restoredDeepResearch);
-    setMobileMenuOpen(false);
 
     inputRef.current?.focus();
   };

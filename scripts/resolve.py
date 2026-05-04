@@ -7,7 +7,6 @@ Main orchestrator. CLI entrypoint moved to scripts/cli.py.
 import concurrent.futures
 import logging
 import os
-from typing import Any
 
 import scripts._query_resolve
 import scripts._url_resolve
@@ -95,7 +94,7 @@ def _get_semantic_cache():
     return get_semantic_cache()
 
 
-def _check_semantic_cache(query_or_url: str) -> dict[str, Any] | None:
+def _check_semantic_cache(query_or_url: str) -> dict:
     """Check semantic cache - delegates to sub-modules."""
     result = scripts._query_resolve._check_semantic_cache(query_or_url)
     if result:
@@ -161,7 +160,7 @@ def resolve(
     max_chars: int = MAX_CHARS,
     skip_providers: set[str] | None = None,
     profile: Profile | str = Profile.BALANCED,
-) -> dict[str, Any]:
+) -> dict:
     if isinstance(profile, str):
         profile = Profile(profile.lower())
 
@@ -170,10 +169,8 @@ def resolve(
     return resolve_query(input_str, max_chars, skip_providers, profile=profile)
 
 
-def resolve_direct(
-    input_str: str, provider: ProviderType, max_chars: int = MAX_CHARS
-) -> dict[str, Any]:
-    funcs: dict[ProviderType, Any] = {
+def resolve_direct(input_str: str, provider: ProviderType, max_chars: int = MAX_CHARS) -> dict:
+    funcs = {
         ProviderType.JINA: resolve_with_jina,
         ProviderType.EXA_MCP: resolve_with_exa_mcp,
         ProviderType.EXA: resolve_with_exa,
@@ -192,7 +189,7 @@ def resolve_direct(
 
 def resolve_with_order(
     input_str: str, providers_order: list[ProviderType], max_chars: int = MAX_CHARS
-) -> dict[str, Any]:
+) -> dict:
     for pt in providers_order:
         res = resolve_direct(input_str, pt, max_chars)
         if res.get("source") != "none":
@@ -200,13 +197,11 @@ def resolve_with_order(
     return {"source": "none", "error": "All providers failed"}
 
 
-def resolve_url_with_order(
-    url: str, order: list[ProviderType], max_chars: int = MAX_CHARS
-) -> dict[str, Any]:
+def resolve_url_with_order(url: str, order: list[ProviderType], max_chars: int = MAX_CHARS) -> dict:
     return resolve_with_order(url, order, max_chars)
 
 
 def resolve_query_with_order(
     query: str, order: list[ProviderType], max_chars: int = MAX_CHARS
-) -> dict[str, Any]:
+) -> dict:
     return resolve_with_order(query, order, max_chars)
