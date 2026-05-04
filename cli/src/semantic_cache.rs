@@ -138,7 +138,7 @@ impl SemanticCache {
 
     /// Initialize semantic cache (no-op without feature)
     #[cfg(not(feature = "semantic-cache"))]
-    pub fn new(_config: &Config) -> Result<Option<Self>, ResolverError> {
+    pub async fn new(_config: &Config) -> StdResult<Option<Self>, ResolverError> {
         Ok(None)
     }
 
@@ -167,7 +167,7 @@ impl SemanticCache {
             }
         }
 
-        // Generate query vector for semantic search
+        // Generate query vector
         let query_vector = self.encode_query(query);
 
         // Probe semantic memory - returns (id, score) pairs
@@ -237,15 +237,15 @@ impl SemanticCache {
         results: &[ResolvedResult],
         provider: &str,
     ) -> StdResult<(), ResolverError> {
-        // Generate query vector (normalizes internally)
-        let query_vector = self.encode_query(query);
-
-        // Normalize query for consistent ID
+        // Normalize query for consistent lookup
         let normalized: String = query
             .to_lowercase()
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ");
+
+        // Generate query vector (normalizes internally)
+        let query_vector = self.encode_query(query);
 
         // Create metadata HashMap
         let mut metadata = HashMap::new();
@@ -323,7 +323,6 @@ impl SemanticCache {
 
     /// Query the cache for a specific URL (no-op without feature)
     #[cfg(not(feature = "semantic-cache"))]
-    #[allow(dead_code)]
     pub async fn query_url(&self, _url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
         Ok(None)
     }
@@ -341,7 +340,6 @@ impl SemanticCache {
 
     /// Query the cache for a specific provider (no-op without feature)
     #[cfg(not(feature = "semantic-cache"))]
-    #[allow(dead_code)]
     pub async fn query_provider(
         &self,
         _query: &str,
@@ -353,7 +351,7 @@ impl SemanticCache {
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
-        // Note: concept_count() not available in current API version
+        // Fallback to 0 if count() is not available
         Ok(CacheStats {
             entries: 0,
             hit_rate: 0.0,
@@ -440,6 +438,19 @@ mod tests_semantic {
 mod tests {
     use super::*;
     use crate::types::ResolvedResult;
+
+    /// Create a test configuration with semantic cache enabled
+    fn test_config(path: &str) -> Config {
+        Config {
+            semantic_cache: SemanticCacheConfig {
+                enabled: true,
+                path: path.to_string(),
+                threshold: 0.85,
+                max_entries: 10000,
+            },
+            ..Default::default()
+        }
+    }
 
     /// Create sample resolved results for testing
     fn create_test_results(count: usize) -> Vec<ResolvedResult> {
@@ -541,8 +552,8 @@ mod tests {
 
         // Note: Semantic matching depends on the encoder quality
         // The test documents this behavior
-        if similar_retrieved.is_some() {
-            assert_eq!(similar_retrieved.as_ref().unwrap().len(), results.len());
+        if let Some(hits) = &similar_retrieved {
+            assert_eq!(hits.len(), results.len());
         }
 
         // Query non-matching
@@ -637,12 +648,14 @@ mod tests {
     #[cfg(feature = "semantic-cache")]
     async fn test_database_failure() {
         // Test with invalid path (read-only or non-existent parent)
-        let mut config = Config::default();
-        config.semantic_cache = SemanticCacheConfig {
-            enabled: true,
-            path: "/nonexistent/path/that/cannot/be/created".to_string(),
-            threshold: 0.85,
-            max_entries: 10000,
+        let config = Config {
+            semantic_cache: SemanticCacheConfig {
+                enabled: true,
+                path: "/nonexistent/path/that/cannot/be/created".to_string(),
+                threshold: 0.85,
+                max_entries: 10000,
+            },
+            ..Default::default()
         };
 
         // Should gracefully handle directory creation failure
@@ -703,8 +716,8 @@ mod tests {
 
             // Note: Data persistence depends on the underlying database implementation
             // This test documents the expected behavior
-            if retrieved.is_some() {
-                assert_eq!(retrieved.as_ref().unwrap().len(), results.len());
+            if let Some(hits) = &retrieved {
+                assert_eq!(hits.len(), results.len());
             }
         }
 

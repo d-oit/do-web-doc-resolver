@@ -335,7 +335,7 @@ test.describe("History Delete", () => {
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=test entry to delete")).toBeVisible();
 
-    await page.getByLabel("Delete test entry to delete").click({ force: true });
+    await page.getByLabel("Delete test entry to delete").scrollIntoViewIfNeeded(); await page.getByLabel("Delete test entry to delete").click({ force: true });
     await expect(page.getByRole("button", { name: /Confirm delete/ })).toBeVisible();
     await page.getByRole("button", { name: /Confirm delete/ }).click();
 
@@ -345,6 +345,18 @@ test.describe("History Delete", () => {
 
 test.describe("History Load", () => {
   test("clicking entry loads it into form", async ({ page }) => {
+    // Mock resolve API to return consistent content
+    await page.route("**/api/resolve", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          markdown: "Previously resolved content",
+          provider: "jina",
+        }),
+      })
+    );
+
     await page.route("**/api/history**", async (route) => {
       return route.fulfill({
         status: 200,
@@ -432,7 +444,11 @@ test.describe("History Persistence", () => {
     await page.getByRole("button", { name: /History/ }).click();
 
     // Wait a bit for the cookie to be set
-    await page.waitForTimeout(500); // eslint-disable-line playwright/no-wait-for-timeout
+    // Wait for the cookie to be set
+    await expect(async () => {
+      const cookies = await page.context().cookies();
+      expect(cookies.find((c) => c.name === "ui-session")).toBeTruthy();
+    }).toPass({ timeout: 5000 });
 
     // Check that ui-session cookie exists
     const cookies = await page.context().cookies();
@@ -462,8 +478,7 @@ test.describe("History Accessibility", () => {
     const toggle = page.getByRole("button", { name: /History/ });
 
     // Check aria-controls points to panel
-    const controlsId = toggle;
-    await expect(controlsId).toHaveAttribute("aria-controls", "history-panel");
+    await expect(toggle).toHaveAttribute("aria-controls", "history-panel");
 
     // Panel should exist with that id
     await toggle.click();

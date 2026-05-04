@@ -198,7 +198,9 @@ impl Resolver {
             // Store in semantic cache
             if let Some(cache) = self.cache.as_ref() {
                 let cache_key = format!("aggregated:{}", input);
-                let _ = cache.store(&cache_key, &[res.clone()], &res.source).await;
+                let _ = cache
+                    .store(&cache_key, std::slice::from_ref(&res), &res.source)
+                    .await;
             }
 
             return Ok(res);
