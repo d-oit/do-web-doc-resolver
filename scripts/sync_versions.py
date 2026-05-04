@@ -13,11 +13,10 @@ Usage:
 import re
 import sys
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 
-VERSION_FILES: list[dict[str, Any]] = [
+VERSION_FILES: list[dict[str, str]] = [
     {
         "path": "pyproject.toml",
         "pattern": r'^version\s*=\s*"([^"]+)"',

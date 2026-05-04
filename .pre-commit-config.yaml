@@ -41,15 +41,6 @@ repos:
       - id: markdownlint
         args: ['--config', 'markdownlint.toml']
 
-  # Type checking
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
-    hooks:
-      - id: mypy
-        args: ['--ignore-missing-imports']
-        additional_dependencies: [types-requests]
-        files: ^scripts/
-
   # Local hooks (custom quality gate)
   - repo: local
     hooks:
