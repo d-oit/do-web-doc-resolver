@@ -148,7 +148,26 @@ impl SemanticCache {
         &self,
         query: &str,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
-        // Generate query vector
+        // Normalize query for consistent lookup
+        let normalized: String = query
+            .to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        // First attempt exact match lookup via concept ID
+        if let Ok(Some(concept)) = self.framework.get_concept(&normalized).await {
+            tracing::info!("Semantic cache EXACT HIT for query='{}'", query);
+            if let Some(results_value) = concept.metadata.get("results") {
+                if let Ok(results) =
+                    serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
+                {
+                    return Ok(Some(results));
+                }
+            }
+        }
+
+        // Generate query vector for semantic search
         let query_vector = self.encode_query(query);
 
         // Probe semantic memory - returns (id, score) pairs
@@ -302,6 +321,13 @@ impl SemanticCache {
             .map(|opt| opt.and_then(|vec| vec.into_iter().next()))
     }
 
+    /// Query the cache for a specific URL (no-op without feature)
+    #[cfg(not(feature = "semantic-cache"))]
+    #[allow(dead_code)]
+    pub async fn query_url(&self, _url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
+        Ok(None)
+    }
+
     /// Query the cache for a specific provider (L4 Cache)
     #[cfg(feature = "semantic-cache")]
     pub async fn query_provider(
@@ -311,6 +337,17 @@ impl SemanticCache {
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
         let key = format!("{}:{}", provider, query);
         self.query(&key).await
+    }
+
+    /// Query the cache for a specific provider (no-op without feature)
+    #[cfg(not(feature = "semantic-cache"))]
+    #[allow(dead_code)]
+    pub async fn query_provider(
+        &self,
+        _query: &str,
+        _provider: &str,
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
+        Ok(None)
     }
 
     /// Get cache statistics
