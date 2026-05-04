@@ -223,6 +223,35 @@ snakeviz profile.prof
 cargo flamegraph --bin do-wdr -- resolve "query"
 ```
 
+### Benchmarking Semantic Health
+
+To verify the semantic cache performance and quality synthesis:
+
+1.  **Build with Semantic Cache**:
+    ```bash
+    cd cli
+    cargo build --release --features semantic-cache
+    ```
+
+2.  **Enable Cache via Environment**:
+    ```bash
+    export DO_WDR_SEMANTIC_CACHE__ENABLED=true
+    export DO_WDR_SEMANTIC_CACHE__PATH=.do-wdr_cache/bench
+    ```
+
+3.  **Run Benchmark Pass**:
+    Run standard URLs twice to measure hit latency:
+    ```bash
+    # Pass 1: Prime
+    ./target/release/do-wdr resolve "https://docs.python.org/3/" --provider jina
+    # Pass 2: Measure (Target: < 200ms)
+    ./target/release/do-wdr resolve "https://docs.python.org/3/" --provider jina --json
+    ```
+
+4.  **Health Thresholds**:
+    - **Cache Hit Latency**: < 200ms (Optimized targets ~15ms total, ~1ms internal).
+    - **Quality Score**: > 0.85.
+
 ## CI/CD
 
 ### GitHub Actions

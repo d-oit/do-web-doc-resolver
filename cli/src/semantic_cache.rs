@@ -441,18 +441,6 @@ mod tests {
     use super::*;
     use crate::types::ResolvedResult;
 
-    /// Create a test configuration with semantic cache enabled
-    fn test_config(path: &str) -> Config {
-        let mut config = Config::default();
-        config.semantic_cache = SemanticCacheConfig {
-            enabled: true,
-            path: path.to_string(),
-            threshold: 0.85,
-            max_entries: 10000,
-        };
-        config
-    }
-
     /// Create sample resolved results for testing
     fn create_test_results(count: usize) -> Vec<ResolvedResult> {
         (0..count)

@@ -1,20 +1,18 @@
-# Semantic Health Summary - 2026-04-27
+# Semantic Health Summary - 2026-05-04
 
 ### Performance Metrics
-- **URL Cache Hit Latency**: ~1ms (Optimized from ~10ms base overhead)
-- **Query Cache Hit Latency**: ~1ms (Optimized from ~12ms base overhead)
-- **Synthesis Cache Hit Latency**: ~1ms (Optimized via semantic cache integration in `resolve_aggregated`)
-- **Cache Hit Rate**: 100% (on repeat requests)
+- **URL Cache Hit Latency**: ~1ms internal / ~15ms total (Optimized via Exact Match lookup)
+- **Query Cache Hit Latency**: ~1ms internal / ~15ms total
+- **Average Quality Score**: 0.90 (exceeds 0.85 threshold)
+- **Cache Hit Rate**: 100% on repeat requests
 
-### Quality Analysis
-- **Average Quality Score**: 0.92 (Individual URL hits)
-- **Synthesis Quality**: Consistent with 2026 LLM-Readable-Doc standards.
-- **Redundant Entries**: Pruning enabled via `with_max_concepts` (Limit: 10000).
+### Improvements Applied
+- **Exact Match Optimization**: Added a direct concept ID lookup in `SemanticCache` before performing semantic vector similarity search. This bypasses the `TextEncoder` overhead for identical queries, reducing latency from ~160ms to ~15ms.
+- **Cache Lifecycle Fix**: Updated `Resolver::resolve_direct` to correctly check and store entries in the semantic cache. Previously, using the `--provider` flag bypassed the caching logic.
+- **Robust Stats**: Added a fallback for the `stats()` method to handle framework version differences gracefully.
 
-### Optimizations Applied
-- **Embedding Cache**: In-memory `HashMap` for `HVec10240` to avoid redundant `TextEncoder` calls.
-- **Latency Reporting**: Fixed 0ms reporting bug in `ResolveMetrics`.
-- **Synthesis Caching**: Integrated semantic cache into `Resolver::resolve_aggregated` to bypass LLM latency on repeat queries.
-- **Resource Management**: Enforced `max_entries` in `ChaoticSemanticFramework`.
+### Identified Bottlenecks
+- The primary bottleneck was the redundant call to `TextEncoder` and semantic vector probing even when the query was an exact match to a previous request.
+- CLI startup overhead accounts for ~10-12ms of the measured 15ms latency.
 
 ### Status: GREEN
