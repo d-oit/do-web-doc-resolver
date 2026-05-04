@@ -267,7 +267,7 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
             model="mistral-small-latest",
             name="url-extractor",
             instructions="Extract and summarize content from web pages. Return clean markdown.",
-            tools=[{"type": "web_search"}],
+            tools=[{"type": "web_search"}],  # type: ignore[arg-type]
         )
 
         try:
@@ -279,8 +279,16 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
 
             content = ""
             for entry in result.outputs:
-                if hasattr(entry, "content") and entry.content:
-                    content += str(entry.content)
+                if hasattr(entry, "content") and entry.content is not None:
+                    # In newer mistralai, content might be a list of chunks
+                    if isinstance(entry.content, str):
+                        content += entry.content
+                    elif isinstance(entry.content, list):
+                        for chunk in entry.content:
+                            if hasattr(chunk, "text") and chunk.text:
+                                content += chunk.text
+                            elif isinstance(chunk, str):
+                                content += chunk
 
             if content:
                 resolved = ResolvedResult(
@@ -312,9 +320,21 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
 
         client = Mistral(api_key=api_key)
         resp = client.chat.complete(
-            model="mistral-small-latest", messages=[UserMessage(content=f"Search: {query}")]
+            model="mistral-small-latest",
+            messages=[UserMessage(content=f"Search: {query}")],  # type: ignore[arg-type]
         )
-        content = resp.choices[0].message.content if resp.choices else ""
+        content = ""
+        if resp.choices and resp.choices[0].message and resp.choices[0].message.content:
+            msg_content = resp.choices[0].message.content
+            if isinstance(msg_content, str):
+                content = msg_content
+            elif isinstance(msg_content, list):
+                # Handle list of chunks if necessary
+                for chunk in msg_content:
+                    if hasattr(chunk, "text") and chunk.text:
+                        content += chunk.text
+                    elif isinstance(chunk, str):
+                        content += chunk
         result = ResolvedResult(
             source="mistral-websearch", content=content[:max_chars], query=query
         )

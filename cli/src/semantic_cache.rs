@@ -138,7 +138,7 @@ impl SemanticCache {
 
     /// Initialize semantic cache (no-op without feature)
     #[cfg(not(feature = "semantic-cache"))]
-    pub fn new(_config: &Config) -> Result<Option<Self>, ResolverError> {
+    pub async fn new(_config: &Config) -> StdResult<Option<Self>, ResolverError> {
         Ok(None)
     }
 
@@ -148,6 +148,25 @@ impl SemanticCache {
         &self,
         query: &str,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
+        // Normalize query for consistent lookup
+        let normalized: String = query
+            .to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        // First attempt exact match lookup via concept ID
+        if let Ok(Some(concept)) = self.framework.get_concept(&normalized).await {
+            tracing::info!("Semantic cache EXACT HIT for query='{}'", query);
+            if let Some(results_value) = concept.metadata.get("results") {
+                if let Ok(results) =
+                    serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
+                {
+                    return Ok(Some(results));
+                }
+            }
+        }
+
         // Generate query vector
         let query_vector = self.encode_query(query);
 
@@ -218,15 +237,15 @@ impl SemanticCache {
         results: &[ResolvedResult],
         provider: &str,
     ) -> StdResult<(), ResolverError> {
-        // Generate query vector (normalizes internally)
-        let query_vector = self.encode_query(query);
-
-        // Normalize query for consistent ID
+        // Normalize query for consistent lookup
         let normalized: String = query
             .to_lowercase()
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ");
+
+        // Generate query vector (normalizes internally)
+        let query_vector = self.encode_query(query);
 
         // Create metadata HashMap
         let mut metadata = HashMap::new();
@@ -302,6 +321,12 @@ impl SemanticCache {
             .map(|opt| opt.and_then(|vec| vec.into_iter().next()))
     }
 
+    /// Query the cache for a specific URL (no-op without feature)
+    #[cfg(not(feature = "semantic-cache"))]
+    pub async fn query_url(&self, _url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
+        Ok(None)
+    }
+
     /// Query the cache for a specific provider (L4 Cache)
     #[cfg(feature = "semantic-cache")]
     pub async fn query_provider(
@@ -313,10 +338,20 @@ impl SemanticCache {
         self.query(&key).await
     }
 
+    /// Query the cache for a specific provider (no-op without feature)
+    #[cfg(not(feature = "semantic-cache"))]
+    pub async fn query_provider(
+        &self,
+        _query: &str,
+        _provider: &str,
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
+        Ok(None)
+    }
+
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
-        // Note: concept_count() not available in current API version
+        // Fallback to 0 if count() is not available
         Ok(CacheStats {
             entries: 0,
             hit_rate: 0.0,
@@ -406,14 +441,15 @@ mod tests {
 
     /// Create a test configuration with semantic cache enabled
     fn test_config(path: &str) -> Config {
-        let mut config = Config::default();
-        config.semantic_cache = SemanticCacheConfig {
-            enabled: true,
-            path: path.to_string(),
-            threshold: 0.85,
-            max_entries: 10000,
-        };
-        config
+        Config {
+            semantic_cache: SemanticCacheConfig {
+                enabled: true,
+                path: path.to_string(),
+                threshold: 0.85,
+                max_entries: 10000,
+            },
+            ..Default::default()
+        }
     }
 
     /// Create sample resolved results for testing
@@ -516,8 +552,8 @@ mod tests {
 
         // Note: Semantic matching depends on the encoder quality
         // The test documents this behavior
-        if similar_retrieved.is_some() {
-            assert_eq!(similar_retrieved.as_ref().unwrap().len(), results.len());
+        if let Some(hits) = &similar_retrieved {
+            assert_eq!(hits.len(), results.len());
         }
 
         // Query non-matching
@@ -612,12 +648,14 @@ mod tests {
     #[cfg(feature = "semantic-cache")]
     async fn test_database_failure() {
         // Test with invalid path (read-only or non-existent parent)
-        let mut config = Config::default();
-        config.semantic_cache = SemanticCacheConfig {
-            enabled: true,
-            path: "/nonexistent/path/that/cannot/be/created".to_string(),
-            threshold: 0.85,
-            max_entries: 10000,
+        let config = Config {
+            semantic_cache: SemanticCacheConfig {
+                enabled: true,
+                path: "/nonexistent/path/that/cannot/be/created".to_string(),
+                threshold: 0.85,
+                max_entries: 10000,
+            },
+            ..Default::default()
         };
 
         // Should gracefully handle directory creation failure
@@ -678,8 +716,8 @@ mod tests {
 
             // Note: Data persistence depends on the underlying database implementation
             // This test documents the expected behavior
-            if retrieved.is_some() {
-                assert_eq!(retrieved.as_ref().unwrap().len(), results.len());
+            if let Some(hits) = &retrieved {
+                assert_eq!(hits.len(), results.len());
             }
         }
 
