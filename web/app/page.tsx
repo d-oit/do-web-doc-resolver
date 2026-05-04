@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource } from "@/lib/keys";
-import { loadUIState, saveUIState, type UIState } from "@/lib/ui-state";
+import { loadUIState, loadUiState, saveUIState, type UIState } from "@/lib/ui-state";
 import { HistoryEntry } from "@/app/components/History";
 import { parseProviderResults, extractNormalizedUrls, type ProviderResult } from "@/lib/results";
 import { PROVIDERS, PROFILES, ProfileId, UiProvider, toApiProviderId } from "@/app/constants";
@@ -42,7 +42,19 @@ export default function Home() {
 
   const keySource = useMemo(() => resolveKeySource(apiKeys, serverKeyStatus), [apiKeys, serverKeyStatus]);
 
-  const SEARCH_STORAGE_KEY = "wdr-search-state";
+  // Expose setters to window for programmatic access
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__WDR_INTERNAL_STATE_SETTERS__ = {
+        setMaxChars,
+        setProfile,
+        setSelectedProviders,
+        setSkipCache,
+        setDeepResearch,
+        setMobileMenuOpen,
+      };
+    }
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -80,6 +92,19 @@ export default function Home() {
       .catch(() => {});
 
     // Load UI state from server with localStorage fallback
+    Promise.resolve().then(() => {
+      const local = loadUiState();
+      setSidebarOpen(!local.sidebarCollapsed);
+      setApiKeysOpen(local.showApiKeys);
+      setShowAdvanced(local.showAdvanced);
+      const initialProfile = PROFILES.some((p) => p.id === local.activeProfile) ? (local.activeProfile as ProfileId) : "free";
+      setProfile(initialProfile);
+      setSelectedProviders(local.selectedProviders || []);
+      setMaxChars(local.maxChars || 8000);
+      setSkipCache(Boolean(local.skipCache));
+      setDeepResearch(Boolean(local.deepResearch));
+    });
+
     loadUIState()
       .then((ui) => {
         setSidebarOpen(!ui.sidebarCollapsed);
@@ -97,29 +122,6 @@ export default function Home() {
           setApiKeys(mergedKeys);
           saveApiKeys(mergedKeys);
         }
-
-        // Load search state from localStorage
-        const savedSearch = localStorage.getItem(SEARCH_STORAGE_KEY);
-        if (savedSearch) {
-          try {
-            const search = JSON.parse(savedSearch);
-            if (search.query) setQuery(search.query);
-            if (search.result) {
-              setResult(search.result);
-              setParsedResults(parseProviderResults(search.result));
-            }
-            if (search.error) setError(search.error);
-            if (search.resolveTime) setResolveTime(search.resolveTime);
-            if (search.sourceProvider) setSourceProvider(search.sourceProvider);
-            if (search.qualityScore) setQualityScore(search.qualityScore);
-            if (Array.isArray(search.helpfulIds)) {
-              setHelpfulIds(new Set(search.helpfulIds));
-            }
-          } catch (e) {
-            console.error("Failed to parse saved search state", e);
-          }
-        }
-
         setLoaded(true);
         inputRef.current?.focus();
       })
@@ -148,21 +150,6 @@ export default function Home() {
     saveUIState(state);
     saveApiKeys(apiKeys);
   }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch, apiKeys]);
-
-  // Persist search state changes
-  useEffect(() => {
-    if (!loaded) return;
-    const searchState = {
-      query,
-      result,
-      error,
-      resolveTime,
-      sourceProvider,
-      qualityScore,
-      helpfulIds: Array.from(helpfulIds),
-    };
-    localStorage.setItem(SEARCH_STORAGE_KEY, JSON.stringify(searchState));
-  }, [loaded, query, result, error, resolveTime, sourceProvider, qualityScore, helpfulIds]);
 
   const handleProviderToggle = (providerId: string) => {
     setProfile("custom");
@@ -329,18 +316,6 @@ export default function Home() {
     const restoredDeepResearch = Boolean(entry.flags?.deepResearch);
     setSkipCache(restoredSkipCache);
     setDeepResearch(restoredDeepResearch);
-    setMobileMenuOpen(false);
-
-    // Re-run the search to ensure results are fresh and state is synced
-    handleSubmit(undefined, {
-      query: entry.query,
-      profile: restoredProfile,
-      providers: restoredProviders.length > 0 ? restoredProviders.map(toApiProviderId) : undefined,
-      skipCache: restoredSkipCache,
-      deepResearch: restoredDeepResearch,
-      maxChars, // Keep current maxChars or could also store/restore it
-      isHistoryLoad: true,
-    });
 
     inputRef.current?.focus();
   };

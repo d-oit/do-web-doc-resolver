@@ -11,7 +11,7 @@ import os
 import struct
 import time
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 try:
     from pysqlite3 import dbapi2 as sqlite3
@@ -227,7 +227,7 @@ class SemanticCache:
             raise RuntimeError("Embedding model not available")
 
         embedding = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
-        return cast(list[float], embedding.tolist())
+        return embedding.tolist()
 
     def query(self, query_str: str) -> SemanticCacheEntry | None:
         """
