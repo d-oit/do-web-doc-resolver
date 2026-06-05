@@ -124,16 +124,18 @@ export default function MainContent({
               </button>
             )}
           </div>
-          {query.trim() && (
+          {(query.trim() || result) && (
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleSubmit()}
-                disabled={loading}
-                aria-label={loading ? "Fetching results..." : "Fetch results"}
-                className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
-              >
-                {loading ? "..." : "Fetch"}
-              </button>
+              {query.trim() && (
+                <button
+                  onClick={() => handleSubmit()}
+                  disabled={loading}
+                  aria-label={loading ? "Fetching results..." : "Fetch results"}
+                  className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
+                >
+                  {loading ? "..." : "Fetch"}
+                </button>
+              )}
               <button
                 onClick={() => {
                   setQuery("");
