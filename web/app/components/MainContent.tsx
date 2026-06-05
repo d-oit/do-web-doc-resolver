@@ -63,7 +63,7 @@ interface SearchSectionProps {
   loading: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
   error: string;
-  result: string;
+  hasResult: boolean;
   onClear: () => void;
   providerStatus: string | null;
   isUrl: boolean;
@@ -76,7 +76,7 @@ const SearchSection = ({
   loading,
   inputRef,
   error,
-  result,
+  hasResult,
   onClear,
   providerStatus,
   isUrl,
@@ -113,7 +113,7 @@ const SearchSection = ({
           </button>
         )}
       </div>
-      {(query.trim() || result) && (
+      {(query.trim() || hasResult) && (
         <div className="flex items-center gap-2">
           {query.trim() && (
             <button
@@ -218,7 +218,6 @@ const MetadataBar = ({
 
 export const MainContent = (props: MainContentProps) => {
   const {
-    mobileMenuOpen,
     setMobileMenuOpen,
     query,
     setQuery,
@@ -275,7 +274,7 @@ export const MainContent = (props: MainContentProps) => {
         loading={loading}
         inputRef={inputRef}
         error={error}
-        result={result}
+        hasResult={Boolean(result)}
         onClear={handleClear}
         providerStatus={providerStatus}
         isUrl={isUrl}
