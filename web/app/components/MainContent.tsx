@@ -106,7 +106,7 @@ export const MainContent = (props: MainContentProps) => {
         </div>
       )}
 
-      <main className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0">
         {result ? (
           <>
             <MetadataBar
@@ -144,7 +144,7 @@ export const MainContent = (props: MainContentProps) => {
             Paste a URL or enter a search query
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 };
