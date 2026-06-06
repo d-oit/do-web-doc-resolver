@@ -86,6 +86,7 @@ git push origin main --tags
 ### 4. Wait for CI/CD
 
 The tag push triggers `.github/workflows/release.yml` which:
+
 - Runs Python and Rust test suites
 - Builds binaries for Linux, macOS, and Windows
 - Generates build attestations
