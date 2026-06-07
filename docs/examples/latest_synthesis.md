@@ -1,31 +1,32 @@
 ---
-relevance_score: 1.00
+relevance_score: 1.0
 intent_category: Technical
-token_estimate: 550
-last_updated: 2026-06-07
+token_estimate: 520
+last_updated: 2026-05-24
 ---
 
-# LLM-Ready Synthesis: 2026 Standards Update (June 2026)
+# LLM-Ready Synthesis: 2026 Standards Update (May 2026)
 
 [ANCHOR: SUMMARY]
-The Web Doc Resolver synthesis logic has been further refined to align with the June 2026 "LLM-Readable-Doc" standards. This update prioritizes extreme token efficiency and strict adherence to structural anchors for optimized RAG performance [1], [2].
+The Web Doc Resolver synthesis logic has reached full alignment with the latest 2026 "LLM-Readable-Doc" standards. This update ensures that both LLM-driven and deterministic outputs provide optimized structures for downstream RAG performance and precise citation mapping \[1\]\[2\].
 
 [ANCHOR: TECHNICAL_DETAILS]
 Key enhancements implemented in this cycle:
 
-- **Maximizing Token-Efficiency**: The synthesis prompt now explicitly mandates the removal of all filler words, marketing jargon, and redundant phrasing. Every token is strictly evaluated for its contribution to resolving the user's query [1].
-- **Dynamic Relevance Scoring**: Deterministic merge paths in both Python and Rust now calculate `relevance_score` dynamically using the core quality scoring module, replacing previous hardcoded estimates [1], [2].
-- **Strict Structural Anchors**: Mandatory use of `[ANCHOR: SUMMARY]`, `[ANCHOR: TECHNICAL_DETAILS]`, `[ANCHOR: COMPARISON]`, and `[ANCHOR: CITATIONS]` ensures consistent partitioning for agentic workflows [3].
-- **Enhanced Citation Mapping**: All claims are strictly followed by bracketed indices mapping to the verified source URLs, facilitating precise grounding [1].
+- **Strict YAML Frontmatter**: Mandatory inclusion of `relevance_score`, `intent_category`, `token_estimate`, and `last_updated` for rapid relevance assessment \[1\]\[3\].
+- **Mandatory Structural Anchors**: Content is strictly partitioned into `SUMMARY`, `TECHNICAL_DETAILS`, `COMPARISON`, and `CITATIONS` blocks [1].
+- **Citation Precision**: Every claim and source attribution is followed by bracketed indices (e.g., [1], [2]) that map directly to the source URLs in the citations block [1].
+- **Rust Parity**: The Rust CLI implementation now mirrors the Python deterministic merge logic, ensuring standard compliance across the entire toolchain [2].
 
 [ANCHOR: COMPARISON]
 
-| Feature | May 2026 Baseline | June 2026 Update |
-|---------|-------------------|------------------|
-| Token Efficiency | Standard | Extreme (Filler-Free) |
-| Relevance Scoring | Hardcoded (0.70) | Dynamic (via `score_content`) |
-| Anchor Strictness | Recommended | Mandatory/Exact |
-| Rust Parity | Functional | Logic-Synchronized |
+| Feature | 2024 Legacy | 2026 Standard (Updated) |
+|---------|-------------|-------------------------|
+| YAML Fields | `relevance_score` only | Full 4-field mandatory set |
+| Anchors | Sequential | RAG-Optimized Structural Anchors |
+| Non-LLM Path | Raw Concatenation | Standardized Deterministic Merge |
+| Citation Style | Source List | Inline Bracketed Indices `[n]` |
+| Rust Support | Basic Concatenation | Full Standards Compliance |
 
 [ANCHOR: CITATIONS]
 [1] <https://github.com/d-oit/do-web-doc-resolver/scripts/synthesis.py>

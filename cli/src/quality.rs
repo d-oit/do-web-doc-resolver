@@ -8,31 +8,25 @@ pub struct QualityScore {
     pub acceptable: bool,
 }
 
-use regex::Regex;
-use std::collections::HashSet;
-use std::sync::OnceLock;
-
-static NOISY_REGEX: OnceLock<Regex> = OnceLock::new();
-
 pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> QualityScore {
     let trimmed = markdown.trim();
     let len = trimmed.len();
 
     let too_short = len < 500;
     let missing_links = links.is_empty();
-
-    let mut num_lines = 0;
-    let mut unique_lines = HashSet::new();
-    for line in trimmed.lines() {
-        num_lines += 1;
-        unique_lines.insert(line.trim());
-    }
-    let unique_count = unique_lines.len();
-    let duplicate_heavy = num_lines > 0 && unique_count < std::cmp::max(5, num_lines / 3);
-
-    let noisy_re = NOISY_REGEX
-        .get_or_init(|| Regex::new("(?i)cookie|subscribe|javascript|log in|sign up").unwrap());
-    let noisy_count = noisy_re.find_iter(trimmed).count();
+    let lines: Vec<&str> = trimmed.lines().collect();
+    let unique_lines = lines
+        .iter()
+        .copied()
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+    let duplicate_heavy = !lines.is_empty() && unique_lines < std::cmp::max(5, lines.len() / 3);
+    let lower = trimmed.to_lowercase();
+    let noisy_count = lower.matches("cookie").count()
+        + lower.matches("subscribe").count()
+        + lower.matches("javascript").count()
+        + lower.matches("log in").count()
+        + lower.matches("sign up").count();
     let noisy = noisy_count > 6;
 
     let has_frontmatter = trimmed.starts_with("---")
