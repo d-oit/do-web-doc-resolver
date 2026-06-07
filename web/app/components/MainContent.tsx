@@ -8,37 +8,37 @@ import type { ProviderResult } from "@/lib/results";
 
 interface MainContentProps {
   mobileMenuOpen: boolean;
-  setMobileMenuOpen: (open: boolean) => void;
+  setMobileMenuOpen(open: boolean): void;
   query: string;
-  setQuery: (query: string) => void;
-  handleSubmit: (e?: React.FormEvent) => void;
+  setQuery(query: string): void;
+  handleSubmit(e?: React.FormEvent): void;
   loading: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
   error: string;
   result: string;
-  setResult: (result: string) => void;
-  setError: (error: string) => void;
+  setResult(result: string): void;
+  setError(error: string): void;
   providerStatus: string | null;
-  setProviderStatus: (status: string | null) => void;
+  setProviderStatus(status: string | null): void;
   sourceProvider: string | null;
-  setSourceProvider: (provider: string | null) => void;
+  setSourceProvider(provider: string | null): void;
   resolveTime: number | null;
-  setResolveTime: (time: number | null) => void;
+  setResolveTime(time: number | null): void;
   qualityScore: number | null;
-  setQualityScore: (score: number | null) => void;
+  setQualityScore(score: number | null): void;
   parsedResults: ProviderResult[];
-  setParsedResults: (results: ProviderResult[]) => void;
+  setParsedResults(results: ProviderResult[]): void;
   viewRaw: boolean;
-  setViewRaw: (view: boolean) => void;
+  setViewRaw(view: boolean): void;
   helpfulIds: Set<string>;
-  toggleHelpful: (id: string) => void;
-  handleCopyResult: () => void;
-  handleCardCopy: (value: string) => void;
+  toggleHelpful(id: string): void;
+  handleCopyResult(): void;
+  handleCardCopy(value: string): void;
   copied: boolean;
   isUrl: boolean;
 }
 
-export const MainContent = (props: MainContentProps) => {
+export function MainContent(props: MainContentProps) {
   const {
     setMobileMenuOpen,
     query,
@@ -70,7 +70,7 @@ export const MainContent = (props: MainContentProps) => {
     isUrl,
   } = props;
 
-  const handleClear = () => {
+  function handleClear() {
     setQuery("");
     setResult("");
     setError("");
@@ -81,7 +81,7 @@ export const MainContent = (props: MainContentProps) => {
     setParsedResults([]);
     setViewRaw(false);
     inputRef.current?.focus();
-  };
+  }
 
   return (
     <div id="main-content" className="flex-1 flex flex-col min-h-0" tabIndex={-1}>
@@ -147,6 +147,6 @@ export const MainContent = (props: MainContentProps) => {
       </div>
     </div>
   );
-};
+}
 
 export default MainContent;
