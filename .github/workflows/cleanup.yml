@@ -68,9 +68,34 @@ jobs:
             markdown_list=""
             raw_list=""
 
+            # Load .cleanup-ignore entries
+            ignored_files=()
+            skipped_count=0
+            if [ -f ".cleanup-ignore" ]; then
+              while IFS= read -r line || [[ -n "$line" ]]; do
+                # Skip comments and empty lines
+                [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+                ignored_files+=("$line")
+              done < ".cleanup-ignore"
+            fi
+
             for script in scripts/*.sh; do
               if [ -f "${script}" ]; then
                 script_name=$(basename "${script}")
+
+                # Check if the file is in .cleanup-ignore
+                skip=false
+                for ignored in "${ignored_files[@]}"; do
+                  if [ "${script}" = "${ignored}" ] || [ "${script_name}" = "${ignored}" ]; then
+                    skip=true
+                    break
+                  fi
+                done
+                if [ "$skip" = true ]; then
+                  ((skipped_count++))
+                  continue
+                fi
+
                 refs=$(grep -r "${script_name}" . \
                   --include="*.yml" --include="*.yaml" \
                   --include="*.sh" --include="*.md" \
@@ -104,6 +129,12 @@ jobs:
               echo ""
               echo "## Temp/Debug Files"
               echo "${old_files}"
+            fi
+
+            if [ "${skipped_count}" -gt 0 ]; then
+              echo ""
+              echo "## Ignored Files"
+              echo "Skipped ${skipped_count} files based on .cleanup-ignore"
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
