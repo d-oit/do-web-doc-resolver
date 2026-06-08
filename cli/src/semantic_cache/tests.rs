@@ -16,9 +16,10 @@ mod tests_semantic {
         let query = "test query";
         let _ = cache.encode_query(query);
 
+        let normalized = SemanticCache::normalize_text(query, true);
         {
             let ec = cache.embedding_cache.lock().unwrap();
-            assert!(ec.contains_key("test query"));
+            assert!(ec.contains_key(&normalized));
         }
     }
 }

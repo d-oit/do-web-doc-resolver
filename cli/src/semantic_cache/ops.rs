@@ -13,6 +13,55 @@ use {
 static GLOBAL_ENCODER: OnceLock<TextEncoder> = OnceLock::new();
 
 impl SemanticCache {
+    /// Internal normalization for cache keys and semantic comparison
+    #[allow(dead_code)]
+    pub(crate) fn normalize_text(text: &str, filter_stop_words: bool) -> String {
+        let mut tokens: Vec<&str> = text
+            .split_whitespace()
+            .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()))
+            .filter(|w| !w.is_empty())
+            .collect();
+
+        if filter_stop_words && !crate::resolver::is_url(text) {
+            tokens.retain(|w| {
+                let low = w.to_lowercase();
+                ![
+                    "docs",
+                    "documentation",
+                    "guide",
+                    "tutorial",
+                    "reference",
+                    "ref",
+                    "lib",
+                    "library",
+                    "std",
+                    "standard",
+                    "for",
+                    "of",
+                    "the",
+                    "a",
+                    "an",
+                    "and",
+                    "programming",
+                    "language",
+                ]
+                .contains(&low.as_str())
+            });
+        }
+
+        if tokens.is_empty() {
+            return text
+                .to_lowercase()
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+        }
+
+        let mut lowered: Vec<String> = tokens.into_iter().map(|s| s.to_lowercase()).collect();
+        lowered.sort();
+        lowered.join(" ")
+    }
+
     #[cfg(feature = "semantic-cache")]
     pub async fn new(config: &Config) -> StdResult<Option<Self>, ResolverError> {
         if !config.semantic_cache.enabled {
@@ -62,6 +111,8 @@ impl SemanticCache {
             framework,
             config: cache_config,
             embedding_cache: Mutex::new(HashMap::new()),
+            hit_count: std::sync::atomic::AtomicUsize::new(0),
+            miss_count: std::sync::atomic::AtomicUsize::new(0),
         }))
     }
 
@@ -75,14 +126,12 @@ impl SemanticCache {
         &self,
         query: &str,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
-        let normalized: String = query
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
+        let normalized = Self::normalize_text(query, false);
 
         if let Ok(Some(concept)) = self.framework.get_concept(&normalized).await {
             tracing::info!("Semantic cache EXACT HIT for query='{}'", query);
+            self.hit_count
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
             if let (Some(provider_val), Some(ts_val)) = (
                 concept.metadata.get("provider"),
@@ -125,13 +174,22 @@ impl SemanticCache {
 
         let (best_id, best_score) = &hits[0];
 
-        if *best_score >= self.config.threshold {
+        // Dynamic threshold adjustment: if query is very short, be more strict
+        let effective_threshold = if normalized.len() < 10 {
+            self.config.threshold.max(0.92)
+        } else {
+            self.config.threshold
+        };
+
+        if *best_score >= effective_threshold {
             tracing::info!(
                 "Semantic cache HIT for query='{}' (score: {:.2}, id: {})",
                 query,
                 best_score,
                 best_id
             );
+            self.hit_count
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
             if let Some(concept) = self
                 .framework
@@ -176,6 +234,8 @@ impl SemanticCache {
             best_score,
             self.config.threshold
         );
+        self.miss_count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         Ok(None)
     }
 
@@ -195,25 +255,43 @@ impl SemanticCache {
         results: &[ResolvedResult],
         provider: &str,
     ) -> StdResult<(), ResolverError> {
-        let normalized: String = query
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
+        let normalized = Self::normalize_text(query, false);
 
         let query_vector = self.encode_query(query);
 
         // Redundancy pruning: check if a very similar entry already exists
-        if let Ok(hits) = self.framework.probe(query_vector, 1).await {
-            if let Some((best_id, best_score)) = hits.first() {
-                if *best_score > 0.99 {
-                    tracing::info!(
-                        "Skipping store for query='{}': very similar entry already exists (id: {}, score: {:.4})",
-                        query,
-                        best_id,
-                        best_score
-                    );
-                    return Ok(());
+        if let Ok(hits) = self.framework.probe(query_vector, 5).await {
+            for (best_id, best_score) in hits {
+                if best_score > 0.98 {
+                    // Check if the actual content is also very similar to avoid collisions
+                    if let Ok(Some(existing)) = self.framework.get_concept(&best_id).await {
+                        if let (Some(existing_results), Some(new_results)) = (
+                            existing.metadata.get("results"),
+                            serde_json::to_value(results).ok(),
+                        ) {
+                            // If results are identical, definitely skip
+                            if existing_results == &new_results {
+                                tracing::info!(
+                                    "Skipping store for query='{}': identical result already exists (id: {}, score: {:.4})",
+                                    query,
+                                    best_id,
+                                    best_score
+                                );
+                                return Ok(());
+                            }
+                        }
+                    }
+
+                    // If score is extremely high (1.0 after normalization), always skip to avoid bloat
+                    if best_score > 0.999 {
+                        tracing::info!(
+                            "Skipping store for query='{}': extremely similar entry already exists (id: {}, score: {:.4})",
+                            query,
+                            best_id,
+                            best_score
+                        );
+                        return Ok(());
+                    }
                 }
             }
         }
@@ -257,11 +335,7 @@ impl SemanticCache {
 
     #[cfg(feature = "semantic-cache")]
     pub async fn remove(&self, query: &str) -> StdResult<(), ResolverError> {
-        let normalized: String = query
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
+        let normalized = Self::normalize_text(query, false);
 
         self.framework
             .delete_concept(&normalized)
@@ -311,11 +385,7 @@ impl SemanticCache {
 
     #[cfg(feature = "semantic-cache")]
     pub async fn has_valid_entry(&self, query: &str) -> bool {
-        let normalized: String = query
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
+        let normalized = Self::normalize_text(query, false);
 
         if let Ok(Some(_)) = self.framework.get_concept(&normalized).await {
             return true;
@@ -339,11 +409,7 @@ impl SemanticCache {
 
     #[cfg(feature = "semantic-cache")]
     pub(crate) fn encode_query(&self, query: &str) -> HVec10240 {
-        let normalized: String = query
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
+        let normalized = Self::normalize_text(query, true);
 
         if let Ok(cache) = self.embedding_cache.lock() {
             if let Some(vec) = cache.get(&normalized) {
@@ -351,7 +417,7 @@ impl SemanticCache {
             }
         }
 
-        let encoder = GLOBAL_ENCODER.get_or_init(TextEncoder::new);
+        let encoder = GLOBAL_ENCODER.get_or_init(TextEncoder::new_code_aware);
         let vec = encoder.encode(&normalized);
 
         if let Ok(mut cache) = self.embedding_cache.lock() {

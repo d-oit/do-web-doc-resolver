@@ -75,9 +75,24 @@ impl SemanticCache {
 
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
+        let framework_stats = self
+            .framework
+            .stats()
+            .await
+            .map_err(|e| ResolverError::Cache(format!("framework stats failed: {}", e)))?;
+
+        let hits = self.hit_count.load(std::sync::atomic::Ordering::Relaxed);
+        let misses = self.miss_count.load(std::sync::atomic::Ordering::Relaxed);
+        let total = hits + misses;
+        let hit_rate = if total > 0 {
+            hits as f32 / total as f32
+        } else {
+            0.0
+        };
+
         Ok(CacheStats {
-            entries: 0,
-            hit_rate: 0.0,
+            entries: framework_stats.concept_count,
+            hit_rate,
             path: self.config.path.clone(),
         })
     }
