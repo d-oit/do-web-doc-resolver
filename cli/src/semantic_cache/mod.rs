@@ -60,6 +60,10 @@ pub struct SemanticCache {
     config: SemanticCacheConfig,
     #[cfg(feature = "semantic-cache")]
     embedding_cache: Mutex<HashMap<String, HVec10240>>,
+    #[cfg(feature = "semantic-cache")]
+    pub(crate) hit_count: std::sync::atomic::AtomicUsize,
+    #[cfg(feature = "semantic-cache")]
+    pub(crate) miss_count: std::sync::atomic::AtomicUsize,
     /// In-memory cache for non-feature builds
     #[cfg(not(feature = "semantic-cache"))]
     _phantom: std::marker::PhantomData<()>,
