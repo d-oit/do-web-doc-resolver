@@ -14,6 +14,7 @@ static GLOBAL_ENCODER: OnceLock<TextEncoder> = OnceLock::new();
 
 impl SemanticCache {
     /// Internal normalization for cache keys and semantic comparison
+    #[allow(dead_code)]
     pub(crate) fn normalize_text(text: &str, filter_stop_words: bool) -> String {
         let mut tokens: Vec<&str> = text
             .split_whitespace()
@@ -24,12 +25,36 @@ impl SemanticCache {
         if filter_stop_words && !crate::resolver::is_url(text) {
             tokens.retain(|w| {
                 let low = w.to_lowercase();
-                !["docs", "documentation", "guide", "tutorial", "reference", "ref", "lib", "library", "std", "standard", "for", "of", "the", "a", "an", "and", "programming", "language"].contains(&low.as_str())
+                ![
+                    "docs",
+                    "documentation",
+                    "guide",
+                    "tutorial",
+                    "reference",
+                    "ref",
+                    "lib",
+                    "library",
+                    "std",
+                    "standard",
+                    "for",
+                    "of",
+                    "the",
+                    "a",
+                    "an",
+                    "and",
+                    "programming",
+                    "language",
+                ]
+                .contains(&low.as_str())
             });
         }
 
         if tokens.is_empty() {
-            return text.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ");
+            return text
+                .to_lowercase()
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
         }
 
         let mut lowered: Vec<String> = tokens.into_iter().map(|s| s.to_lowercase()).collect();
@@ -105,7 +130,8 @@ impl SemanticCache {
 
         if let Ok(Some(concept)) = self.framework.get_concept(&normalized).await {
             tracing::info!("Semantic cache EXACT HIT for query='{}'", query);
-            self.hit_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            self.hit_count
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
             if let (Some(provider_val), Some(ts_val)) = (
                 concept.metadata.get("provider"),
@@ -162,7 +188,8 @@ impl SemanticCache {
                 best_score,
                 best_id
             );
-            self.hit_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            self.hit_count
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
             if let Some(concept) = self
                 .framework
@@ -207,7 +234,8 @@ impl SemanticCache {
             best_score,
             self.config.threshold
         );
-        self.miss_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.miss_count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         Ok(None)
     }
 
