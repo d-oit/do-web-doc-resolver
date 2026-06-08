@@ -1,3 +1,22 @@
+## [0.3.8] - 2026-06-08
+
+### Added
+
+- **Synthesis**: Optimize Semantic Cache Retrieval and Pruning (#432)
+
+### Changed
+
+- **UX**: Ensure Clear button is visible when results are present (#421)
+- **CI**: Bump actions/checkout in the github-actions group (#427)
+- **Docs**: Update release workflow to use CI/CD pipeline (#419)
+- **Performance**: Optimize content scoring by avoiding allocations and redundant passes (#420)
+
+### Dependencies
+
+- bump chrono in /cli in the cargo-deps group (#426)
+- bump the npm-deps group in /web with 6 updates (#428)
+- bump eslint-config-next in /web (#430)
+
 ## [0.3.7] - 2026-06-02
 
 ### Fixed
