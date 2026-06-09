@@ -157,41 +157,167 @@ fn parse_language_hint(class_attr: &str) -> Option<String> {
     None
 }
 
+/// State for HTML stripping
+struct StripperState<'a> {
+    result: String,
+    skip_content_depth: usize,
+    in_pre: bool,
+    current_pre_lang: String,
+    block_tags: HashSet<&'a str>,
+}
+
+impl StripperState<'_> {
+    fn new() -> Self {
+        let block_tags = [
+            "p",
+            "div",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "li",
+            "tr",
+            "pre",
+            "br",
+            "article",
+            "section",
+            "header",
+            "footer",
+            "nav",
+            "aside",
+            "main",
+            "figure",
+            "figcaption",
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        Self {
+            result: String::new(),
+            skip_content_depth: 0,
+            in_pre: false,
+            current_pre_lang: String::new(),
+            block_tags,
+        }
+    }
+
+    fn handle_tag(&mut self, tag_content: &str) {
+        let tag_lower = tag_content.to_lowercase();
+        let is_closing = tag_lower.starts_with('/');
+        let tag_name = tag_lower
+            .trim_start_matches('/')
+            .split_whitespace()
+            .next()
+            .unwrap_or("");
+
+        if matches!(tag_name, "script" | "style" | "math" | "svg" | "noscript") {
+            if is_closing {
+                self.skip_content_depth = self.skip_content_depth.saturating_sub(1);
+            } else if !tag_lower.trim().ends_with('/') {
+                self.skip_content_depth += 1;
+            }
+            return;
+        }
+
+        if self.skip_content_depth > 0 {
+            return;
+        }
+
+        if is_closing {
+            self.handle_closing_tag(tag_name);
+        } else {
+            self.handle_opening_tag(tag_name, tag_content);
+        }
+    }
+
+    fn handle_opening_tag(&mut self, tag_name: &str, tag_content: &str) {
+        if self.block_tags.contains(tag_name)
+            && !self.result.is_empty()
+            && !self.result.ends_with('\n')
+        {
+            self.result.push('\n');
+        }
+
+        match tag_name {
+            "code" => {
+                if !self.in_pre {
+                    self.result.push('`');
+                } else if self.current_pre_lang.is_empty() {
+                    if let Some(lang) =
+                        get_attribute(tag_content, "class").and_then(|c| parse_language_hint(&c))
+                    {
+                        if self.result.ends_with("\n```\n") {
+                            self.result.truncate(self.result.len() - 1);
+                            self.result.push_str(&lang);
+                            self.result.push('\n');
+                            self.current_pre_lang = lang;
+                        }
+                    }
+                }
+            }
+            "pre" => {
+                self.in_pre = true;
+                self.current_pre_lang = get_attribute(tag_content, "class")
+                    .and_then(|c| parse_language_hint(&c))
+                    .unwrap_or_default();
+                self.result.push_str("\n```");
+                self.result.push_str(&self.current_pre_lang);
+                self.result.push('\n');
+            }
+            "img" => {
+                if let Some(alt) = get_attribute(tag_content, "alt") {
+                    if !alt.is_empty() {
+                        self.result.push(' ');
+                        let trimmed_alt = alt.trim();
+                        if trimmed_alt.starts_with("{\\displaystyle") {
+                            self.result.push('$');
+                            self.result.push_str(trimmed_alt);
+                            self.result.push('$');
+                        } else {
+                            self.result.push_str(&alt);
+                        }
+                        self.result.push(' ');
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_closing_tag(&mut self, tag_name: &str) {
+        match tag_name {
+            "code" => {
+                if !self.in_pre {
+                    self.result.push('`');
+                }
+            }
+            "pre" => {
+                self.in_pre = false;
+                if !self.result.ends_with('\n') {
+                    self.result.push('\n');
+                }
+                self.result.push_str("```\n");
+            }
+            _ => {
+                if self.block_tags.contains(tag_name)
+                    && !self.result.is_empty()
+                    && !self.result.ends_with('\n')
+                {
+                    self.result.push('\n');
+                }
+            }
+        }
+    }
+}
+
 /// Strip HTML tags and convert to plain text with basic formatting
 fn strip_html(html: &str) -> String {
-    let mut result = String::new();
+    let mut state = StripperState::new();
     let mut in_tag = false;
     let mut current_tag = String::new();
-    let mut skip_content_depth: usize = 0;
-    let mut in_pre = false;
-    let mut current_pre_lang = String::new();
-
-    let block_tags: HashSet<&str> = [
-        "p",
-        "div",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "li",
-        "tr",
-        "pre",
-        "br",
-        "article",
-        "section",
-        "header",
-        "footer",
-        "nav",
-        "aside",
-        "main",
-        "figure",
-        "figcaption",
-    ]
-    .iter()
-    .cloned()
-    .collect();
 
     for ch in html.chars() {
         if ch == '<' {
@@ -199,91 +325,15 @@ fn strip_html(html: &str) -> String {
             current_tag.clear();
         } else if ch == '>' {
             in_tag = false;
-            let tag_lower = current_tag.to_lowercase();
-            let is_closing = tag_lower.starts_with('/');
-            let tag_name = tag_lower
-                .trim_start_matches('/')
-                .split_whitespace()
-                .next()
-                .unwrap_or("");
-
-            if tag_name == "script" || tag_name == "style" {
-                if is_closing {
-                    skip_content_depth = skip_content_depth.saturating_sub(1);
-                } else if !tag_lower.trim().ends_with('/') {
-                    skip_content_depth += 1;
-                }
-            } else if skip_content_depth == 0 {
-                if !is_closing {
-                    // Opening tags
-                    if block_tags.contains(tag_name)
-                        && !result.is_empty()
-                        && !result.ends_with('\n')
-                    {
-                        result.push('\n');
-                    }
-                    if tag_name == "code" {
-                        if !in_pre {
-                            result.push('`');
-                        } else if current_pre_lang.is_empty() {
-                            // If we're in a <pre> block but haven't found a language hint yet, check the <code> tag
-                            if let Some(lang) = get_attribute(&current_tag, "class")
-                                .and_then(|c| parse_language_hint(&c))
-                            {
-                                // Backtrack to inject the language hint if the current block is empty of content
-                                if result.ends_with("\n```\n") {
-                                    result.truncate(result.len() - 1); // Remove trailing newline
-                                    result.push_str(&lang);
-                                    result.push('\n');
-                                    current_pre_lang = lang;
-                                }
-                            }
-                        }
-                    } else if tag_name == "pre" {
-                        in_pre = true;
-                        current_pre_lang = get_attribute(&current_tag, "class")
-                            .and_then(|c| parse_language_hint(&c))
-                            .unwrap_or_default();
-                        result.push_str("\n```");
-                        result.push_str(&current_pre_lang);
-                        result.push('\n');
-                    } else if tag_name == "img" {
-                        if let Some(alt) = get_attribute(&current_tag, "alt") {
-                            if !alt.is_empty() {
-                                result.push(' ');
-                                result.push_str(&alt);
-                                result.push(' ');
-                            }
-                        }
-                    }
-                } else {
-                    // Closing tags
-                    if tag_name == "code" {
-                        if !in_pre {
-                            result.push('`');
-                        }
-                    } else if tag_name == "pre" {
-                        in_pre = false;
-                        if !result.ends_with('\n') {
-                            result.push('\n');
-                        }
-                        result.push_str("```\n");
-                    } else if block_tags.contains(tag_name)
-                        && !result.is_empty()
-                        && !result.ends_with('\n')
-                    {
-                        result.push('\n');
-                    }
-                }
-            }
+            state.handle_tag(&current_tag);
         } else if in_tag {
             current_tag.push(ch);
-        } else if skip_content_depth == 0 {
-            result.push(ch);
+        } else if state.skip_content_depth == 0 {
+            state.result.push(ch);
         }
     }
 
-    let decoded = decode_entities(&result);
+    let decoded = decode_entities(&state.result);
 
     // Clean up whitespace
     let mut final_result = String::new();
@@ -355,6 +405,23 @@ mod tests {
         let html = "<img src=\"math.svg\" alt=\"x^2 + y^2 = z^2\">";
         let result = strip_html(html);
         assert!(result.contains("x^2 + y^2 = z^2"));
+    }
+
+    #[test]
+    fn test_img_alt_latex() {
+        let html = "<img src=\"math.svg\" alt=\"{\\displaystyle x^2 + y^2 = z^2}\">";
+        let result = strip_html(html);
+        assert!(result.contains("${\\displaystyle x^2 + y^2 = z^2}$"));
+    }
+
+    #[test]
+    fn test_skip_math_svg() {
+        let html = "<div>Keep this <math><mi>x</mi></math><svg><rect/></svg></div>";
+        let result = strip_html(html);
+        assert!(result.contains("Keep this"));
+        assert!(!result.contains("<mi>"));
+        assert!(!result.contains("x"));
+        assert!(!result.contains("<rect"));
     }
 
     #[test]
