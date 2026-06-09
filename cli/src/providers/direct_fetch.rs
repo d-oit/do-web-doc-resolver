@@ -207,7 +207,12 @@ fn strip_html(html: &str) -> String {
                 .next()
                 .unwrap_or("");
 
-            if tag_name == "script" || tag_name == "style" {
+            if tag_name == "script"
+                || tag_name == "style"
+                || tag_name == "math"
+                || tag_name == "svg"
+                || tag_name == "noscript"
+            {
                 if is_closing {
                     skip_content_depth = skip_content_depth.saturating_sub(1);
                 } else if !tag_lower.trim().ends_with('/') {
@@ -251,7 +256,13 @@ fn strip_html(html: &str) -> String {
                         if let Some(alt) = get_attribute(&current_tag, "alt") {
                             if !alt.is_empty() {
                                 result.push(' ');
-                                result.push_str(&alt);
+                                if alt.trim().starts_with("{\\displaystyle") {
+                                    result.push('$');
+                                    result.push_str(alt.trim());
+                                    result.push('$');
+                                } else {
+                                    result.push_str(&alt);
+                                }
                                 result.push(' ');
                             }
                         }
@@ -355,6 +366,23 @@ mod tests {
         let html = "<img src=\"math.svg\" alt=\"x^2 + y^2 = z^2\">";
         let result = strip_html(html);
         assert!(result.contains("x^2 + y^2 = z^2"));
+    }
+
+    #[test]
+    fn test_img_alt_latex() {
+        let html = "<img src=\"math.svg\" alt=\"{\\displaystyle x^2 + y^2 = z^2}\">";
+        let result = strip_html(html);
+        assert!(result.contains("${\\displaystyle x^2 + y^2 = z^2}$"));
+    }
+
+    #[test]
+    fn test_skip_math_svg() {
+        let html = "<div>Keep this <math><mi>x</mi></math><svg><rect/></svg></div>";
+        let result = strip_html(html);
+        assert!(result.contains("Keep this"));
+        assert!(!result.contains("<mi>"));
+        assert!(!result.contains("x"));
+        assert!(!result.contains("<rect"));
     }
 
     #[test]
