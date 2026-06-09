@@ -166,7 +166,7 @@ struct StripperState<'a> {
     block_tags: HashSet<&'a str>,
 }
 
-impl<'a> StripperState<'a> {
+impl StripperState<'_> {
     fn new() -> Self {
         let block_tags = [
             "p",
