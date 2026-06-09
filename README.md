@@ -8,11 +8,10 @@
 Zero-config by default: works out of the box with no API keys.
 
 [![CI](https://github.com/d-oit/do-web-doc-resolver/actions/workflows/ci.yml/badge.svg)](https://github.com/d-oit/do-web-doc-resolver/actions)
-[![Release](https://img.shields.io/github/v/release/d-oit/do-web-doc-resolver?color=6366f1&label=release)](https://github.com/d-oit/do-web-doc-resolver/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-06b6d4.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![Rust](https://img.shields.io/badge/rust-stable-f74c00?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-06b6d4.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [**Live Demo**](https://web-eight-ivory-29.vercel.app) · [**Documentation**](docs/) · [**Report Bug**](../../issues) · [**Request Feature**](../../issues)
