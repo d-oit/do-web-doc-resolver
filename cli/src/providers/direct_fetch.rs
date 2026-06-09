@@ -213,10 +213,7 @@ impl StripperState<'_> {
             .next()
             .unwrap_or("");
 
-        if matches!(
-            tag_name,
-            "script" | "style" | "math" | "svg" | "noscript"
-        ) {
+        if matches!(tag_name, "script" | "style" | "math" | "svg" | "noscript") {
             if is_closing {
                 self.skip_content_depth = self.skip_content_depth.saturating_sub(1);
             } else if !tag_lower.trim().ends_with('/') {
