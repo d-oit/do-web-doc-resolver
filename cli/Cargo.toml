@@ -55,6 +55,11 @@ name = "compaction_bench"
 harness = false
 path = "benches/compaction_bench.rs"
 
+[[bench]]
+name = "quality_bench"
+harness = false
+path = "benches/quality_bench.rs"
+
 [[bin]]
 name = "do-wdr"
 path = "src/main.rs"

@@ -1,3 +1,8 @@
+use regex::Regex;
+use std::sync::OnceLock;
+
+static NOISY_PATTERNS: OnceLock<Regex> = OnceLock::new();
+
 #[derive(Debug, Clone)]
 pub struct QualityScore {
     pub score: f32,
@@ -14,19 +19,23 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
 
     let too_short = len < 500;
     let missing_links = links.is_empty();
-    let lines: Vec<&str> = trimmed.lines().collect();
-    let unique_lines = lines
-        .iter()
-        .copied()
-        .collect::<std::collections::HashSet<_>>()
-        .len();
-    let duplicate_heavy = !lines.is_empty() && unique_lines < std::cmp::max(5, lines.len() / 3);
-    let lower = trimmed.to_lowercase();
-    let noisy_count = lower.matches("cookie").count()
-        + lower.matches("subscribe").count()
-        + lower.matches("javascript").count()
-        + lower.matches("log in").count()
-        + lower.matches("sign up").count();
+
+    // Optimize duplicate detection: single pass over lines to avoid intermediate Vec allocation
+    let mut total_lines = 0;
+    let mut unique_set = std::collections::HashSet::new();
+    for line in trimmed.lines() {
+        total_lines += 1;
+        unique_set.insert(line);
+    }
+    let unique_lines = unique_set.len();
+    let duplicate_heavy = total_lines > 0 && unique_lines < std::cmp::max(5, total_lines / 3);
+
+    // Optimize noise detection: use case-insensitive regex to avoid to_lowercase() allocation
+    let noisy_re = NOISY_PATTERNS.get_or_init(|| {
+        Regex::new("(?i)cookie|subscribe|javascript|log in|sign up")
+            .expect("Invalid quality noise regex patterns")
+    });
+    let noisy_count = noisy_re.find_iter(trimmed).count();
     let noisy = noisy_count > 6;
 
     let has_frontmatter = trimmed.starts_with("---")
