@@ -57,6 +57,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
         <button
           onClick={handleCopy}
           className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted"
+          aria-live="polite"
         >
           {copying ? "Copied" : "Copy markdown"}
         </button>
