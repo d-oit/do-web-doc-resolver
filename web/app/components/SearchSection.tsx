@@ -63,6 +63,7 @@ export function SearchSection({
             placeholder="URL or search query..."
             aria-invalid={Boolean(error)}
             aria-errormessage={error ? "search-error" : undefined}
+            enterKeyHint="search"
             className="w-full bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim tracking-tight pr-10"
           />
           {query && (
@@ -83,6 +84,7 @@ export function SearchSection({
                 onClick={handleFetchClick}
                 disabled={loading}
                 aria-label={loading ? "Fetching results..." : "Fetch results"}
+                title="Fetch results"
                 className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
               >
                 {loading ? "..." : "Fetch"}

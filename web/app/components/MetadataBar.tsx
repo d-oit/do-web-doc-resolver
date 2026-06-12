@@ -55,6 +55,7 @@ export function MetadataBar({
           onClick={handleCardsClick}
           className={`px-3 py-1 border border-border-muted ${!viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
           aria-pressed={!viewRaw}
+          title="View results as individual structured cards"
         >
           Cards
         </button>
@@ -62,6 +63,7 @@ export function MetadataBar({
           onClick={handleRawClick}
           className={`px-3 py-1 border border-border-muted ${viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
           aria-pressed={viewRaw}
+          title="View results as raw markdown text"
         >
           Raw
         </button>
