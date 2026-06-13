@@ -3,13 +3,52 @@
 import { useState } from "react";
 import type { ProviderResult } from "@/lib/results";
 
-const PLACEHOLDER_REGEX = /^(n\/a|na|unknown|none|-|–)$/i;
+const PLACEHOLDER_REGEX = /^(n\/a|na|unknown|none|-|–)$/iu;
 
 interface ResultCardProps {
   result: ProviderResult;
   onCopy: (value: string) => Promise<void> | void;
   onHelpfulToggle?: (id: string) => void;
   helpful?: boolean;
+}
+
+function ResultHeader({ id, title, url, normalizedUrl }: { id: string; title: string; url?: string | null; normalizedUrl?: string | null }) {
+  return (
+    <header className="flex flex-col gap-1">
+      {url ? (
+        <a
+          id={id}
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent text-[15px] hover:underline"
+        >
+          {title}
+        </a>
+      ) : (
+        <h3 id={id} className="text-[15px] text-foreground">
+          {title}
+        </h3>
+      )}
+      {normalizedUrl && (
+        <div className="text-[10px] text-text-dim break-all">{normalizedUrl}</div>
+      )}
+    </header>
+  );
+}
+
+function ResultMeta({ author, published }: { author?: string | null; published?: string | null }) {
+  const hasAuthor = author && !PLACEHOLDER_REGEX.test(author.trim());
+  const hasPublished = published && !PLACEHOLDER_REGEX.test(published.trim());
+
+  if (!hasAuthor && !hasPublished) return null;
+
+  return (
+    <div className="text-[10px] text-text-dim flex gap-3 flex-wrap">
+      {hasAuthor && <span>By {author}</span>}
+      {hasPublished && <span>{published}</span>}
+    </div>
+  );
 }
 
 export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }: ResultCardProps) {
@@ -22,37 +61,20 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
   };
 
   return (
-    <article className="border-2 border-border-muted bg-background p-4 flex flex-col gap-3" aria-labelledby={`result-${result.id}`}
+    <article className="border-2 border-border-muted bg-background p-4 flex flex-col gap-3" aria-labelledby={result.id ? `result-${result.id}` : undefined}
     >
-      <header className="flex flex-col gap-1">
-        {result.url ? (
-          <a
-            id={`result-${result.id}`}
-            href={result.url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-accent text-[15px] hover:underline"
-          >
-            {result.title}
-          </a>
-        ) : (
-          <h3 id={`result-${result.id}`} className="text-[15px] text-foreground">
-            {result.title}
-          </h3>
-        )}
-        {result.normalizedUrl && (
-          <div className="text-[10px] text-text-dim break-all">{result.normalizedUrl}</div>
-        )}
-        <div className="text-[10px] text-text-dim flex gap-3 flex-wrap">
-          {result.author && !PLACEHOLDER_REGEX.test(result.author.trim()) && (
-            <span>By {result.author}</span>
-          )}
-          {result.published && !PLACEHOLDER_REGEX.test(result.published.trim()) && (
-            <span>{result.published}</span>
-          )}
-        </div>
-      </header>
+      <div className="flex flex-col gap-1">
+        <ResultHeader
+          id={result.id ? `result-${result.id}` : ""}
+          title={result.title}
+          url={result.url ?? null}
+          normalizedUrl={result.normalizedUrl ?? null}
+        />
+        <ResultMeta author={result.author ?? null} published={result.published ?? null} />
+      </div>
+
       <p className="text-[12px] text-foreground whitespace-pre-wrap leading-relaxed">{result.snippet}</p>
+
       <footer className="flex flex-wrap gap-2 text-[11px]">
         <button
           onClick={handleCopy}

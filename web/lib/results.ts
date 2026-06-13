@@ -19,7 +19,7 @@ function sanitizeMeta(value: string | undefined): string | undefined {
 }
 
 function extractFirstUrlCandidate(input: string): string | undefined {
-  const fromParen = input.match(/https?:\/\/[^)\s]+/);
+  const fromParen = input.match(/https?:\/\/[^)\s]+/u);
   if (fromParen) return fromParen[0];
   const fromSpace = input.split(/\s+/).find((token) => token.startsWith("http"));
   if (fromSpace) return fromSpace;
@@ -69,24 +69,24 @@ function parseBlock(block: string, index: number): ProviderResult | null {
   for (const line of lines) {
     const lower = line.toLowerCase();
     if (lower.startsWith("title:")) {
-      title = line.split(/title:/i)[1]?.trim();
+      title = line.split(/title:/iu)[1]?.trim();
       continue;
     }
     if (lower.startsWith("url:")) {
-      url = line.split(/url:/i)[1]?.trim();
+      url = line.split(/url:/iu)[1]?.trim();
       continue;
     }
     if (lower.startsWith("author:")) {
-      author = sanitizeMeta(line.split(/author:/i)[1]);
+      author = sanitizeMeta(line.split(/author:/iu)[1]);
       continue;
     }
     if (lower.startsWith("published:")) {
-      published = sanitizeMeta(line.split(/published:/i)[1]);
+      published = sanitizeMeta(line.split(/published:/iu)[1]);
       continue;
     }
     if (lower.startsWith("highlights:")) {
       inHighlights = true;
-      const content = line.split(/highlights:/i)[1]?.trim();
+      const content = line.split(/highlights:/iu)[1]?.trim();
       if (content) snippetLines.push(content);
       continue;
     }

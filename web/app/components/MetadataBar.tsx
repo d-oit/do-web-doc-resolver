@@ -21,11 +21,11 @@ export function MetadataBar({
   handleCopyResult,
   copied,
 }: MetadataBarProps) {
-  function handleCardsClick() {
+  const handleCardsClick = () => {
     setViewRaw(false);
   }
 
-  function handleRawClick() {
+  const handleRawClick = () => {
     setViewRaw(true);
   }
 
