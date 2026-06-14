@@ -23,6 +23,7 @@ from scripts.providers import (
     resolve_with_tavily,
     set_rate_limit,
 )
+from scripts.utils import get_session
 
 __all__ = [
     "resolve_with_jina",
@@ -42,4 +43,5 @@ __all__ = [
     "_rate_limits",
     "is_rate_limited",
     "set_rate_limit",
+    "get_session",
 ]
