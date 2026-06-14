@@ -82,18 +82,16 @@ const parseBlockMetadata = (lines: string[]): ParsedBlockMeta => {
   let inHighlights = false;
 
   for (const line of lines) {
-    if (processHighlightsLine(line, meta)) {
+    const lower = line.toLowerCase();
+
+    if (!inHighlights && processHighlightsLine(line, meta)) {
       inHighlights = true;
-      continue;
-    }
-
-    if (inHighlights) {
+    } else if (inHighlights) {
       meta.snippetLines.push(line);
-      continue;
+    } else {
+      const field = parseFieldLine(line, lower);
+      if (field) Object.assign(meta, field);
     }
-
-    const field = parseFieldLine(line, line.toLowerCase());
-    if (field) Object.assign(meta, field);
   }
 
   return meta;
@@ -109,10 +107,11 @@ const withOptionalProps = (
   meta: ParsedBlockMeta,
   normalizedUrl: string | undefined,
 ): ProviderResult => {
-  if (meta.url !== undefined) result.url = meta.url;
+  const { url, author, published } = meta;
+  if (url !== undefined) result.url = url;
   if (normalizedUrl !== undefined) result.normalizedUrl = normalizedUrl;
-  if (meta.author !== undefined) result.author = meta.author;
-  if (meta.published !== undefined) result.published = meta.published;
+  if (author !== undefined) result.author = author;
+  if (published !== undefined) result.published = published;
   return result;
 };
 
