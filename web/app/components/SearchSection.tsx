@@ -15,7 +15,7 @@ interface SearchSectionProps {
   isUrl: boolean;
 }
 
-function SearchActions({
+const SearchActions = ({
   query,
   loading,
   hasResult,
@@ -27,7 +27,7 @@ function SearchActions({
   hasResult: boolean;
   onFetch: () => void;
   onClear: () => void;
-}) {
+}) => {
   if (!query.trim() && !hasResult) return null;
 
   return (
@@ -52,9 +52,9 @@ function SearchActions({
       </button>
     </div>
   );
-}
+};
 
-function SearchStatus({ isUrl, query, providerStatus }: { isUrl: boolean; query: string; providerStatus: string | null }) {
+const SearchStatus = ({ isUrl, query, providerStatus }: { isUrl: boolean; query: string; providerStatus: string | null }) => {
   if (!query.trim() && !providerStatus) return null;
 
   return (
@@ -71,7 +71,7 @@ function SearchStatus({ isUrl, query, providerStatus }: { isUrl: boolean; query:
       )}
     </>
   );
-}
+};
 
 export function SearchSection({
   query,

@@ -12,13 +12,13 @@ export interface ProviderResult {
 const SPLIT_REGEX = /\n-{3,}\n+/g;
 const PLACEHOLDER_VALUES = new Set(["n/a", "na", "unknown", "none", "-", "–", ""]);
 
-function sanitizeMeta(value: string | undefined): string | undefined {
+const sanitizeMeta = (value: string | undefined): string | undefined => {
   if (!value) return undefined;
   const trimmed = value.trim();
   return PLACEHOLDER_VALUES.has(trimmed.toLowerCase()) ? undefined : trimmed || undefined;
 }
 
-function extractFirstUrlCandidate(input: string): string | undefined {
+const extractFirstUrlCandidate = (input: string): string | undefined => {
   const fromParen = input.match(/https?:\/\/[^)\s]+/u);
   if (fromParen) return fromParen[0];
   const fromSpace = input.split(/\s+/).find((token) => token.startsWith("http"));
@@ -30,7 +30,7 @@ function extractFirstUrlCandidate(input: string): string | undefined {
   return input.trim().startsWith("http") ? input.trim() : undefined;
 }
 
-function canonicalizeUrl(raw?: string): string | undefined {
+const canonicalizeUrl = (raw?: string): string | undefined => {
   if (!raw) return undefined;
   const candidate = extractFirstUrlCandidate(raw)?.trim();
   if (!candidate) return undefined;
@@ -47,7 +47,7 @@ function canonicalizeUrl(raw?: string): string | undefined {
   }
 }
 
-function normalizeSnippet(lines: string[]): string {
+const normalizeSnippet = (lines: string[]): string => {
   return lines
     .map((line) => line.trim())
     .filter(Boolean)

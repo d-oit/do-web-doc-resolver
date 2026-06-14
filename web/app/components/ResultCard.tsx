@@ -12,32 +12,30 @@ interface ResultCardProps {
   helpful?: boolean;
 }
 
-function ResultHeader({ id, title, url, normalizedUrl }: { id: string; title: string; url?: string | null; normalizedUrl?: string | null }) {
-  return (
-    <header className="flex flex-col gap-1">
-      {url ? (
-        <a
-          id={id}
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-accent text-[15px] hover:underline"
-        >
-          {title}
-        </a>
-      ) : (
-        <h3 id={id} className="text-[15px] text-foreground">
-          {title}
-        </h3>
-      )}
-      {normalizedUrl && (
-        <div className="text-[10px] text-text-dim break-all">{normalizedUrl}</div>
-      )}
-    </header>
-  );
-}
+const ResultHeader = ({ id, title, url, normalizedUrl }: { id: string; title: string; url?: string | null; normalizedUrl?: string | null }) => (
+  <header className="flex flex-col gap-1">
+    {url ? (
+      <a
+        id={id}
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="text-accent text-[15px] hover:underline"
+      >
+        {title}
+      </a>
+    ) : (
+      <h3 id={id} className="text-[15px] text-foreground">
+        {title}
+      </h3>
+    )}
+    {normalizedUrl && (
+      <div className="text-[10px] text-text-dim break-all">{normalizedUrl}</div>
+    )}
+  </header>
+);
 
-function ResultMeta({ author, published }: { author?: string | null; published?: string | null }) {
+const ResultMeta = ({ author, published }: { author?: string | null; published?: string | null }) => {
   const hasAuthor = author && !PLACEHOLDER_REGEX.test(author.trim());
   const hasPublished = published && !PLACEHOLDER_REGEX.test(published.trim());
 
@@ -49,7 +47,7 @@ function ResultMeta({ author, published }: { author?: string | null; published?:
       {hasPublished && <span>{published}</span>}
     </div>
   );
-}
+};
 
 export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }: ResultCardProps) {
   const [copying, setCopying] = useState(false);
