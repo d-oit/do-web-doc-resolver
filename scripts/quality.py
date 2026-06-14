@@ -84,7 +84,14 @@ def _compute_noise(text_lower: str) -> bool:
     return noise_count > 6
 
 
-def _compute_penalties(score: float, too_short: bool, missing_links: bool, duplicate_heavy: bool, noisy: bool, jargon_heavy: bool) -> float:
+def _compute_penalties(
+    score: float,
+    too_short: bool,
+    missing_links: bool,
+    duplicate_heavy: bool,
+    noisy: bool,
+    jargon_heavy: bool,
+) -> float:
     """Apply quality penalties."""
     if too_short:
         score -= PENALTY_TOO_SHORT
