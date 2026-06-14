@@ -1051,8 +1051,7 @@ class TestQualityGate:
             patch("scripts._query_resolve.scripts.quality.score_content") as mock_score,
             patch("scripts._query_resolve._circuit_breakers") as mock_cb,
             patch("scripts.routing.plan_provider_order", return_value=["exa_mcp", "exa"]),
-            patch("scripts.state.get_executor") as mock_executor,
-            patch("scripts._cascade.concurrent.futures.wait") as mock_wait,
+            patch("scripts._cascade.asyncio.to_thread") as mock_to_thread,
         ):
             mock_cb.is_open.return_value = False
             mock_rm.get_p75_latency.return_value = 100
@@ -1062,12 +1061,11 @@ class TestQualityGate:
                 source="exa_mcp", content="High quality content", url="http://free.com"
             )
 
-            mock_fut = MagicMock()
-            mock_fut.result.return_value = res_free
-            mock_executor.return_value.submit.return_value = mock_fut
+            # Mock asyncio.to_thread to return a coroutine that returns the result
+            async def mock_thread_func():
+                return res_free
 
-            # Make concurrent.futures.wait return the mock future as done
-            mock_wait.return_value = ({mock_fut}, set())
+            mock_to_thread.return_value = mock_thread_func()
 
             # Quality score 0.8 (above default 0.7)
             mock_score.return_value = MagicMock(acceptable=True, score=0.8)

@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from enum import Enum
 
-import requests
+import httpx
 
 # Add current directory to path
 sys.path.insert(0, os.path.abspath(os.curdir))
@@ -105,7 +105,8 @@ def open_github_issue(provider_name: str, issue_desc: str):
     params = {"state": "open", "labels": "provider-alert"}
 
     try:
-        list_resp = requests.get(url_list, headers=headers, params=params, timeout=10)
+        with httpx.Client(timeout=10) as client:
+            list_resp = client.get(url_list, headers=headers, params=params)
         if list_resp.status_code == 200:
             existing_issues = list_resp.json()
             if any(issue["title"] == title for issue in existing_issues):
@@ -127,7 +128,8 @@ Automated routing has deprioritized this provider. Please check connectivity or 
     data = {"title": title, "body": body, "labels": ["provider-alert", "automated"]}
 
     try:
-        resp = requests.post(url_list, headers=headers, json=data, timeout=10)
+        with httpx.Client(timeout=10) as client:
+            resp = client.post(url_list, headers=headers, json=data)
         if resp.status_code == 201:
             logger.info(f"Successfully opened GitHub issue: {title}")
         else:

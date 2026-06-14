@@ -11,7 +11,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 |------|---------|
 | [`AUDIT.md`](AUDIT.md) | Project audit — known gaps, file-size tracking, ADR status |
 | [`20-GOAP-STATE-UPDATE.md`](20-GOAP-STATE-UPDATE.md) | Latest GOAP state (2026-05-30); waves 1–7 complete |
-| [`21-codebase-improvement-2026-06.md`](21-codebase-improvement-2026-06.md) | **Active sweep** (2026-06-01): mypy fix, broad-except logging, size violations, providers DRY |
+| [`21-codebase-improvement-2026-06.md`](21-codebase-improvement-2026-06.md) | Codebase improvement sweep (2026-06-01): ✅ Waves A-C DONE |
 
 ## Release Status
 

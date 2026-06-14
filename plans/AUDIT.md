@@ -1,4 +1,4 @@
-# Project Audit — 2026-05-13
+# Project Audit — 2026-06-14 (updated from 2026-05-13)
 
 > Single source of truth for project health. Supersedes all prior audit/bug/issue files in `plans/`.
 
@@ -42,13 +42,13 @@
 | # | Gap | File / Location | Impact | Status |
 |---|---|---|---|---|
 | M1 | No Next.js error boundary | `web/app/error.tsx` | Unhandled errors crash page | ✅ RESOLVED (exists, 30 lines) |
-| M2 | No rate-limiting middleware | `web/middleware.ts` (does not exist) | API abuse possible | ❌ OPEN |
+| M2 | No rate-limiting middleware | `web/middleware.ts` | API abuse possible | ✅ RESOLVED (Wave 7 PR #408) |
 | M3 | No 404 page | `web/app/not-found.tsx` | Generic Next.js 404 | ✅ RESOLVED (exists, 18 lines) |
 | M4 | `validateUrl()` SSRF check not called | Defined in `web/lib/validation.ts` (195 lines), unused in `route.ts` | SSRF vulnerability | ✅ RESOLVED (called via `validateUrlForFetchAsync` in `url.ts`) |
-| M5 | No unit tests for web utilities | `web/lib/circuit-breaker.ts`, `errors.ts`, `quality.ts`, `keys.ts` | Regression risk | ❌ OPEN |
-| M6 | No direct unit tests for Rust resolver | `cli/src/resolver/query.rs` (527 lines), `url.rs` (496 lines) | Low coverage | ❌ OPEN |
+| M5 | No unit tests for web utilities | `web/lib/circuit-breaker.ts`, `errors.ts`, `quality.ts`, `keys.ts` | Regression risk | ✅ RESOLVED (19 test files in `web/tests/`) |
+| M6 | No direct unit tests for Rust resolver | `cli/src/resolver/query.rs`, `url.rs` | Low coverage | ✅ RESOLVED (19 inline tests, Wave 6) |
 | M7 | Mobile/tablet Playwright not in CI | `ci-ui.yml` runs `--project=desktop --project=mobile --project=tablet` (3 projects) | Mobile regressions undetected | ✅ RESOLVED (CI already runs all 3 projects) |
-| M8 | 2 of 13 skills have `evals.json` | `.agents/skills/*/` | Skill quality unmeasured | ❌ OPEN — 11 still missing |
+| M8 | Skills missing `evals.json` | `.agents/skills/*/` | Skill quality unmeasured | ✅ RESOLVED (14/14 skills have evals) |
 
 ### 3. Code Quality
 
@@ -66,10 +66,10 @@
 |---|---|---|---|---|---|
 | P1 | `exa_mcp_mistral` combo | ❌ | ❌ | ✅ | Port to Python + Rust |
 | P2 | Deep research parallel mode | Partial | `--synthesize` only | ✅ | Full parallel mode missing in CLIs |
-| P3 | Budget profiles / presets | N/A | `--profile` flag **wired** in `main.rs:68-84` | N/A | ✅ WIRED — but `is_provider_allowed()` + `max_hops()` are dead code in `types.rs:99-116` |
-| P8 | Duplicate `build_budget()` fn | N/A | Same fn in `query.rs:506` and `url.rs:475` | N/A | Extract to `cascade.rs` |
-| P4 | Preflight routing | `detect_doc_platform()` | Minimal `detectJsHeavy()` | Minimal | Port advanced routing to Rust/Web |
-| P5 | Hedged requests | ✅ | ❌ | ❌ | Port to Rust + Web |
+| P3 | Budget profiles / presets | N/A | `--profile` flag wired in `main.rs:68-84` | N/A | ✅ WIRED — dead code removed (Wave 5) |
+| P8 | Duplicate `build_budget()` fn | N/A | Same fn in `query.rs:506` and `url.rs:475` | N/A | ✅ RESOLVED — extracted to `cascade.rs` (Wave 5) |
+| P4 | Preflight routing | `detect_doc_platform()` | Minimal `detectJsHeavy()` | Minimal | ✅ RESOLVED — ported to Rust/Web (Wave 7 W2) |
+| P5 | Hedged requests | ✅ | ❌ | ❌ | ✅ RESOLVED — ported to Rust (Wave 7 W3) |
 | P6 | Routing memory persistence | In-memory only | File persistence | N/A | Add file persistence to Python |
 | P7 | Rate throttling (token bucket) | ✅ | ✅ | N/A | Done across CLIs; web remains un-throttled |
 
@@ -116,21 +116,24 @@
 | #405 | Clear-text button in search input (UX) | ✅ |
 | #406 | Optimize boilerplate detection in compaction | ✅ |
 | #407 | ADR-014 Wave 3 — constants.py + state.py, no monkey-patching | ✅ |
+| #408 | Wave 7 — middleware rate limiting, Rust preflight routing, budget alignment | ✅ |
+| #410 | Skill sync, split over-limit SKILL.md, add evals/references | ✅ |
+| #411 | Documentation and agent workflow standards update | ✅ |
 
-### 7. Newly Discovered Issues (2026-05-13 Audit)
+### 7. Newly Discovered Issues (2026-05-13 Audit — updated 2026-06-14)
 
 | ID | Issue | File | Severity |
 |----|-------|------|----------|
-| N1 | `semantic_cache.rs` 1056 lines — **2x** the 500-line limit | `cli/src/semantic_cache.rs` | P0 |
-| N2 | `config.rs` 712 lines — **exceeds** 500-line limit | `cli/src/config.rs` | P0 |
-| N3 | `build_budget()` duplicated verbatim in 2 files | `query.rs:506` + `url.rs:475` | P1 |
-| N4 | Dead `Profile::is_provider_allowed()` + `max_hops()` — never called | `cli/src/types.rs:99-116` | P2 |
+| N1 | `semantic_cache.rs` 1056 lines — **2x** the 500-line limit | `cli/src/semantic_cache.rs` | ✅ RESOLVED — split into 4 files (max 401 lines) |
+| N2 | `config.rs` 712 lines — **exceeds** 500-line limit | `cli/src/config.rs` | ✅ RESOLVED — split into 3 files (max 383 lines) |
+| N3 | `build_budget()` duplicated verbatim in 2 files | `query.rs:506` + `url.rs:475` | ✅ RESOLVED — extracted to cascade.rs (Wave 5) |
+| N4 | Dead `Profile::is_provider_allowed()` + `max_hops()` — never called | `cli/src/types.rs:99-116` | ✅ RESOLVED — removed (Wave 5) |
 | N5 | `CircuitBreakerRegistry.is_open()` — TOCTOU: state object used outside lock scope | `scripts/circuit_breaker.py:46-47` | ✅ RESOLVED — inlined under lock in PR #365 |
-| N6 | `_maybe_evict()` not independently lock-protected | `scripts/semantic_cache.py:336` | P2 |
-| N7 | 11/13 skills missing `evals.json` | `.agents/skills/*/` | P2 |
-| N8 | No `pnpm-lock.yaml` anywhere in repo | `cli/ui/`, `web/` | P2 |
-| N9 | `duckduckgo-search` vs `ddgs` package name mismatch | `requirements.txt:9` | P1 |
-| N10 | `setup-hooks.sh` only validates symlinks, not quality gate | `scripts/setup-hooks.sh` | P2 |
+| N6 | `_maybe_evict()` not independently lock-protected | `scripts/semantic_cache.py:336` | ⚠️ DEFERRED — safe in practice (called under caller's lock) |
+| N7 | Skills missing `evals.json` | `.agents/skills/*/` | ✅ RESOLVED — 14/14 skills have evals |
+| N8 | No `pnpm-lock.yaml` anywhere in repo | `cli/ui/`, `web/` | ❌ OPEN — lock file not checked in |
+| N9 | `duckduckgo-search` vs `ddgs` package name mismatch | `requirements.txt:9` | ⚪ CORRECTED — now uses `ddgs>=9.0.0` (correct package name) |
+| N10 | `setup-hooks.sh` only validates symlinks, not quality gate | `scripts/setup-hooks.sh` | ❌ OPEN — still only validates symlinks |
 | N11 | CI runs 3 Playwright projects; AGENTS.md says 1 | `ci-ui.yml:176` vs `AGENTS.md:55` | P2 |
 | N12 | Raw `requests.post()` in synthesis — no SSRF, no retry, no shared session | `scripts/synthesis.py:165` | ✅ RESOLVED — switched to `get_session()` in PR #365 |
 | N13 | SSRF gaps in `resolve_with_docling()` + `resolve_with_ocr()` — no `is_safe_url()` | `scripts/providers_impl.py:373-393` | ✅ RESOLVED — added `is_safe_url()` checks in PR #365 |
@@ -194,23 +197,23 @@
 | 7 | Create `scripts/constants.py` + `scripts/state.py` (Wave 3) | `scripts/` | ✅ RESOLVED (PR #407) |
 | 8 | Remove monkey-patching from `resolve.py:85-91` | `scripts/resolve.py` | ✅ RESOLVED (PR #407) |
 | 9 | Fix `CircuitBreakerRegistry.is_open()` TOCTOU | `scripts/circuit_breaker.py:46-47` | ✅ RESOLVED (PR #365) |
-| 10 | Fix 2 remaining silent exception handlers | `scripts/providers_impl.py:502,517` | ❌ OPEN (docling, tesseract) |
+| 10 | Fix 2 remaining silent exception handlers | `scripts/providers_impl.py:502,517` | ✅ RESOLVED (Wave 4 P3b — docling, tesseract logged) |
 | 11 | Replace raw `requests.post()` with shared session + SSRF in synthesis | `scripts/synthesis.py:165` | ✅ RESOLVED (PR #365) |
 | 12 | Extract duplicate `build_budget()` to cascade.rs | `query.rs:506` + `url.rs:475` | ✅ RESOLVED (Wave 5) |
-| 13 | Create web unit tests (circuit-breaker, errors, quality, keys, log) | `web/tests/` | ❌ OPEN — 5 test files missing |
+| 13 | Create web unit tests (circuit-breaker, errors, quality, keys, log) | `web/tests/` | ✅ RESOLVED (19 test files, Wave 6) |
 
 ### P2 — Medium (roadmap)
 
-| # | Action | Area |
-|---|---|---|
-| 15 | Port preflight routing to Rust + Web | Cross-platform |
-| 16 | Add hedged requests to Rust | `cli/src/resolver/cascade.rs` |
-| 17 | Add `evals.json` to more skills (11/13 missing) | `.agents/skills/*/` |
-| 18 | Add Python 3.10 to CI or bump `requires-python` | `pyproject.toml`, `.github/workflows/ci.yml` |
-| 19 | Add `evals.json` to 3 most-used skills | `.agents/skills/*/` |
-| 20 | Remove dead `Profile::is_provider_allowed()` + `max_hops()` | `cli/src/types.rs:99-116` |
-| 21 | Remove dead `NegativeCacheEntry` dataclass | `scripts/cache_negative.py:11-16` |
-| 22 | Extract magic numbers in quality.py to named constants | `scripts/quality.py` |
+| # | Action | Area | Status |
+|---|---|---|---|---|
+| 15 | Port preflight routing to Rust + Web | Cross-platform | ✅ DONE (Wave 7 W2) |
+| 16 | Add hedged requests to Rust | `cli/src/resolver/cascade.rs` | ✅ DONE (Wave 7 W3) |
+| 17 | Add `evals.json` to more skills | `.agents/skills/*/` | ✅ DONE (14/14 skills) |
+| 18 | Add Python 3.10 to CI or bump `requires-python` | `pyproject.toml`, `.github/workflows/ci.yml` | ❌ OPEN |
+| 19 | Add `evals.json` to 3 most-used skills | `.agents/skills/*/` | ✅ DONE (14/14 skills) |
+| 20 | Remove dead `Profile::is_provider_allowed()` + `max_hops()` | `cli/src/types.rs:99-116` | ✅ DONE (Wave 5) |
+| 21 | Remove dead `NegativeCacheEntry` dataclass | `scripts/cache_negative.py:11-16` | ✅ DONE (Wave 4 P6) |
+| 22 | Extract magic numbers in quality.py to named constants | `scripts/quality.py` | ✅ DONE (Wave 4 Q1-Q6) |
 
 ### P3 — Low (nice to have)
 
@@ -270,7 +273,7 @@ were already deleted before this audit and confirmed not present.
 
 ---
 
-*Last updated: 2026-05-29. v0.3.6 on main (`5cea0e6`). Waves 1,2,3,4,5,6 ✅. Wave 7 ❌. 0 open PRs, 1 open issue (#402). See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
+*Last updated: 2026-06-14. v0.3.7 on main. Waves 1-8 ✅. Plan 21 Waves A-C ✅. 0 open PRs, 0 open issues. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
 
@@ -328,13 +331,13 @@ were already deleted before this audit and confirmed not present.
 - **`next-env.d.ts` is auto-generated**: Always use `/ <reference` syntax, never `import`. Next.js regenerates this file on every build, reverting any manual edits.
 - **Dependabot PRs for major version bumps (Next 15→16) need manual testing**: Close and let Dependabot regenerate against the updated main after feature PRs merge.
 
-### Test Coverage Expansion (2026-05-29)
+### Test Coverage Expansion (2026-05-29, updated 2026-06-14)
 
 - **10+ test commits since v0.3.6**: Cascade error handling, routing memory concurrency, URL cascade llms_txt/jina, semantic cache hit/budget exhaustion, provider caplog tests, doc_validator/synthesis edge, doc_models, utils edge cases.
 - **Python test suite significantly expanded**: Tests now cover cascade, routing, providers, synthesis, semantic cache, utils, doc_validator, doc_models, circuit breaker recovery, quality bonus, budget edge, rate limit expiry.
-- **Web tests still minimal**: Only `results.test.ts` exists; circuit-breaker, errors, quality, keys, log tests still missing.
-- **Rust tests**: `mod.rs` + `cascade.rs` have inline tests; `query.rs` + `url.rs` do not.
-- **evals.json**: 2/13 skills (do-web-doc-resolver, do-github-pr-sentinel).
+- **Web tests comprehensive**: 19 test files covering circuit-breaker, errors, quality, keys, log, rate-limit, ssrf, validation, records, results, routing, ui-state, providers, cache, resolvers-url.
+- **Rust tests**: `mod.rs` + `cascade.rs` have inline tests; `query.rs` + `url.rs` have 19 inline tests (Wave 6).
+- **evals.json**: 14/14 skills have evals (all skills covered).
 
 ### ADR-014 Wave 3 — Constants & State Extraction (2026-05-29)
 

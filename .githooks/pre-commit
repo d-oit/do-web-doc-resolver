@@ -10,7 +10,7 @@ echo "Running pre-commit checks..."
 # Run markdownlint first (fast, catches common issues early)
 if command -v npx &>/dev/null; then
     echo "Running markdownlint..."
-    npx markdownlint . || {
+    npx markdownlint --config .markdownlint.json . || {
         echo "❌ markdownlint failed. Fix errors before committing."
         exit 1
     }

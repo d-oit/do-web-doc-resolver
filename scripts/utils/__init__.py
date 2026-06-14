@@ -7,6 +7,13 @@ import os
 import typing
 from typing import Any
 
+from scripts.utils.async_http import (
+    async_safe_request,
+    async_validate_links,
+    async_validate_url,
+    close_async_client,
+    get_async_client,
+)
 from scripts.utils.cache import (
     _cache_key,
     _get_cache,
@@ -116,7 +123,7 @@ def _detect_error_type(error: Exception):
 __all__ = [
     # Config
     "get_config_data",
-    # HTTP utilities
+    # HTTP utilities (sync)
     "create_session_with_retry",
     "get_session",
     "close_session",
@@ -124,6 +131,12 @@ __all__ = [
     "is_safe_url",
     "validate_url",
     "validate_links",
+    # HTTP utilities (async)
+    "get_async_client",
+    "close_async_client",
+    "async_safe_request",
+    "async_validate_url",
+    "async_validate_links",
     # HTML utilities
     "EnhancedHTMLParser",
     "extract_text_from_html",

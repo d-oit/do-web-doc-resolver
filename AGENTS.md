@@ -58,7 +58,7 @@ Detailed reference material in `agents-docs/`:
 
 - **Python**: `pytest -m "not live"`
 - **Rust**: `cd cli && cargo test`
-- **Web**: `cd web && npx playwright test --project=desktop`
+- **Web**: `cd web && npx playwright test --project=desktop --project=mobile --project=tablet`
 
 ## Agent Tool Config
 

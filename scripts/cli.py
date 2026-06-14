@@ -4,6 +4,7 @@ CLI entrypoint for Web Doc Resolver.
 """
 
 import argparse
+import asyncio
 import json
 import logging
 
@@ -13,9 +14,30 @@ from scripts.resolve import (
     is_url,
     resolve_direct,
     resolve_query_stream,
-    resolve_url_stream,
+    resolve_url_stream_async,
     resolve_with_order,
 )
+
+
+async def _async_main(args):
+    """Async main function for URL resolution."""
+    profile = Profile(args.profile)
+    skip = set(args.skip) if args.skip else None
+
+    if args.provider:
+        results = [resolve_direct(args.input, ProviderType(args.provider), args.max_chars)]
+    elif args.providers_order:
+        order = [ProviderType(p.strip()) for p in args.providers_order.split(",")]
+        results = [resolve_with_order(args.input, order, args.max_chars)]
+    else:
+        if is_url(args.input):
+            # Use async URL resolver
+            results = []
+            async for res in resolve_url_stream_async(args.input, args.max_chars, profile):
+                results.append(res)
+        else:
+            results = list(resolve_query_stream(args.input, args.max_chars, skip, profile))
+    return results
 
 
 def main():
@@ -34,18 +56,21 @@ def main():
     logging.basicConfig(level=getattr(logging, args.log_level))
     if not args.input:
         parser.error("Input required")
-    profile = Profile(args.profile)
-    skip = set(args.skip) if args.skip else None
-    if args.provider:
-        results = [resolve_direct(args.input, ProviderType(args.provider), args.max_chars)]
-    elif args.providers_order:
-        order = [ProviderType(p.strip()) for p in args.providers_order.split(",")]
-        results = [resolve_with_order(args.input, order, args.max_chars)]
+
+    # Use asyncio.run for URL resolution
+    if is_url(args.input) and not args.provider and not args.providers_order:
+        results = asyncio.run(_async_main(args))
     else:
-        if is_url(args.input):
-            results = resolve_url_stream(args.input, args.max_chars, profile)
+        profile = Profile(args.profile)
+        skip = set(args.skip) if args.skip else None
+        if args.provider:
+            results = [resolve_direct(args.input, ProviderType(args.provider), args.max_chars)]
+        elif args.providers_order:
+            order = [ProviderType(p.strip()) for p in args.providers_order.split(",")]
+            results = [resolve_with_order(args.input, order, args.max_chars)]
         else:
-            results = resolve_query_stream(args.input, args.max_chars, skip, profile)
+            results = list(resolve_query_stream(args.input, args.max_chars, skip, profile))
+
     final_result = None
     for res in results:
         if not args.json and res.get("source") != "partial":

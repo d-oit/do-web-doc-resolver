@@ -4,11 +4,13 @@ Web Doc Resolver - Resolve queries or URLs into compact, LLM-ready markdown.
 Main orchestrator. CLI entrypoint moved to scripts/cli.py.
 """
 
+import asyncio
 import logging
 from typing import Any
 
 import scripts._query_resolve
 import scripts._url_resolve
+import scripts._url_resolve_async
 import scripts.providers_impl
 import scripts.semantic_cache
 import scripts.synthesis
@@ -37,7 +39,7 @@ from scripts.providers_impl import (
     resolve_with_tavily,
 )
 from scripts.semantic_cache import get_semantic_cache
-from scripts.state import circuit_breakers, get_executor, routing_memory
+from scripts.state import circuit_breakers, routing_memory
 from scripts.utils import (
     _cache_key,
     _detect_error_type,
@@ -92,6 +94,10 @@ __all__ = [
     "resolve_with_order",
     "resolve_url_with_order",
     "resolve_query_with_order",
+    "resolve_async",
+    "resolve_url_async",
+    "resolve_background",
+    "resolve_url_background",
     "ResolvedResult",
     "ValidationResult",
     "ErrorType",
@@ -119,7 +125,6 @@ __all__ = [
     "_store_in_semantic_cache",
     "circuit_breakers",
     "routing_memory",
-    "get_executor",
 ]
 
 
@@ -127,6 +132,7 @@ resolve_url = scripts._url_resolve.resolve_url
 resolve_url_stream = scripts._url_resolve.resolve_url_stream
 resolve_query = scripts._query_resolve.resolve_query
 resolve_query_stream = scripts._query_resolve.resolve_query_stream
+resolve_url_stream_async = scripts._url_resolve_async.resolve_url_stream_async
 
 
 def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, model: str) -> str:
@@ -195,3 +201,46 @@ def resolve_query_with_order(
     query: str, order: list[ProviderType], max_chars: int = MAX_CHARS
 ) -> dict[str, Any]:
     return resolve_with_order(query, order, max_chars)
+
+
+# Async entry points
+
+
+async def resolve_url_async(
+    url: str, max_chars: int = MAX_CHARS, profile: Profile | str = Profile.BALANCED
+) -> dict[str, Any]:
+    """Async version of resolve_url."""
+    if isinstance(profile, str):
+        profile = Profile(profile.lower())
+    return await scripts._url_resolve_async.resolve_url_async(url, max_chars, profile)
+
+
+async def resolve_async(
+    input_str: str,
+    max_chars: int = MAX_CHARS,
+    skip_providers: set[str] | None = None,
+    profile: Profile | str = Profile.BALANCED,
+) -> dict[str, Any]:
+    """Async version of resolve."""
+    if isinstance(profile, str):
+        profile = Profile(profile.lower())
+    if is_url(input_str):
+        return await resolve_url_async(input_str, max_chars, profile=profile)
+    return resolve_query(input_str, max_chars, skip_providers, profile=profile)
+
+
+def resolve_url_background(
+    url: str, max_chars: int = MAX_CHARS, profile: Profile | str = Profile.BALANCED
+) -> dict[str, Any]:
+    """Run async resolve_url in a new event loop (for sync callers)."""
+    return asyncio.run(resolve_url_async(url, max_chars, profile))
+
+
+def resolve_background(
+    input_str: str,
+    max_chars: int = MAX_CHARS,
+    skip_providers: set[str] | None = None,
+    profile: Profile | str = Profile.BALANCED,
+) -> dict[str, Any]:
+    """Run async resolve in a new event loop (for sync callers)."""
+    return asyncio.run(resolve_async(input_str, max_chars, skip_providers, profile))

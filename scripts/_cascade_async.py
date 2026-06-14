@@ -1,9 +1,9 @@
-"""Shared cascade resolution logic for query and URL resolution."""
+"""Async cascade resolution logic for query and URL resolution."""
 
 import asyncio
 import logging
 import time
-from collections.abc import Callable, Generator
+from collections.abc import AsyncGenerator, Callable
 from dataclasses import asdict
 from typing import Any
 
@@ -15,7 +15,7 @@ from scripts.utils import _detect_error_type, _get_cache
 logger = logging.getLogger(__name__)
 
 
-def cascade_stream(
+async def cascade_stream_async(
     target: str,
     cascade_map: dict[str, tuple[ProviderType, Callable]],
     eligible: list[str],
@@ -29,29 +29,28 @@ def cascade_stream(
     skip_providers: set[str] | None = None,
     content_acceptable: Callable[[Any, ProviderType], bool] | None = None,
     target_key: str = "query",
-) -> Generator[dict[str, Any]]:
+) -> AsyncGenerator[dict[str, Any]]:
+    """Async version of cascade_stream using asyncio tasks."""
     skip = skip_providers or set()
     cache = _get_cache()
+    active_tasks: dict[asyncio.Task, tuple[str, ProviderType, float]] = {}
+    best_free_result: dict[str, Any] | None = None
     _accept = content_acceptable or (lambda q, pt: q.acceptable)
 
-    # Mutable state shared with inner async function
-    state: dict[str, Any] = {"best_free_result": None}
-
-    async def _run_cascade() -> dict[str, Any] | None:
-        active_tasks: dict[asyncio.Task, tuple[str, ProviderType, float]] = {}
-
+    try:
         for i, p_name in enumerate(eligible):
             if p_name in skip:
                 continue
             pt, func = cascade_map[p_name]
 
-            if pt.is_paid() and state["best_free_result"]:
-                score = state["best_free_result"].get("score", 0.0)
+            if pt.is_paid() and best_free_result:
+                score = best_free_result.get("score", 0.0)
                 if score >= budget.min_free_quality_to_skip_paid:
                     metrics.quality_gate = {"passed": True, "score": score}
-                    state["best_free_result"]["metrics"] = asdict(metrics)
-                    semantic_cache_store(target, state["best_free_result"])
-                    return dict(state["best_free_result"])
+                    best_free_result["metrics"] = asdict(metrics)
+                    semantic_cache_store(target, best_free_result)
+                    yield best_free_result
+                    return
 
             if not budget.can_try(is_paid=pt.is_paid()):
                 if budget.stop_reason in ("paid_disabled", "max_paid_attempts"):
@@ -64,7 +63,7 @@ def cascade_stream(
 
             logger.info("Starting probe: %s", p_name)
             start_time_probe = time.time()
-            task = asyncio.create_task(asyncio.to_thread(func))
+            task = asyncio.create_task(func())
             active_tasks[task] = (p_name, pt, start_time_probe)
             threshold = routing_memory.get_p75_latency(routing_key, p_name) / 1000.0
 
@@ -120,18 +119,22 @@ def cascade_stream(
 
                             if pt_done.is_paid():
                                 semantic_cache_store(target, result_dict)
-                                return result_dict
+                                yield result_dict
+                                found_final = True
+                                break
                             else:
-                                if not state["best_free_result"] or q_score.score > state[
-                                    "best_free_result"
-                                ].get("score", 0.0):
-                                    state["best_free_result"] = result_dict
+                                if not best_free_result or q_score.score > best_free_result.get(
+                                    "score", 0.0
+                                ):
+                                    best_free_result = result_dict
 
                                 if q_score.score >= budget.min_free_quality_to_skip_paid:
                                     metrics.quality_gate = {"passed": True, "score": q_score.score}
                                     result_dict["metrics"] = asdict(metrics)
                                     semantic_cache_store(target, result_dict)
-                                    return dict(result_dict)
+                                    yield result_dict
+                                    found_final = True
+                                    break
                         else:
                             scripts.cache_negative.write_negative_cache(
                                 cache, target, p_name_done, "thin_content"
@@ -144,32 +147,19 @@ def cascade_stream(
                         metrics.record_provider(pt_done, latency, False)
 
                 if found_final:
-                    return None
+                    return
                 if done:
                     break
                 if not active_tasks:
                     break
+    finally:
+        for task in active_tasks:
+            task.cancel()
 
-        if state["best_free_result"]:
-            return dict(state["best_free_result"])
-        return None
-
-    # Run async cascade
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        import concurrent.futures
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            result = pool.submit(asyncio.run, _run_cascade()).result()
-    else:
-        result = asyncio.run(_run_cascade())
-
-    if result:
-        yield result
+    if best_free_result:
+        best_free_result["metrics"] = asdict(metrics)
+        semantic_cache_store(target, best_free_result)
+        yield best_free_result
     else:
         yield {
             "source": "none",
