@@ -10,8 +10,8 @@ issues = ["PYL-R0201"]
 paths = ["tests/**"]
 issues = ["PYL-R0401"]
 
-[[ignore]]
-# web/lib/results.ts: Cyclomatic complexity warnings for parseBlockMetadata and buildProviderResult
-# These functions have acceptable complexity levels (6 and 9) for their purpose
-paths = ["web/lib/results.ts"]
-issues = ["JS-R1005"]
+[[analyzers]]
+name = "javascript"
+
+[analyzers.meta]
+cyclomatic_complexity_threshold = 15
