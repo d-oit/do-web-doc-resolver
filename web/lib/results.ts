@@ -73,6 +73,7 @@ const parseBlockMetadata = (lines: string[]): ParsedBlockMeta => {
 
   for (const line of lines) {
     const lower = line.toLowerCase();
+
     if (lower.startsWith("highlights:")) {
       inHighlights = true;
       meta.hasHighlights = true;
@@ -80,13 +81,16 @@ const parseBlockMetadata = (lines: string[]): ParsedBlockMeta => {
       if (content) meta.snippetLines.push(content);
       continue;
     }
+
     if (inHighlights) {
       meta.snippetLines.push(line);
       continue;
     }
+
     const field = parseFieldLine(line, lower);
     if (field) Object.assign(meta, field);
   }
+
   return meta;
 };
 
@@ -111,10 +115,12 @@ const buildProviderResult = (
     snippet: snippet || block.trim(),
     raw: block.trim(),
   };
+
   if (meta.url !== undefined) result.url = meta.url;
   if (normalizedUrl !== undefined) result.normalizedUrl = normalizedUrl;
   if (meta.author !== undefined) result.author = meta.author;
   if (meta.published !== undefined) result.published = meta.published;
+
   return result;
 };
 
