@@ -114,6 +114,7 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
         too_short=too_short,
         missing_links=missing_links,
         duplicate_heavy=duplicate_heavy,
-        noisy=noisy or jargon_heavy,  # Include jargon_heavy in 'noisy' for the struct if needed, or update struct
+        noisy=noisy
+        or jargon_heavy,  # Include jargon_heavy in 'noisy' for the struct if needed, or update struct
         acceptable=acceptable,
     )
