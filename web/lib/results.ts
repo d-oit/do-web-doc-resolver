@@ -126,17 +126,6 @@ const parseBlock = (block: string, index: number): ProviderResult | null => {
   return buildProviderResult(meta, index, block, snippetSource);
 };
 
-export const parseProviderResults = (markdown: string): ProviderResult[] => {
-  if (!markdown) return [];
-  const blocks = markdown.split(SPLIT_REGEX).map((block) => block.trim()).filter(Boolean);
-  const parsed: ProviderResult[] = [];
-  blocks.forEach((block, index) => {
-    const result = parseBlock(block, index);
-    if (result) parsed.push(result);
-  });
-  return dedupeResults(parsed);
-};
-
 export const dedupeResults = (results: ProviderResult[]): ProviderResult[] => {
   const seen = new Map<string, ProviderResult>();
   for (const result of results) {
@@ -146,6 +135,17 @@ export const dedupeResults = (results: ProviderResult[]): ProviderResult[] => {
     }
   }
   return Array.from(seen.values());
+};
+
+export const parseProviderResults = (markdown: string): ProviderResult[] => {
+  if (!markdown) return [];
+  const blocks = markdown.split(SPLIT_REGEX).map((block) => block.trim()).filter(Boolean);
+  const parsed: ProviderResult[] = [];
+  blocks.forEach((block, index) => {
+    const result = parseBlock(block, index);
+    if (result) parsed.push(result);
+  });
+  return dedupeResults(parsed);
 };
 
 export const extractNormalizedUrls = (results: ProviderResult[]): string[] => {
