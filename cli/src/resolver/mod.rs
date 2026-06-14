@@ -25,8 +25,9 @@ use crate::semantic_cache::SemanticCache;
 use crate::synthesis::{deterministic_merge, synthesize_results};
 use crate::types::{ProviderType, ResolvedResult};
 use std::result::Result;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use std::time::Instant;
+use tokio::sync::RwLock;
 
 static LINK_REGEX: OnceLock<regex::Regex> = OnceLock::new();
 
@@ -48,9 +49,9 @@ pub struct Resolver {
     // Cache
     cache: Option<SemanticCache>,
     // Routing components
-    negative_cache: Arc<Mutex<NegativeCache>>,
-    circuit_breakers: Arc<Mutex<CircuitBreakerRegistry>>,
-    routing_memory: Arc<Mutex<RoutingMemory>>,
+    negative_cache: Arc<RwLock<NegativeCache>>,
+    circuit_breakers: Arc<RwLock<CircuitBreakerRegistry>>,
+    routing_memory: Arc<RwLock<RoutingMemory>>,
     rate_limiters: Arc<RateLimiterRegistry>,
 }
 
@@ -72,9 +73,9 @@ impl Resolver {
             cache,
             url_cascade: url::UrlCascade::new(),
             query_cascade: query::QueryCascade::new(),
-            negative_cache: Arc::new(Mutex::new(NegativeCache::default())),
-            circuit_breakers: Arc::new(Mutex::new(CircuitBreakerRegistry::default())),
-            routing_memory: Arc::new(Mutex::new(RoutingMemory::default())),
+            negative_cache: Arc::new(RwLock::new(NegativeCache::default())),
+            circuit_breakers: Arc::new(RwLock::new(CircuitBreakerRegistry::default())),
+            routing_memory: Arc::new(RwLock::new(RoutingMemory::default())),
             rate_limiters,
         }
     }
@@ -311,7 +312,7 @@ impl Resolver {
     }
 
     /// Access to routing memory
-    pub fn routing_memory(&self) -> Arc<Mutex<RoutingMemory>> {
+    pub fn routing_memory(&self) -> Arc<RwLock<RoutingMemory>> {
         self.routing_memory.clone()
     }
 

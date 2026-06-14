@@ -5,8 +5,11 @@ use crate::types::ResolvedResult;
 
 #[cfg(feature = "semantic-cache")]
 use {
-    chaotic_semantic_memory::encoder::TextEncoder, chaotic_semantic_memory::prelude::*,
-    serde_json::Value, std::collections::HashMap, std::sync::Mutex, std::sync::OnceLock,
+    chaotic_semantic_memory::encoder::TextEncoder,
+    chaotic_semantic_memory::prelude::*,
+    serde_json::Value,
+    std::collections::HashMap,
+    std::sync::{Mutex, OnceLock},
 };
 
 #[cfg(feature = "semantic-cache")]

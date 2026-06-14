@@ -22,8 +22,9 @@ use crate::semantic_cache::SemanticCache;
 use crate::types::{ProviderType, ResolvedResult, RoutingDecision};
 use std::collections::HashMap;
 use std::result::Result;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
 use super::cascade::{build_budget, classify_error};
 
@@ -119,9 +120,9 @@ impl QueryCascade {
         query: &str,
         cache: Option<&SemanticCache>,
         config: &crate::config::Config,
-        negative_cache: Arc<Mutex<NegativeCache>>,
-        circuit_breakers: Arc<Mutex<CircuitBreakerRegistry>>,
-        routing_memory: Arc<Mutex<RoutingMemory>>,
+        negative_cache: Arc<RwLock<NegativeCache>>,
+        circuit_breakers: Arc<RwLock<CircuitBreakerRegistry>>,
+        routing_memory: Arc<RwLock<RoutingMemory>>,
         rate_limiters: Arc<RateLimiterRegistry>,
         max_chars: usize,
         min_chars: usize,
@@ -150,7 +151,7 @@ impl QueryCascade {
         let mut best_free_result: Option<ResolvedResult> = None;
 
         let planned = {
-            let routing_memory = routing_memory.lock().unwrap();
+            let routing_memory = routing_memory.read().await;
             plan_provider_order(
                 query,
                 false,
@@ -215,7 +216,7 @@ impl QueryCascade {
 
             // Check negative cache
             {
-                let nc = negative_cache.lock().unwrap();
+                let nc = negative_cache.read().await;
                 if nc.should_skip(query, &provider.name) {
                     metrics.record_provider_detailed(
                         provider_type,
@@ -246,7 +247,7 @@ impl QueryCascade {
 
             // Check circuit breaker
             {
-                let cb = circuit_breakers.lock().unwrap();
+                let cb = circuit_breakers.read().await;
                 if cb.is_open(&provider.name) {
                     metrics.record_provider_detailed(
                         provider_type,
@@ -363,11 +364,11 @@ impl QueryCascade {
 
                         // Record success
                         {
-                            let mut cb = circuit_breakers.lock().unwrap();
+                            let mut cb = circuit_breakers.write().await;
                             cb.record_success(&provider.name);
                         }
                         if !config.disable_routing_memory {
-                            let mut rm = routing_memory.lock().unwrap();
+                            let mut rm = routing_memory.write().await;
                             rm.record("", &provider.name, true, latency, quality.score);
                         }
                         if let Some(cache) = cache {
@@ -396,7 +397,7 @@ impl QueryCascade {
                     } else {
                         // Record thin content
                         {
-                            let mut nc = negative_cache.lock().unwrap();
+                            let mut nc = negative_cache.write().await;
                             nc.insert(
                                 query,
                                 &provider.name,
@@ -406,7 +407,7 @@ impl QueryCascade {
                             );
                         }
                         if !config.disable_routing_memory {
-                            let mut rm = routing_memory.lock().unwrap();
+                            let mut rm = routing_memory.write().await;
                             rm.record("", &provider.name, false, latency, quality.score);
                         }
                     }
@@ -463,7 +464,7 @@ impl QueryCascade {
                     });
 
                     if matches!(reason.as_str(), "timeout" | "provider_5xx" | "rate_limited") {
-                        let mut cb = circuit_breakers.lock().unwrap();
+                        let mut cb = circuit_breakers.write().await;
                         cb.record_failure(
                             &provider.name,
                             config.circuit_breaker_threshold as usize,
@@ -472,7 +473,7 @@ impl QueryCascade {
                     }
 
                     {
-                        let mut nc = negative_cache.lock().unwrap();
+                        let mut nc = negative_cache.write().await;
                         nc.insert(
                             query,
                             &provider.name,
