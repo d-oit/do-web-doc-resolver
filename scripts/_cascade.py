@@ -73,9 +73,11 @@ def cascade_stream(
                 if i < len(eligible) - 1 and elapsed >= threshold:
                     break
 
+                # Calculate timeout: use remaining time until threshold, or None if no threshold
+                remaining = threshold - elapsed if i < len(eligible) - 1 else None
                 done, _ = await asyncio.wait(
                     active_tasks.keys(),
-                    timeout=0.01,
+                    timeout=remaining,
                     return_when=asyncio.FIRST_COMPLETED,
                 )
                 found_final = False
