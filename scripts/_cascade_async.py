@@ -14,6 +14,11 @@ from scripts.utils import _detect_error_type, _get_cache
 
 logger = logging.getLogger(__name__)
 
+# Early exit threshold: if quality score exceeds this, return immediately
+# without trying more providers. This trades potential marginal quality
+# gains for significant latency reduction.
+EXCELLENT_QUALITY_THRESHOLD = 0.85
+
 
 async def cascade_stream_async(
     target: str,
@@ -129,6 +134,24 @@ async def cascade_stream_async(
                                     "score", 0.0
                                 ):
                                     best_free_result = result_dict
+
+                                # Early exit: if quality is excellent, return immediately
+                                if q_score.score >= EXCELLENT_QUALITY_THRESHOLD:
+                                    logger.info(
+                                        "Early exit: excellent quality %.2f from %s",
+                                        q_score.score,
+                                        p_name_done,
+                                    )
+                                    metrics.quality_gate = {
+                                        "passed": True,
+                                        "score": q_score.score,
+                                        "early_exit": True,
+                                    }
+                                    result_dict["metrics"] = asdict(metrics)
+                                    semantic_cache_store(target, result_dict)
+                                    yield result_dict
+                                    found_final = True
+                                    break
 
                                 if q_score.score >= budget.min_free_quality_to_skip_paid:
                                     metrics.quality_gate = {"passed": True, "score": q_score.score}
