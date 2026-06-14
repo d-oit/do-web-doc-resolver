@@ -104,6 +104,18 @@ const buildResultId = (index: number, title?: string, url?: string): string => {
   return `${index}-${base}`;
 };
 
+const withOptionalProps = (
+  result: ProviderResult,
+  meta: ParsedBlockMeta,
+  normalizedUrl: string | undefined,
+): ProviderResult => {
+  if (meta.url !== undefined) result.url = meta.url;
+  if (normalizedUrl !== undefined) result.normalizedUrl = normalizedUrl;
+  if (meta.author !== undefined) result.author = meta.author;
+  if (meta.published !== undefined) result.published = meta.published;
+  return result;
+};
+
 const buildProviderResult = (
   meta: ParsedBlockMeta,
   index: number,
@@ -121,12 +133,7 @@ const buildProviderResult = (
     raw: block.trim(),
   };
 
-  if (meta.url !== undefined) result.url = meta.url;
-  if (normalizedUrl !== undefined) result.normalizedUrl = normalizedUrl;
-  if (meta.author !== undefined) result.author = meta.author;
-  if (meta.published !== undefined) result.published = meta.published;
-
-  return result;
+  return withOptionalProps(result, meta, normalizedUrl);
 };
 
 const parseBlock = (block: string, index: number): ProviderResult | null => {
