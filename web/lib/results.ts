@@ -67,18 +67,23 @@ const parseFieldLine = (line: string, lower: string): Record<string, string | un
   return null;
 };
 
+const processHighlightsLine = (line: string, meta: ParsedBlockMeta): boolean => {
+  const lower = line.toLowerCase();
+  if (!lower.startsWith("highlights:")) return false;
+
+  meta.hasHighlights = true;
+  const content = line.split(/highlights:/iu)[1]?.trim();
+  if (content) meta.snippetLines.push(content);
+  return true;
+};
+
 const parseBlockMetadata = (lines: string[]): ParsedBlockMeta => {
   const meta: ParsedBlockMeta = { snippetLines: [], hasHighlights: false };
   let inHighlights = false;
 
   for (const line of lines) {
-    const lower = line.toLowerCase();
-
-    if (lower.startsWith("highlights:")) {
+    if (processHighlightsLine(line, meta)) {
       inHighlights = true;
-      meta.hasHighlights = true;
-      const content = line.split(/highlights:/iu)[1]?.trim();
-      if (content) meta.snippetLines.push(content);
       continue;
     }
 
@@ -87,7 +92,7 @@ const parseBlockMetadata = (lines: string[]): ParsedBlockMeta => {
       continue;
     }
 
-    const field = parseFieldLine(line, lower);
+    const field = parseFieldLine(line, line.toLowerCase());
     if (field) Object.assign(meta, field);
   }
 
