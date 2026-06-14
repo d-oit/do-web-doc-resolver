@@ -2,6 +2,7 @@ use regex::Regex;
 use std::sync::OnceLock;
 
 static NOISY_PATTERNS: OnceLock<Regex> = OnceLock::new();
+static JARGON_PATTERNS: OnceLock<Regex> = OnceLock::new();
 
 #[derive(Debug, Clone)]
 pub struct QualityScore {
@@ -38,6 +39,13 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     let noisy_count = noisy_re.find_iter(trimmed).count();
     let noisy = noisy_count > 6;
 
+    let jargon_re = JARGON_PATTERNS.get_or_init(|| {
+        Regex::new("(?i)seamlessly|robust|powerful|comprehensive|streamlined|leverage|revolutionize|game-changing")
+            .expect("Invalid quality jargon regex patterns")
+    });
+    let jargon_count = jargon_re.find_iter(trimmed).count();
+    let jargon_heavy = jargon_count > 3;
+
     let has_frontmatter = trimmed.starts_with("---")
         && trimmed.contains("relevance_score:")
         && trimmed.contains("intent_category:")
@@ -61,6 +69,9 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     if noisy {
         score -= 0.10;
     }
+    if jargon_heavy {
+        score -= 0.10;
+    }
 
     if has_frontmatter {
         score += 0.05;
@@ -77,7 +88,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
         too_short,
         missing_links,
         duplicate_heavy,
-        noisy,
+        noisy: noisy || jargon_heavy,
         acceptable,
     }
 }

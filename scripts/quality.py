@@ -9,6 +9,7 @@ PENALTY_TOO_SHORT = 0.25
 PENALTY_MISSING_LINKS = 0.10
 PENALTY_DUPLICATE_HEAVY = 0.15
 PENALTY_NOISY = 0.10
+PENALTY_JARGON = 0.10
 
 # Quality scoring bonuses
 BONUS_HAS_FRONTMATTER = 0.05
@@ -53,6 +54,19 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     noise_count = sum(text_lower.count(signal) for signal in noisy_signals)
     noisy = noise_count > 6
 
+    jargon_signals = [
+        "seamlessly",
+        "robust",
+        "powerful",
+        "comprehensive",
+        "streamlined",
+        "leverage",
+        "revolutionize",
+        "game-changing",
+    ]
+    jargon_count = sum(text_lower.count(signal) for signal in jargon_signals)
+    jargon_heavy = jargon_count > 3
+
     # 2026 Standard Checks
     required_yaml = [
         "relevance_score:",
@@ -80,6 +94,8 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
         score -= PENALTY_DUPLICATE_HEAVY  # Reduced from 0.25
     if noisy:
         score -= PENALTY_NOISY  # Reduced from 0.20
+    if jargon_heavy:
+        score -= PENALTY_JARGON
 
     # Bonus for 2026 standards
     if has_frontmatter:
@@ -98,6 +114,6 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
         too_short=too_short,
         missing_links=missing_links,
         duplicate_heavy=duplicate_heavy,
-        noisy=noisy,
+        noisy=noisy or jargon_heavy,  # Include jargon_heavy in 'noisy' for the struct if needed, or update struct
         acceptable=acceptable,
     )
