@@ -15,6 +15,64 @@ interface SearchSectionProps {
   isUrl: boolean;
 }
 
+const SearchActions = ({
+  query,
+  loading,
+  hasResult,
+  onFetch,
+  onClear
+}: {
+  query: string;
+  loading: boolean;
+  hasResult: boolean;
+  onFetch: () => void;
+  onClear: () => void;
+}) => {
+  if (!query.trim() && !hasResult) return null;
+
+  return (
+    <div className="flex items-center gap-2">
+      {query.trim() && (
+        <button
+          onClick={onFetch}
+          disabled={loading}
+          aria-label={loading ? "Fetching results..." : "Fetch results"}
+          title="Fetch results"
+          className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
+        >
+          {loading ? "..." : "Fetch"}
+        </button>
+      )}
+      <button
+        onClick={onClear}
+        aria-label="Clear input and results"
+        className="bg-transparent text-text-dim px-4 py-2 text-[13px] border-2 border-border-muted hover:border-accent hover:text-accent min-h-[44px]"
+      >
+        Clear
+      </button>
+    </div>
+  );
+};
+
+const SearchStatus = ({ isUrl, query, providerStatus }: { isUrl: boolean; query: string; providerStatus: string | null }) => {
+  if (!query.trim() && !providerStatus) return null;
+
+  return (
+    <>
+      {query.trim() && (
+        <div className="text-[11px] text-text-muted mt-2 uppercase tracking-wider">
+          {isUrl ? "Resolving as URL" : "Searching"}
+        </div>
+      )}
+      {providerStatus && (
+        <div role="status" aria-live="polite" className="text-[11px] text-accent mt-2 animate-pulse">
+          {providerStatus}
+        </div>
+      )}
+    </>
+  );
+};
+
 export function SearchSection({
   query,
   setQuery,
@@ -27,24 +85,24 @@ export function SearchSection({
   providerStatus,
   isUrl,
 }: SearchSectionProps) {
-  function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
-  }
+  };
 
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleSubmit();
     }
-  }
+  };
 
-  function handleClearQuery() {
+  const handleClearQuery = () => {
     setQuery("");
     inputRef.current?.focus();
-  }
+  };
 
-  function handleFetchClick() {
+  const handleFetchClick = () => {
     handleSubmit();
-  }
+  };
 
   return (
     <section className="border-b-2 border-border-muted p-4">
@@ -77,39 +135,15 @@ export function SearchSection({
             </button>
           )}
         </div>
-        {(query.trim() || hasResult) && (
-          <div className="flex items-center gap-2">
-            {query.trim() && (
-              <button
-                onClick={handleFetchClick}
-                disabled={loading}
-                aria-label={loading ? "Fetching results..." : "Fetch results"}
-                title="Fetch results"
-                className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
-              >
-                {loading ? "..." : "Fetch"}
-              </button>
-            )}
-            <button
-              onClick={onClear}
-              aria-label="Clear input and results"
-              className="bg-transparent text-text-dim px-4 py-2 text-[13px] border-2 border-border-muted hover:border-accent hover:text-accent min-h-[44px]"
-            >
-              Clear
-            </button>
-          </div>
-        )}
+        <SearchActions
+          query={query}
+          loading={loading}
+          hasResult={hasResult}
+          onFetch={handleFetchClick}
+          onClear={onClear}
+        />
       </div>
-      {query.trim() && (
-        <div className="text-[11px] text-text-muted mt-2 uppercase tracking-wider">
-          {isUrl ? "Resolving as URL" : "Searching"}
-        </div>
-      )}
-      {providerStatus && (
-        <div role="status" aria-live="polite" className="text-[11px] text-accent mt-2 animate-pulse">
-          {providerStatus}
-        </div>
-      )}
+      <SearchStatus isUrl={isUrl} query={query} providerStatus={providerStatus} />
     </section>
   );
 }

@@ -28,7 +28,7 @@ export function classifyError(
   const msg =
     error instanceof Error ? error.message : String(error ?? "Unknown error");
 
-  if (statusCode === 429 || /rate.?limit|too many requests/i.test(msg)) {
+  if (statusCode === 429 || /rate.?limit|too many requests/iu.test(msg)) {
     return {
       type: ErrorType.RATE_LIMIT,
       provider,
@@ -42,7 +42,7 @@ export function classifyError(
   if (
     statusCode === 401 ||
     statusCode === 403 ||
-    /unauthorized|forbidden|invalid.?key/i.test(msg)
+    /unauthorized|forbidden|invalid.?key/iu.test(msg)
   ) {
     return {
       type: ErrorType.AUTH_ERROR,
@@ -54,7 +54,7 @@ export function classifyError(
     };
   }
 
-  if (statusCode === 402 || /payment|credit|quota|exhausted/i.test(msg)) {
+  if (statusCode === 402 || /payment|credit|quota|exhausted/iu.test(msg)) {
     return {
       type: ErrorType.QUOTA_EXHAUSTED,
       provider,
@@ -65,7 +65,7 @@ export function classifyError(
     };
   }
 
-  if (statusCode === 404 || /not.?found/i.test(msg)) {
+  if (statusCode === 404 || /not.?found/iu.test(msg)) {
     return {
       type: ErrorType.NOT_FOUND,
       provider,
@@ -76,7 +76,7 @@ export function classifyError(
     };
   }
 
-  if (/timeout|abort/i.test(msg)) {
+  if (/timeout|abort/iu.test(msg)) {
     return {
       type: ErrorType.TIMEOUT,
       provider,
@@ -87,7 +87,7 @@ export function classifyError(
     };
   }
 
-  if (/network|fetch|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(msg)) {
+  if (/network|fetch|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/iu.test(msg)) {
     return {
       type: ErrorType.NETWORK_ERROR,
       provider,
