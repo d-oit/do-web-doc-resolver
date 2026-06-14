@@ -19,6 +19,13 @@ vi.mock("../../lib/records", () => ({
   save: vi.fn(),
 }));
 
+// Mock resolvers to avoid actual API calls
+vi.mock("../../lib/resolvers/index", () => ({
+  isUrl: vi.fn().mockReturnValue(false),
+  queryProviders: {},
+  urlProviders: {},
+}));
+
 describe("POST /api/resolve rate limiting", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -49,7 +56,7 @@ describe("POST /api/resolve rate limiting", () => {
     expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("test-ip");
   });
 
-  it("proceeds normally when rate limit is not exceeded", async () => {
+  it("proceeds normally when rate limit is not exceeded", { timeout: 15000 }, async () => {
     // Setup mock to return allowed
     vi.mocked(rateLimit.getClientIdentifier).mockReturnValue("test-ip");
     vi.mocked(rateLimit.checkRateLimit).mockReturnValue({

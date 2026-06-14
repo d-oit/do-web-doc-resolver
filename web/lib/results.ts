@@ -16,19 +16,14 @@ const sanitizeMeta = (value: string | undefined): string | undefined => {
   if (!value) return undefined;
   const trimmed = value.trim();
   return PLACEHOLDER_VALUES.has(trimmed.toLowerCase()) ? undefined : trimmed || undefined;
-}
+};
 
 const extractFirstUrlCandidate = (input: string): string | undefined => {
-  const fromParen = input.match(/https?:\/\/[^)\s]+/u);
-  if (fromParen) return fromParen[0];
-  const fromSpace = input.split(/\s+/).find((token) => token.startsWith("http"));
-  if (fromSpace) return fromSpace;
-  if (input.includes("(")) {
-    const inner = input.substring(input.indexOf("(") + 1, input.lastIndexOf(")"));
-    if (inner.startsWith("http")) return inner;
-  }
-  return input.trim().startsWith("http") ? input.trim() : undefined;
-}
+  const urlMatch = input.match(/https?:\/\/[^)\s]+/u);
+  if (urlMatch) return urlMatch[0];
+  const trimmed = input.trim();
+  return trimmed.startsWith("http") ? trimmed : undefined;
+};
 
 const canonicalizeUrl = (raw?: string): string | undefined => {
   if (!raw) return undefined;
@@ -37,7 +32,7 @@ const canonicalizeUrl = (raw?: string): string | undefined => {
   const normalizedCandidate = candidate.replace(/https?:\/([^/])/g, (match) => match.replace(/:\//, "://"));
   try {
     const url = new URL(normalizedCandidate);
-    if (url.hostname === "nextjs.org" && url.pathname.startsWith("/docs/llm-digest/")) {
+    if (url.hostname === "nextjs.org") {
       url.pathname = url.pathname.replace("/docs/llm-digest", "/docs");
     }
     url.hash = "";
@@ -45,7 +40,7 @@ const canonicalizeUrl = (raw?: string): string | undefined => {
   } catch {
     return normalizedCandidate;
   }
-}
+};
 
 const normalizeSnippet = (lines: string[]): string => {
   return lines
@@ -53,78 +48,102 @@ const normalizeSnippet = (lines: string[]): string => {
     .filter(Boolean)
     .join("\n")
     .trim();
+};
+
+interface ParsedBlockMeta {
+  title?: string;
+  url?: string;
+  author?: string;
+  published?: string;
+  snippetLines: string[];
+  hasHighlights: boolean;
 }
 
-function parseBlock(block: string, index: number): ProviderResult | null {
-  const lines = block.trim().split(/\n+/);
-  if (lines.length === 0) return null;
+const parseFieldLine = (line: string, lower: string): Record<string, string | undefined> | null => {
+  if (lower.startsWith("title:")) return { title: line.split(/title:/iu)[1]?.trim() };
+  if (lower.startsWith("url:")) return { url: line.split(/url:/iu)[1]?.trim() };
+  if (lower.startsWith("author:")) return { author: sanitizeMeta(line.split(/author:/iu)[1]) };
+  if (lower.startsWith("published:")) return { published: sanitizeMeta(line.split(/published:/iu)[1]) };
+  return null;
+};
 
-  let title: string | undefined;
-  let url: string | undefined;
-  let author: string | undefined;
-  let published: string | undefined;
-  const snippetLines: string[] = [];
+const processHighlightsLine = (line: string, meta: ParsedBlockMeta): boolean => {
+  const lower = line.toLowerCase();
+  if (!lower.startsWith("highlights:")) return false;
+
+  meta.hasHighlights = true;
+  const content = line.split(/highlights:/iu)[1]?.trim();
+  if (content) meta.snippetLines.push(content);
+  return true;
+};
+
+const parseBlockMetadata = (lines: string[]): ParsedBlockMeta => {
+  const meta: ParsedBlockMeta = { snippetLines: [], hasHighlights: false };
   let inHighlights = false;
 
   for (const line of lines) {
     const lower = line.toLowerCase();
-    if (lower.startsWith("title:")) {
-      title = line.split(/title:/iu)[1]?.trim();
-      continue;
-    }
-    if (lower.startsWith("url:")) {
-      url = line.split(/url:/iu)[1]?.trim();
-      continue;
-    }
-    if (lower.startsWith("author:")) {
-      author = sanitizeMeta(line.split(/author:/iu)[1]);
-      continue;
-    }
-    if (lower.startsWith("published:")) {
-      published = sanitizeMeta(line.split(/published:/iu)[1]);
-      continue;
-    }
-    if (lower.startsWith("highlights:")) {
+
+    if (!inHighlights && processHighlightsLine(line, meta)) {
       inHighlights = true;
-      const content = line.split(/highlights:/iu)[1]?.trim();
-      if (content) snippetLines.push(content);
-      continue;
-    }
-    if (inHighlights) {
-      snippetLines.push(line);
-      continue;
+    } else if (inHighlights) {
+      meta.snippetLines.push(line);
+    } else {
+      const field = parseFieldLine(line, lower);
+      if (field) Object.assign(meta, field);
     }
   }
 
-  const snippet = normalizeSnippet(inHighlights ? snippetLines : lines.slice(1));
-  if (!title && !snippet) return null;
+  return meta;
+};
 
-  const normalizedUrl = canonicalizeUrl(url);
-  const result: ProviderResult = {
-    id: `${index}-${title || url || Math.random().toString(36).slice(2)}`,
-    title: title || "Untitled Result",
-    snippet: snippet || block.trim(),
-    raw: block.trim(),
-  };
+const buildResultId = (index: number, title?: string, url?: string): string => {
+  const base = title || url || Math.random().toString(36).slice(2);
+  return `${index}-${base}`;
+};
+
+const withOptionalProps = (
+  result: ProviderResult,
+  meta: ParsedBlockMeta,
+  normalizedUrl: string | undefined,
+): ProviderResult => {
+  const { url, author, published } = meta;
   if (url !== undefined) result.url = url;
   if (normalizedUrl !== undefined) result.normalizedUrl = normalizedUrl;
   if (author !== undefined) result.author = author;
   if (published !== undefined) result.published = published;
   return result;
-}
+};
 
-export function parseProviderResults(markdown: string): ProviderResult[] {
-  if (!markdown) return [];
-  const blocks = markdown.split(SPLIT_REGEX).map((block) => block.trim()).filter(Boolean);
-  const parsed: ProviderResult[] = [];
-  blocks.forEach((block, index) => {
-    const result = parseBlock(block, index);
-    if (result) parsed.push(result);
-  });
-  return dedupeResults(parsed);
-}
+const buildProviderResult = (
+  meta: ParsedBlockMeta,
+  index: number,
+  block: string,
+  snippetSource: string[],
+): ProviderResult | null => {
+  const snippet = normalizeSnippet(snippetSource);
+  if (!meta.title && !snippet) return null;
 
-export function dedupeResults(results: ProviderResult[]): ProviderResult[] {
+  const normalizedUrl = canonicalizeUrl(meta.url);
+  const result: ProviderResult = {
+    id: buildResultId(index, meta.title, meta.url),
+    title: meta.title || "Untitled Result",
+    snippet: snippet || block.trim(),
+    raw: block.trim(),
+  };
+
+  return withOptionalProps(result, meta, normalizedUrl);
+};
+
+const parseBlock = (block: string, index: number): ProviderResult | null => {
+  const lines = block.trim().split(/\n+/);
+  if (lines.length === 0) return null;
+  const meta = parseBlockMetadata(lines);
+  const snippetSource = meta.hasHighlights ? meta.snippetLines : lines.slice(1);
+  return buildProviderResult(meta, index, block, snippetSource);
+};
+
+export const dedupeResults = (results: ProviderResult[]): ProviderResult[] => {
   const seen = new Map<string, ProviderResult>();
   for (const result of results) {
     const key = (result.normalizedUrl || result.title || result.raw).toLowerCase();
@@ -133,8 +152,19 @@ export function dedupeResults(results: ProviderResult[]): ProviderResult[] {
     }
   }
   return Array.from(seen.values());
-}
+};
 
-export function extractNormalizedUrls(results: ProviderResult[]): string[] {
+export const parseProviderResults = (markdown: string): ProviderResult[] => {
+  if (!markdown) return [];
+  const blocks = markdown.split(SPLIT_REGEX).map((block) => block.trim()).filter(Boolean);
+  const parsed: ProviderResult[] = [];
+  blocks.forEach((block, index) => {
+    const result = parseBlock(block, index);
+    if (result) parsed.push(result);
+  });
+  return dedupeResults(parsed);
+};
+
+export const extractNormalizedUrls = (results: ProviderResult[]): string[] => {
   return Array.from(new Set(results.map((r) => r.normalizedUrl).filter(Boolean))) as string[];
-}
+};

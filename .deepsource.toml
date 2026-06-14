@@ -9,3 +9,9 @@ issues = ["PYL-R0201"]
 # Test files: reimport issues from refactored conftest removal
 paths = ["tests/**"]
 issues = ["PYL-R0401"]
+
+[[analyzers]]
+name = "javascript"
+
+[analyzers.meta]
+cyclomatic_complexity_threshold = 15
