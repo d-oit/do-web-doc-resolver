@@ -3,6 +3,7 @@
 //! Checks for site-provided structured documentation.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use std::result::Result;
@@ -12,7 +13,6 @@ use url::Url;
 
 /// llms.txt provider - checks for structured LLM documentation
 pub struct LlmsTxtProvider {
-    client: reqwest::Client,
     rate_limited: Arc<AtomicBool>,
 }
 
@@ -20,7 +20,6 @@ impl LlmsTxtProvider {
     /// Create a new llms.txt provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -69,10 +68,9 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
             parsed_url.host_str().unwrap_or("")
         );
 
-        let response = self
-            .client
+        let client = get_client();
+        let response = client
             .get(&llms_txt_url)
-            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
             .send()
             .await
             .map_err(|e| ResolverError::Network(e.to_string()))?;

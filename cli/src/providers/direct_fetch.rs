@@ -3,6 +3,7 @@
 //! Basic content extraction from HTML.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use std::collections::HashSet;
@@ -12,7 +13,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Direct HTTP fetch provider
 pub struct DirectFetchProvider {
-    client: reqwest::Client,
     rate_limited: Arc<AtomicBool>,
 }
 
@@ -20,7 +20,6 @@ impl DirectFetchProvider {
     /// Create a new direct fetch provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -59,10 +58,9 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
             ));
         }
 
-        let response = self
-            .client
+        let client = get_client();
+        let response = client
             .get(url)
-            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
             .header("Accept", "text/html,application/xhtml+xml")
             .send()
             .await

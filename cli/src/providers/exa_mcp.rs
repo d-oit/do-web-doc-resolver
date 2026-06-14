@@ -3,6 +3,7 @@
 //! Free search via Model Context Protocol - no API key required.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -12,7 +13,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Exa MCP provider - free search via MCP
 pub struct ExaMcpProvider {
-    client: reqwest::Client,
     rate_limited: Arc<AtomicBool>,
 }
 
@@ -20,7 +20,6 @@ impl ExaMcpProvider {
     /// Create a new Exa MCP provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -78,8 +77,8 @@ impl crate::providers::QueryProvider for ExaMcpProvider {
             },
         };
 
-        let response = self
-            .client
+        let client = get_client();
+        let response = client
             .post("https://mcp.exa.ai/mcp")
             .header("Content-Type", "application/json")
             // Required: accept both JSON and SSE

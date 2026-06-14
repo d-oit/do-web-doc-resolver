@@ -14,10 +14,10 @@
 use crate::config::Config;
 use crate::error::ResolverError;
 use crate::metrics::ResolveMetrics;
+use crate::providers::shared_client::get_client;
 use crate::quality::score_content;
 use crate::semantic_cache::SemanticCache;
 use crate::types::ResolvedResult;
-use reqwest::Client;
 use serde_json::json;
 use std::sync::LazyLock;
 
@@ -111,7 +111,7 @@ pub async fn synthesize_results(
         }
     }
 
-    let client = Client::new();
+    let client = get_client();
 
     let mut context = String::new();
     let mut has_suspicious_content = false;

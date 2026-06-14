@@ -3,6 +3,7 @@
 //! Comprehensive search API.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Tavily search provider
 pub struct TavilyProvider {
-    client: reqwest::Client,
     api_key: Option<String>,
     rate_limited: Arc<AtomicBool>,
 }
@@ -23,7 +23,6 @@ impl TavilyProvider {
     pub fn new() -> Self {
         let api_key = env::var("TAVILY_API_KEY").ok();
         Self {
-            client: reqwest::Client::new(),
             api_key,
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
@@ -72,8 +71,8 @@ impl crate::providers::QueryProvider for TavilyProvider {
             ));
         }
 
-        let response = self
-            .client
+        let client = get_client();
+        let response = client
             .post("https://api.tavily.com/search")
             .json(&TavilyRequest {
                 api_key: api_key.clone(),

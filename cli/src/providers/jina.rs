@@ -3,6 +3,7 @@
 //! Free content extraction via https://r.jina.ai/<url>
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use std::result::Result;
@@ -11,7 +12,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Jina Reader provider - free content extraction
 pub struct JinaProvider {
-    client: reqwest::Client,
     rate_limited: Arc<AtomicBool>,
 }
 
@@ -19,7 +19,6 @@ impl JinaProvider {
     /// Create a new Jina provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -58,11 +57,10 @@ impl crate::providers::UrlProvider for JinaProvider {
 
         // Use Jina Reader API
         let jina_url = format!("https://r.jina.ai/{}", url);
+        let client = get_client();
 
-        let response = self
-            .client
+        let response = client
             .get(&jina_url)
-            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
             .send()
             .await
             .map_err(|e| ResolverError::Network(e.to_string()))?;

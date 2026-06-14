@@ -4,6 +4,7 @@
 //! Free tier: 2,500 credits (1 query = 1 credit).
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -17,7 +18,6 @@ pub const SERPER_MAX_CREDITS: u32 = 2500;
 
 /// Serper search provider
 pub struct SerperProvider {
-    client: reqwest::Client,
     api_key: Option<String>,
     /// Credits used (persisted in state)
     credits_used: Arc<AtomicU32>,
@@ -36,7 +36,6 @@ impl SerperProvider {
         tracing::debug!("Serper provider initialized, credits used: {}", credits);
 
         Self {
-            client: reqwest::Client::new(),
             api_key,
             credits_used: Arc::new(AtomicU32::new(credits)),
             rate_limited: Arc::new(AtomicBool::new(credits >= SERPER_MAX_CREDITS)),
@@ -145,8 +144,8 @@ impl crate::providers::QueryProvider for SerperProvider {
 
         tracing::debug!("Attempting serper for query='{}'", query);
 
-        let response = self
-            .client
+        let client = get_client();
+        let response = client
             .post("https://google.serper.dev/search")
             .header("X-API-KEY", api_key)
             .header("Content-Type", "application/json")

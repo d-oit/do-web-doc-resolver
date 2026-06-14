@@ -720,6 +720,7 @@ dependencies = [
  "criterion",
  "futures",
  "mockall",
+ "once_cell",
  "regex",
  "reqwest",
  "serde",

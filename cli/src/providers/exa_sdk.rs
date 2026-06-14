@@ -3,6 +3,7 @@
 //! Uses Exa API with highlights for token-efficient results.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Exa SDK provider
 pub struct ExaSdkProvider {
-    client: reqwest::Client,
     api_key: Option<String>,
     rate_limited: Arc<AtomicBool>,
 }
@@ -23,7 +23,6 @@ impl ExaSdkProvider {
     pub fn new() -> Self {
         let api_key = env::var("EXA_API_KEY").ok();
         Self {
-            client: reqwest::Client::new(),
             api_key,
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
@@ -72,8 +71,8 @@ impl crate::providers::QueryProvider for ExaSdkProvider {
             ));
         }
 
-        let response = self
-            .client
+        let client = get_client();
+        let response = client
             .post("https://api.exa.ai/search")
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&ExaSearchRequest {

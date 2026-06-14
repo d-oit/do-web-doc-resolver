@@ -15,6 +15,7 @@ pub mod mistral_websearch;
 pub mod ocr;
 pub mod rate_limiter;
 pub mod serper;
+pub mod shared_client;
 pub mod tavily;
 
 pub use self::direct_fetch::DirectFetchProvider;

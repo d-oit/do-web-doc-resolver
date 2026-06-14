@@ -3,6 +3,7 @@
 //! Deep content extraction with markdown output.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Firecrawl provider
 pub struct FirecrawlProvider {
-    client: reqwest::Client,
     api_key: Option<String>,
     rate_limited: Arc<AtomicBool>,
 }
@@ -23,7 +23,6 @@ impl FirecrawlProvider {
     pub fn new() -> Self {
         let api_key = env::var("FIRECRAWL_API_KEY").ok();
         Self {
-            client: reqwest::Client::new(),
             api_key,
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
@@ -68,8 +67,8 @@ impl crate::providers::UrlProvider for FirecrawlProvider {
             ));
         }
 
-        let response = self
-            .client
+        let client = get_client();
+        let response = client
             .post("https://api.firecrawl.dev/v1/scrape")
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")

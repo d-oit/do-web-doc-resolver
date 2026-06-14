@@ -4,6 +4,7 @@
 //! Uses Jina Reader to bypass CAPTCHA protection.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use std::result::Result;
@@ -12,7 +13,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// DuckDuckGo search provider
 pub struct DuckDuckGoProvider {
-    client: reqwest::Client,
     rate_limited: Arc<AtomicBool>,
 }
 
@@ -20,7 +20,6 @@ impl DuckDuckGoProvider {
     /// Create a new DuckDuckGo provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -72,8 +71,8 @@ impl crate::providers::QueryProvider for DuckDuckGoProvider {
         );
         let jina_url = format!("https://r.jina.ai/{}", ddg_url);
 
-        let response = self
-            .client
+        let client = get_client();
+        let response = client
             .get(&jina_url)
             .header("Accept", "text/markdown")
             .send()

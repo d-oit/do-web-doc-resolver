@@ -4,6 +4,7 @@
 //! Requires two-step process: create agent with web_search tool, then start conversation.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Mistral browser provider
 pub struct MistralBrowserProvider {
-    client: reqwest::Client,
     api_key: Option<String>,
     rate_limited: Arc<AtomicBool>,
 }
@@ -24,7 +24,6 @@ impl MistralBrowserProvider {
     pub fn new() -> Self {
         let api_key = env::var("MISTRAL_API_KEY").ok();
         Self {
-            client: reqwest::Client::new(),
             api_key,
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
@@ -70,8 +69,8 @@ impl crate::providers::UrlProvider for MistralBrowserProvider {
         }
 
         // Step 1: Create an agent with web_search tool
-        let create_response = self
-            .client
+        let client = get_client();
+        let create_response = client
             .post("https://api.mistral.ai/v1/agents")
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
@@ -111,8 +110,7 @@ impl crate::providers::UrlProvider for MistralBrowserProvider {
         let agent_id = agent.id;
 
         // Step 2: Start a conversation to extract the URL
-        let conv_response = self
-            .client
+        let conv_response = client
             .post("https://api.mistral.ai/v1/conversations")
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
@@ -169,7 +167,7 @@ impl crate::providers::UrlProvider for MistralBrowserProvider {
 
 impl MistralBrowserProvider {
     async fn delete_agent(&self, agent_id: &str, api_key: &str) -> Result<(), ResolverError> {
-        self.client
+        get_client()
             .delete(format!("https://api.mistral.ai/v1/agents/{}", agent_id))
             .header("Authorization", format!("Bearer {}", api_key))
             .send()
