@@ -1684,8 +1684,10 @@ class TestCascadeErrorHandling:
         good_result = ResolvedResult(
             source="exa_mcp",
             content=(
-                "# Comprehensive Documentation\n\n"
-                "This is detailed technical documentation with examples. " * 60
+                "# Detailed Documentation\n\n"
+                "This is a unique line to avoid duplication penalties and provide enough length.\n"
+                + "Providing factual information about the system architecture and implementation details.\n"
+                * 30
             ),
             url="https://example.com",
         )

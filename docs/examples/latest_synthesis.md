@@ -1,34 +1,41 @@
 ---
-relevance_score: 1.0
+relevance_score: 0.95
 intent_category: Technical
-token_estimate: 520
-last_updated: 2026-05-24
+token_estimate: 480
+last_updated: 2026-06-14
 ---
 
-# LLM-Ready Synthesis: 2026 Standards Update (May 2026)
+# LLM-Ready Synthesis: Rust Concurrency Performance (June 2026)
 
 [ANCHOR: SUMMARY]
-The Web Doc Resolver synthesis logic has reached full alignment with the latest 2026 "LLM-Readable-Doc" standards. This update ensures that both LLM-driven and deterministic outputs provide optimized structures for downstream RAG performance and precise citation mapping \[1\]\[2\].
+Rust's `async/await` provides a zero-cost abstraction for task-based concurrency, optimized for high-IO throughput. Compared to OS-level threads, async tasks exhibit significantly lower memory overhead and faster context switching at the cost of increased binary size and "function coloring" complexity [1], [2].
 
 [ANCHOR: TECHNICAL_DETAILS]
-Key enhancements implemented in this cycle:
+Performance characteristics of Rust concurrency models:
 
-- **Strict YAML Frontmatter**: Mandatory inclusion of `relevance_score`, `intent_category`, `token_estimate`, and `last_updated` for rapid relevance assessment \[1\]\[3\].
-- **Mandatory Structural Anchors**: Content is strictly partitioned into `SUMMARY`, `TECHNICAL_DETAILS`, `COMPARISON`, and `CITATIONS` blocks [1].
-- **Citation Precision**: Every claim and source attribution is followed by bracketed indices (e.g., [1], [2]) that map directly to the source URLs in the citations block [1].
-- **Rust Parity**: The Rust CLI implementation now mirrors the Python deterministic merge logic, ensuring standard compliance across the entire toolchain [2].
+- **Memory Utilization**: OS threads typically require a fixed stack size (e.g., 2MB on Linux), whereas async tasks use dynamically sized futures that occupy only as much memory as needed for their state [1].
+- **Context Switching**: Thread switching involves kernel-mode transitions and register saving/restoring (approx. 1-5µs). Async task switching occurs in user-space via the executor's waker mechanism, incurring only sub-microsecond overhead [2], [3].
+- **Scaling**: A single process can efficiently manage millions of async tasks on a standard machine, while thread counts are capped by OS limits and scheduler contention (typically thousands) [1].
+
+```rust
+// Example of high-density async task spawning
+let tasks: Vec<_> = (0..1_000_000).map(|_| {
+    tokio::spawn(async {
+        // High-density operation
+    })
+}).collect();
+```
 
 [ANCHOR: COMPARISON]
 
-| Feature | 2024 Legacy | 2026 Standard (Updated) |
-|---------|-------------|-------------------------|
-| YAML Fields | `relevance_score` only | Full 4-field mandatory set |
-| Anchors | Sequential | RAG-Optimized Structural Anchors |
-| Non-LLM Path | Raw Concatenation | Standardized Deterministic Merge |
-| Citation Style | Source List | Inline Bracketed Indices `[n]` |
-| Rust Support | Basic Concatenation | Full Standards Compliance |
+| Metric | OS Threads | Async/Await (Tokio) |
+|--------|------------|---------------------|
+| Context Switch | High (Kernel) | Low (User-space) |
+| Memory/Task | High (Fixed Stack) | Low (Dynamic Future) |
+| Throughput | IO-Bound Bottlenecks | High IO-Concurrency |
+| Complexity | Low (Standard Lib) | High (Async Runtimes) |
 
 [ANCHOR: CITATIONS]
-[1] <https://github.com/d-oit/do-web-doc-resolver/scripts/synthesis.py>
-[2] <https://github.com/d-oit/do-web-doc-resolver/cli/src/synthesis.rs>
-[3] <https://github.com/d-oit/do-web-doc-resolver/docs/standards.md>
+[1] <https://rust-lang.github.io/async-book/>
+[2] <https://tokio.rs/tokio/tutorial/async>
+[3] <https://github.com/rust-lang/rust-benchmarks>
