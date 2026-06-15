@@ -193,103 +193,130 @@ impl Config {
     }
 
     pub fn merge(&mut self, other: Config) {
-        if other.max_chars != default_max_chars() {
-            self.max_chars = other.max_chars;
-        }
-        if other.min_chars != default_min_chars() {
-            self.min_chars = other.min_chars;
-        }
-        if other.exa_results != default_exa_results() {
-            self.exa_results = other.exa_results;
-        }
-        if other.tavily_results != default_tavily_results() {
-            self.tavily_results = other.tavily_results;
-        }
-        if other.output_limit != default_output_limit() {
-            self.output_limit = other.output_limit;
-        }
-        if other.log_level != "info" {
-            self.log_level = other.log_level;
-        }
-        if !other.skip_providers.is_empty() {
-            self.skip_providers = other.skip_providers;
-        }
-        if !other.providers_order.is_empty() {
-            self.providers_order = other.providers_order;
-        }
-        if other.negative_cache_ttl_secs != default_negative_cache_ttl() {
-            self.negative_cache_ttl_secs = other.negative_cache_ttl_secs;
-        }
-        if other.error_cache_ttl_secs != default_error_cache_ttl() {
-            self.error_cache_ttl_secs = other.error_cache_ttl_secs;
-        }
-        if other.circuit_breaker_threshold != default_circuit_breaker_threshold() {
-            self.circuit_breaker_threshold = other.circuit_breaker_threshold;
-        }
-        if other.circuit_breaker_cooldown_secs != default_circuit_breaker_cooldown() {
-            self.circuit_breaker_cooldown_secs = other.circuit_breaker_cooldown_secs;
-        }
-        if other.max_links != default_max_links() {
-            self.max_links = other.max_links;
-        }
-        if other.cache.ttl.firecrawl != default_ttl_firecrawl() {
-            self.cache.ttl.firecrawl = other.cache.ttl.firecrawl;
-        }
-        if other.cache.ttl.exa != default_ttl_exa() {
-            self.cache.ttl.exa = other.cache.ttl.exa;
-        }
-        if other.cache.ttl.tavily != default_ttl_tavily() {
-            self.cache.ttl.tavily = other.cache.ttl.tavily;
-        }
-        if other.cache.ttl.serper != default_ttl_serper() {
-            self.cache.ttl.serper = other.cache.ttl.serper;
-        }
-        if other.cache.ttl.jina != default_ttl_jina() {
-            self.cache.ttl.jina = other.cache.ttl.jina;
-        }
-        if other.cache.ttl.mistral != default_ttl_mistral() {
-            self.cache.ttl.mistral = other.cache.ttl.mistral;
-        }
-        if other.cache.ttl.duckduckgo != default_ttl_duckduckgo() {
-            self.cache.ttl.duckduckgo = other.cache.ttl.duckduckgo;
-        }
-        if other.cache.ttl.llms_txt != default_ttl_llms_txt() {
-            self.cache.ttl.llms_txt = other.cache.ttl.llms_txt;
-        }
-        if other.cache.ttl.synthesis != default_ttl_synthesis() {
-            self.cache.ttl.synthesis = other.cache.ttl.synthesis;
-        }
-        if other.cache.ttl.default != default_ttl_default() {
-            self.cache.ttl.default = other.cache.ttl.default;
-        }
-
-        if other.profile != Profile::Balanced {
-            self.profile = other.profile;
-        }
-        if other.quality_threshold.is_some() {
-            self.quality_threshold = other.quality_threshold;
-        }
-        if other.routing.min_free_quality_to_skip_paid.is_some() {
-            self.routing.min_free_quality_to_skip_paid =
-                other.routing.min_free_quality_to_skip_paid;
-        }
-        if other.max_provider_attempts.is_some() {
-            self.max_provider_attempts = other.max_provider_attempts;
-        }
-        if other.max_paid_attempts.is_some() {
-            self.max_paid_attempts = other.max_paid_attempts;
-        }
-        if other.max_total_latency_ms.is_some() {
-            self.max_total_latency_ms = other.max_total_latency_ms;
-        }
-        if other.disable_routing_memory {
-            self.disable_routing_memory = other.disable_routing_memory;
-        }
-        if !other.providers.is_empty() {
-            for (name, provider_config) in other.providers {
-                self.providers.insert(name, provider_config);
-            }
-        }
+        merge_value(&mut self.max_chars, other.max_chars, default_max_chars());
+        merge_value(&mut self.min_chars, other.min_chars, default_min_chars());
+        merge_value(
+            &mut self.exa_results,
+            other.exa_results,
+            default_exa_results(),
+        );
+        merge_value(
+            &mut self.tavily_results,
+            other.tavily_results,
+            default_tavily_results(),
+        );
+        merge_value(
+            &mut self.output_limit,
+            other.output_limit,
+            default_output_limit(),
+        );
+        merge_string(&mut self.log_level, other.log_level);
+        merge_vec(&mut self.skip_providers, other.skip_providers);
+        merge_vec(&mut self.providers_order, other.providers_order);
+        merge_value(
+            &mut self.negative_cache_ttl_secs,
+            other.negative_cache_ttl_secs,
+            default_negative_cache_ttl(),
+        );
+        merge_value(
+            &mut self.error_cache_ttl_secs,
+            other.error_cache_ttl_secs,
+            default_error_cache_ttl(),
+        );
+        merge_value(
+            &mut self.circuit_breaker_threshold,
+            other.circuit_breaker_threshold,
+            default_circuit_breaker_threshold(),
+        );
+        merge_value(
+            &mut self.circuit_breaker_cooldown_secs,
+            other.circuit_breaker_cooldown_secs,
+            default_circuit_breaker_cooldown(),
+        );
+        merge_value(&mut self.max_links, other.max_links, default_max_links());
+        merge_bool(
+            &mut self.semantic_cache.enabled,
+            other.semantic_cache.enabled,
+        );
+        merge_value(
+            &mut self.semantic_cache.path,
+            other.semantic_cache.path,
+            ".do-wdr_cache".to_string(),
+        );
+        merge_value(
+            &mut self.semantic_cache.threshold,
+            other.semantic_cache.threshold,
+            0.85,
+        );
+        merge_value(
+            &mut self.semantic_cache.max_entries,
+            other.semantic_cache.max_entries,
+            10000,
+        );
+        merge_value(
+            &mut self.cache.ttl.firecrawl,
+            other.cache.ttl.firecrawl,
+            default_ttl_firecrawl(),
+        );
+        merge_value(
+            &mut self.cache.ttl.exa,
+            other.cache.ttl.exa,
+            default_ttl_exa(),
+        );
+        merge_value(
+            &mut self.cache.ttl.tavily,
+            other.cache.ttl.tavily,
+            default_ttl_tavily(),
+        );
+        merge_value(
+            &mut self.cache.ttl.serper,
+            other.cache.ttl.serper,
+            default_ttl_serper(),
+        );
+        merge_value(
+            &mut self.cache.ttl.jina,
+            other.cache.ttl.jina,
+            default_ttl_jina(),
+        );
+        merge_value(
+            &mut self.cache.ttl.mistral,
+            other.cache.ttl.mistral,
+            default_ttl_mistral(),
+        );
+        merge_value(
+            &mut self.cache.ttl.duckduckgo,
+            other.cache.ttl.duckduckgo,
+            default_ttl_duckduckgo(),
+        );
+        merge_value(
+            &mut self.cache.ttl.llms_txt,
+            other.cache.ttl.llms_txt,
+            default_ttl_llms_txt(),
+        );
+        merge_value(
+            &mut self.cache.ttl.synthesis,
+            other.cache.ttl.synthesis,
+            default_ttl_synthesis(),
+        );
+        merge_value(
+            &mut self.cache.ttl.default,
+            other.cache.ttl.default,
+            default_ttl_default(),
+        );
+        merge_value(&mut self.profile, other.profile, Profile::Balanced);
+        merge_option(&mut self.quality_threshold, other.quality_threshold);
+        merge_option(
+            &mut self.routing.min_free_quality_to_skip_paid,
+            other.routing.min_free_quality_to_skip_paid,
+        );
+        merge_option(&mut self.max_provider_attempts, other.max_provider_attempts);
+        merge_option(&mut self.max_paid_attempts, other.max_paid_attempts);
+        merge_option(&mut self.max_total_latency_ms, other.max_total_latency_ms);
+        merge_bool(
+            &mut self.disable_routing_memory,
+            other.disable_routing_memory,
+        );
+        merge_map(&mut self.providers, other.providers);
     }
 
     pub fn load() -> Self {
@@ -328,6 +355,43 @@ impl Config {
             "synthesis" => self.cache.ttl.synthesis,
             _ => self.cache.ttl.default,
         }
+    }
+}
+
+fn merge_value<T: PartialEq>(target: &mut T, value: T, default: T) {
+    if value != default {
+        *target = value;
+    }
+}
+
+fn merge_string(target: &mut String, value: String) {
+    merge_value(target, value, "info".to_string());
+}
+
+fn merge_bool(target: &mut bool, value: bool) {
+    if value {
+        *target = value;
+    }
+}
+
+fn merge_option<T>(target: &mut Option<T>, value: Option<T>) {
+    if value.is_some() {
+        *target = value;
+    }
+}
+
+fn merge_vec<T>(target: &mut Vec<T>, value: Vec<T>) {
+    if !value.is_empty() {
+        *target = value;
+    }
+}
+
+fn merge_map<K, V>(target: &mut HashMap<K, V>, value: HashMap<K, V>)
+where
+    K: Eq + std::hash::Hash,
+{
+    for (name, provider_config) in value {
+        target.entry(name).or_insert(provider_config);
     }
 }
 

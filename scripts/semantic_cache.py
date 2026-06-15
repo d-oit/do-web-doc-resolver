@@ -47,18 +47,42 @@ class SemanticCacheEntry:
 
 
 class SemanticCache:
-    """
-    Semantic cache using sqlite-vec for vector similarity search.
+    @staticmethod
+    def normalize_text(text: str, filter_stop_words: bool = False) -> str:
+        import re
 
-    Uses sentence-transformers for local embeddings (all-MiniLM-L6-v2 model).
-    Falls back gracefully if sqlite-vec or embeddings fail to load.
+        tokens = [
+            re.sub(r"[^a-zA-Z0-9]", "", w) for w in text.split() if re.sub(r"[^a-zA-Z0-9]", "", w)
+        ]
 
-    Attributes:
-        cache_dir: Directory for cache storage
-        threshold: Minimum similarity score for cache hits (0.0-1.0)
-        max_entries: Maximum number of entries to store
-        enabled: Whether the cache is operational
-    """
+        if filter_stop_words and not (text.startswith("http://") or text.startswith("https://")):
+            stop_words = {
+                "docs",
+                "documentation",
+                "guide",
+                "tutorial",
+                "reference",
+                "ref",
+                "lib",
+                "library",
+                "std",
+                "standard",
+                "for",
+                "of",
+                "the",
+                "a",
+                "an",
+                "and",
+                "programming",
+                "language",
+            }
+            tokens = [w for w in tokens if w.lower() not in stop_words]
+
+        if not tokens:
+            return " ".join(text.lower().split())
+
+        lowered = sorted(w.lower() for w in tokens)
+        return " ".join(lowered)
 
     def __init__(
         self,
@@ -67,15 +91,6 @@ class SemanticCache:
         max_entries: int = DEFAULT_MAX_ENTRIES,
         model_name: str = DEFAULT_MODEL,
     ) -> None:
-        """
-        Initialize semantic cache.
-
-        Args:
-            cache_dir: Directory for cache storage. Defaults to ~/.cache/do-web-doc-resolver/semantic
-            threshold: Minimum cosine similarity for cache hits (0.0-1.0)
-            max_entries: Maximum number of entries before LRU eviction
-            model_name: Sentence-transformers model to use
-        """
         self.enabled = False
         self._model: Any = None
         self._model_name = model_name
@@ -107,11 +122,9 @@ class SemanticCache:
             self.enabled = False
 
     def _init_db(self) -> None:
-        """Initialize sqlite-vec extension and database schema."""
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
 
-        # Try to load sqlite-vec extension
         vec_loaded = False
         try:
             import sqlite_vec
@@ -127,10 +140,8 @@ class SemanticCache:
             logger.warning("Failed to load sqlite-vec via Python API: %s", e)
 
         if not vec_loaded:
-            # Try loading as dynamic library
             try:
                 self._conn.enable_load_extension(True)
-                # Try common paths
                 lib_paths = [
                     "libsqlite_vec.so",
                     "libsqlite_vec.dylib",
@@ -153,7 +164,6 @@ class SemanticCache:
         if not vec_loaded:
             raise RuntimeError("sqlite-vec extension could not be loaded")
 
-        # Create tables
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS cache_entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -165,12 +175,9 @@ class SemanticCache:
             )
         """)
 
-        # Virtual table for vector search - will be created after we know embedding dim
         self._conn.commit()
 
     def _init_model(self) -> None:
-        """Initialize sentence-transformers model (lazy loading)."""
-        # Don't load model yet - do it on first use
         self._model = None
         self._model_loading = False
 
@@ -227,7 +234,9 @@ class SemanticCache:
         if model is None:
             raise RuntimeError("Embedding model not available")
 
-        embedding = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
+        # Normalize text for embedding (using stop-word filtering for embedding only)
+        normalized = self.normalize_text(text, True)
+        embedding = model.encode(normalized, convert_to_numpy=True, normalize_embeddings=True)
         return cast(list[float], embedding.tolist())
 
     def query(self, query_str: str) -> SemanticCacheEntry | None:
@@ -235,6 +244,29 @@ class SemanticCache:
             return None
 
         try:
+            normalized = self.normalize_text(query_str, False)
+
+            with self._conn_lock:
+                # Check for exact match (using normalized text as direct ID or index)
+                # Matches Rust "Exact Match Short-Circuit" logic
+                cursor = self._conn.execute(
+                    "SELECT id, query, result_json, timestamp FROM cache_entries WHERE query = ?",
+                    (normalized,),
+                )
+                row = cursor.fetchone()
+                if row:
+                    self._conn.execute(
+                        "UPDATE cache_entries SET access_count = access_count + 1, last_accessed = ? WHERE id = ?",
+                        (time.time(), row["id"]),
+                    )
+                    self._conn.commit()
+                    return SemanticCacheEntry(
+                        query=row["query"],
+                        result=json.loads(row["result_json"]),
+                        timestamp=row["timestamp"],
+                        similarity=1.0,
+                    )
+
             query_embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(query_embedding)
 
@@ -291,13 +323,14 @@ class SemanticCache:
             return False
 
         try:
+            normalized = self.normalize_text(query_str, False)
             embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(embedding)
 
             with self._conn_lock:
                 cursor = self._conn.execute(
                     "SELECT id FROM cache_entries WHERE query = ?",
-                    (query_str,),
+                    (normalized,),
                 )
                 old_row = cursor.fetchone()
                 if old_row:
@@ -311,7 +344,7 @@ class SemanticCache:
                     (query, result_json, timestamp, last_accessed)
                     VALUES (?, ?, ?, ?)
                 """,
-                    (query_str, json.dumps(result), time.time(), time.time()),
+                    (normalized, json.dumps(result), time.time(), time.time()),
                 )
                 entry_id = cursor.lastrowid
 
