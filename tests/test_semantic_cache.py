@@ -89,7 +89,8 @@ class TestSemanticCacheBasic:
         # Query should return the stored result
         entry = semantic_cache.query(query)
         assert entry is not None
-        assert entry.query == query
+        # Note: the stored query is normalized for Exact Match Short-Circuit parity
+        assert entry.query == semantic_cache.normalize_text(query)
         assert entry.result["content"] == result["content"]
         assert entry.similarity > 0.7
 
