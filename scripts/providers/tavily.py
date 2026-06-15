@@ -38,7 +38,8 @@ async def resolve_with_tavily_async(
             client = TavilyClient(api_key=api_key)
             return client.search(query, max_results=TAVILY_RESULTS)
 
-        res = await asyncio.to_thread(_sync_search, executor=get_shared_pool())
+        loop = asyncio.get_event_loop()
+        res = await loop.run_in_executor(get_shared_pool(), _sync_search)
         if not res or not res.get("results"):
             logger.warning("Tavily returned no results for query: %s", query)
             return None
