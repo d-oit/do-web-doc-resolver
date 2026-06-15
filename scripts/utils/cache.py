@@ -2,11 +2,13 @@
 Cache utilities for the Web Doc Resolver.
 """
 
+import asyncio
 import hashlib
 import logging
 import os
 import threading
 import time
+from collections.abc import Callable
 from typing import Any
 
 from scripts.constants import CACHE_DIR, TIERED_TTL
@@ -21,6 +23,51 @@ _l1_cache: dict[str, tuple[Any, float]] = {}
 _l1_cache_lock = threading.RLock()
 L1_CACHE_MAX_SIZE = 1000
 L1_CACHE_DEFAULT_TTL = 300  # 5 minutes
+
+# Request coalescing: track in-flight requests to deduplicate concurrent calls
+_inflight_requests: dict[str, asyncio.Future] = {}
+_inflight_lock = asyncio.Lock()
+
+
+async def coalesce_request(key: str, func: Callable) -> Any:
+    """Coalesce concurrent requests for the same key.
+
+    If a request is already in-flight for this key, wait for its result.
+    Otherwise, execute the function and cache the result for other waiters.
+    """
+    async with _inflight_lock:
+        if key in _inflight_requests:
+            # Another request is in-flight — wait for it
+            future = _inflight_requests[key]
+        else:
+            # First request — create a future and execute
+            future = asyncio.get_event_loop().create_future()
+            _inflight_requests[key] = future
+
+    if future.done():
+        # Already completed (edge case: lock acquired after completion)
+        async with _inflight_lock:
+            _inflight_requests.pop(key, None)
+        return future.result()
+
+    # Check if we're the one who should execute
+    async with _inflight_lock:
+        is_first = _inflight_requests.get(key) is future
+
+    if is_first:
+        try:
+            result = await func()
+            future.set_result(result)
+            return result
+        except Exception as e:
+            future.set_exception(e)
+            raise
+        finally:
+            async with _inflight_lock:
+                _inflight_requests.pop(key, None)
+    else:
+        # Wait for the first request to complete
+        return await future
 
 
 def _l1_get(key: str) -> Any | None:
@@ -56,6 +103,12 @@ def _l1_clear() -> None:
     """Clear L1 in-memory cache."""
     with _l1_cache_lock:
         _l1_cache.clear()
+
+
+def _clear_inflight() -> None:
+    """Clear inflight request tracking (for testing)."""
+    global _inflight_requests
+    _inflight_requests = {}
 
 
 def _cache_key(input_str: str, source: str) -> str:
