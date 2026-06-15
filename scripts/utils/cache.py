@@ -90,10 +90,7 @@ def _l1_set(key: str, value: Any, ttl: int = L1_CACHE_DEFAULT_TTL) -> None:
         if len(_l1_cache) >= L1_CACHE_MAX_SIZE:
             # Remove 10% of oldest entries
             evict_count = max(1, L1_CACHE_MAX_SIZE // 10)
-            to_evict = sorted(
-                _l1_cache.keys(),
-                key=lambda k: _l1_cache[k][1]
-            )[:evict_count]
+            to_evict = sorted(_l1_cache.keys(), key=lambda k: _l1_cache[k][1])[:evict_count]
             for k in to_evict:
                 del _l1_cache[k]
         _l1_cache[key] = (value, time.time() + ttl)
