@@ -32,6 +32,7 @@ async def get_async_client() -> httpx.AsyncClient:
     global _global_client
     if _global_client is None or _global_client.is_closed:
         _global_client = httpx.AsyncClient(
+            http2=True,
             timeout=httpx.Timeout(30.0),
             follow_redirects=False,
             headers={

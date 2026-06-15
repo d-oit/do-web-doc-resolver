@@ -31,7 +31,10 @@ async def resolve_with_duckduckgo_async(
             with DDGS() as ddgs:
                 return list(ddgs.text(query, max_results=DDG_RESULTS))
 
-        results = await asyncio.to_thread(_sync_search)
+        from scripts.utils.thread_pool import get_shared_pool
+
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(get_shared_pool(), _sync_search)
         if not results:
             logger.warning("DuckDuckGo returned no results for query: %s", query)
             return None

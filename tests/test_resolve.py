@@ -88,8 +88,10 @@ class TestFetchLlmsTxt:
 
         # Clear cache to ensure fresh test
         import scripts.resolve
+        from scripts.utils.cache import _l1_clear
 
         scripts.resolve._cache = None
+        _l1_clear()
 
         result = fetch_llms_txt("https://example.com")
         assert result is None
@@ -995,7 +997,9 @@ class TestCacheBehavior:
         mock_get_cache.return_value = None
 
         from scripts.resolve import _get_from_cache
+        from scripts.utils.cache import _l1_clear
 
+        _l1_clear()
         result = _get_from_cache("test", "exa")
 
         assert result is None
@@ -1073,6 +1077,9 @@ class TestDuckDuckGoFallback:
     @patch("scripts.providers_impl._is_rate_limited")
     def test_duckduckgo_rate_limited(self, mock_rate_limited, mock_cache):
         """Test DuckDuckGo when rate-limited."""
+        from scripts.utils.cache import _l1_clear
+
+        _l1_clear()
         mock_cache.return_value = None
         mock_rate_limited.return_value = True
 
@@ -1085,6 +1092,9 @@ class TestDuckDuckGoFallback:
     @patch("ddgs.DDGS")
     def test_duckduckgo_empty_results(self, mock_ddgs_class, mock_rate_limited, mock_cache):
         """Test DuckDuckGo with empty results."""
+        from scripts.utils.cache import _l1_clear
+
+        _l1_clear()
         mock_cache.return_value = None
         mock_rate_limited.return_value = False
 
@@ -1463,6 +1473,9 @@ class TestAdditionalEdgeCases:
         self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
     ):
         """Test DuckDuckGo handling of network errors."""
+        from scripts.utils.cache import _l1_clear
+
+        _l1_clear()
         mock_cache.return_value = None
         mock_rate_limited.return_value = False
 

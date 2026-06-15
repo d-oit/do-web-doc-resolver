@@ -31,6 +31,7 @@ _client_lock = threading.Lock()
 def create_client_with_retry() -> httpx.Client:
     """Create an httpx.Client with retry configuration."""
     return httpx.Client(
+        http2=True,
         timeout=httpx.Timeout(30.0),
         follow_redirects=False,
         headers={

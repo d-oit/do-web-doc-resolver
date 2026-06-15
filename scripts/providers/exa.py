@@ -89,7 +89,10 @@ async def resolve_with_exa_async(query: str, max_chars: int = MAX_CHARS) -> Reso
                 query, use_autoprompt=True, highlights=True, num_results=EXA_RESULTS
             )
 
-        res = await asyncio.to_thread(_sync_search)
+        from scripts.utils.thread_pool import get_shared_pool
+
+        loop = asyncio.get_event_loop()
+        res = await loop.run_in_executor(get_shared_pool(), _sync_search)
         if not res or not res.results:
             logger.warning("Exa returned no results for query: %s", query)
             return None
