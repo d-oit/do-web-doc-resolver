@@ -31,6 +31,7 @@ async def resolve_with_tavily_async(
         return None
     try:
         from tavily import TavilyClient
+
         from scripts.utils.thread_pool import get_shared_pool
 
         def _sync_search():
