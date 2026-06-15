@@ -60,6 +60,48 @@ class SemanticCache:
         enabled: Whether the cache is operational
     """
 
+    @staticmethod
+    def normalize_text(text: str, filter_stop_words: bool = False) -> str:
+        """
+        Internal normalization for cache keys and semantic comparison.
+        Matches Rust implementation in cli/src/semantic_cache/ops.rs.
+        """
+        import re
+
+        # Basic tokenization: split by whitespace and remove non-alphanumeric
+        tokens = [
+            re.sub(r"[^a-zA-Z0-9]", "", w) for w in text.split() if re.sub(r"[^a-zA-Z0-9]", "", w)
+        ]
+
+        if filter_stop_words and not (text.startswith("http://") or text.startswith("https://")):
+            stop_words = {
+                "docs",
+                "documentation",
+                "guide",
+                "tutorial",
+                "reference",
+                "ref",
+                "lib",
+                "library",
+                "std",
+                "standard",
+                "for",
+                "of",
+                "the",
+                "a",
+                "an",
+                "and",
+                "programming",
+                "language",
+            }
+            tokens = [w for w in tokens if w.lower() not in stop_words]
+
+        if not tokens:
+            return " ".join(text.lower().split())
+
+        lowered = sorted(w.lower() for w in tokens)
+        return " ".join(lowered)
+
     def __init__(
         self,
         cache_dir: str | None = None,
@@ -227,7 +269,9 @@ class SemanticCache:
         if model is None:
             raise RuntimeError("Embedding model not available")
 
-        embedding = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
+        # Normalize text for embedding (using stop-word filtering for embedding only)
+        normalized = self.normalize_text(text, True)
+        embedding = model.encode(normalized, convert_to_numpy=True, normalize_embeddings=True)
         return cast(list[float], embedding.tolist())
 
     def query(self, query_str: str) -> SemanticCacheEntry | None:
@@ -235,6 +279,29 @@ class SemanticCache:
             return None
 
         try:
+            normalized = self.normalize_text(query_str, False)
+
+            with self._conn_lock:
+                # Check for exact match (using normalized text as direct ID or index)
+                # Matches Rust "Exact Match Short-Circuit" logic
+                cursor = self._conn.execute(
+                    "SELECT id, query, result_json, timestamp FROM cache_entries WHERE query = ?",
+                    (normalized,),
+                )
+                row = cursor.fetchone()
+                if row:
+                    self._conn.execute(
+                        "UPDATE cache_entries SET access_count = access_count + 1, last_accessed = ? WHERE id = ?",
+                        (time.time(), row["id"]),
+                    )
+                    self._conn.commit()
+                    return SemanticCacheEntry(
+                        query=row["query"],
+                        result=json.loads(row["result_json"]),
+                        timestamp=row["timestamp"],
+                        similarity=1.0,
+                    )
+
             query_embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(query_embedding)
 
@@ -291,13 +358,14 @@ class SemanticCache:
             return False
 
         try:
+            normalized = self.normalize_text(query_str, False)
             embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(embedding)
 
             with self._conn_lock:
                 cursor = self._conn.execute(
                     "SELECT id FROM cache_entries WHERE query = ?",
-                    (query_str,),
+                    (normalized,),
                 )
                 old_row = cursor.fetchone()
                 if old_row:
@@ -311,7 +379,7 @@ class SemanticCache:
                     (query, result_json, timestamp, last_accessed)
                     VALUES (?, ?, ?, ?)
                 """,
-                    (query_str, json.dumps(result), time.time(), time.time()),
+                    (normalized, json.dumps(result), time.time(), time.time()),
                 )
                 entry_id = cursor.lastrowid
 

@@ -232,6 +232,20 @@ impl Config {
         if other.max_links != default_max_links() {
             self.max_links = other.max_links;
         }
+
+        if other.semantic_cache.enabled {
+            self.semantic_cache.enabled = true;
+        }
+        if other.semantic_cache.path != ".do-wdr_cache" {
+            self.semantic_cache.path = other.semantic_cache.path.clone();
+        }
+        if (other.semantic_cache.threshold - 0.85).abs() > f32::EPSILON {
+            self.semantic_cache.threshold = other.semantic_cache.threshold;
+        }
+        if other.semantic_cache.max_entries != 10000 {
+            self.semantic_cache.max_entries = other.semantic_cache.max_entries;
+        }
+
         if other.cache.ttl.firecrawl != default_ttl_firecrawl() {
             self.cache.ttl.firecrawl = other.cache.ttl.firecrawl;
         }

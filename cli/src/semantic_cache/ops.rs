@@ -110,6 +110,13 @@ impl SemanticCache {
             .await
             .map_err(|e| ResolverError::Config(e.to_string()))?;
 
+        // Warm up the encoder in a background task to pay the ~1s loading cost upfront
+        // This ensures the first semantic hit in a long-running session is fast,
+        // and for CLI it makes the 'init' phase include model loading.
+        tokio::task::spawn_blocking(|| {
+            let _ = GLOBAL_ENCODER.get_or_init(TextEncoder::new_code_aware);
+        });
+
         Ok(Some(Self {
             framework,
             config: cache_config,
@@ -265,6 +272,17 @@ impl SemanticCache {
         // Redundancy pruning: check if a very similar entry already exists
         if let Ok(hits) = self.framework.probe(query_vector, 5).await {
             for (best_id, best_score) in hits {
+                // If score is extremely high (1.0 after normalization), always skip to avoid bloat
+                if best_score > 0.999 {
+                    tracing::info!(
+                        "Skipping store for query='{}': extremely similar entry already exists (id: {}, score: {:.4})",
+                        query,
+                        best_id,
+                        best_score
+                    );
+                    return Ok(());
+                }
+
                 if best_score > 0.98 {
                     // Check if the actual content is also very similar to avoid collisions
                     if let Ok(Some(existing)) = self.framework.get_concept(&best_id).await {
@@ -283,17 +301,6 @@ impl SemanticCache {
                                 return Ok(());
                             }
                         }
-                    }
-
-                    // If score is extremely high (1.0 after normalization), always skip to avoid bloat
-                    if best_score > 0.999 {
-                        tracing::info!(
-                            "Skipping store for query='{}': extremely similar entry already exists (id: {}, score: {:.4})",
-                            query,
-                            best_id,
-                            best_score
-                        );
-                        return Ok(());
                     }
                 }
             }
