@@ -35,148 +35,141 @@ async def cascade_stream_async(
     content_acceptable: Callable[[Any, ProviderType], bool] | None = None,
     target_key: str = "query",
 ) -> AsyncGenerator[dict[str, Any]]:
-    """Async version of cascade_stream using asyncio tasks."""
+    """Async version of cascade_stream using asyncio tasks with true parallel launch."""
     skip = skip_providers or set()
     cache = _get_cache()
-    active_tasks: dict[asyncio.Task, tuple[str, ProviderType, float]] = {}
-    best_free_result: dict[str, Any] | None = None
     _accept = content_acceptable or (lambda q, pt: q.acceptable)
 
+    # Pre-filter eligible providers and prepare tasks
+    tasks_to_launch: list[tuple[str, ProviderType, Callable]] = []
+    for p_name in eligible:
+        if p_name in skip:
+            continue
+        pt, func = cascade_map[p_name]
+
+        if not budget.can_try(is_paid=pt.is_paid()):
+            if budget.stop_reason in ("paid_disabled", "max_paid_attempts"):
+                continue
+            break
+        if scripts.cache_negative.should_skip_from_negative_cache(cache, target, p_name):
+            continue
+        if circuit_breakers.is_open(p_name):
+            continue
+
+        tasks_to_launch.append((p_name, pt, func))
+
+    if not tasks_to_launch:
+        yield {
+            "source": "none",
+            target_key: target,
+            "content": "Failed",
+            "error": f"No providers available. Stop reason: {budget.stop_reason}",
+        }
+        return
+
+    # Launch all providers in parallel
+    active_tasks: dict[asyncio.Task, tuple[str, ProviderType, float]] = {}
+    best_free_result: dict[str, Any] | None = None
+
+    for p_name, pt, func in tasks_to_launch:
+        logger.info("Starting parallel probe: %s", p_name)
+        start_time_probe = time.time()
+        task = asyncio.create_task(func())
+        active_tasks[task] = (p_name, pt, start_time_probe)
+
     try:
-        for i, p_name in enumerate(eligible):
-            if p_name in skip:
-                continue
-            pt, func = cascade_map[p_name]
+        while active_tasks:
+            # Wait for any task to complete
+            done, _ = await asyncio.wait(
+                active_tasks.keys(),
+                return_when=asyncio.FIRST_COMPLETED,
+            )
 
-            if pt.is_paid() and best_free_result:
-                score = best_free_result.get("score", 0.0)
-                if score >= budget.min_free_quality_to_skip_paid:
-                    metrics.quality_gate = {"passed": True, "score": score}
-                    best_free_result["metrics"] = asdict(metrics)
-                    semantic_cache_store(target, best_free_result)
-                    yield best_free_result
-                    return
-
-            if not budget.can_try(is_paid=pt.is_paid()):
-                if budget.stop_reason in ("paid_disabled", "max_paid_attempts"):
+            for task_done in list(done):
+                if task_done not in active_tasks:
                     continue
-                break
-            if scripts.cache_negative.should_skip_from_negative_cache(cache, target, p_name):
-                continue
-            if circuit_breakers.is_open(p_name):
-                continue
+                p_name_done, pt_done, s_time = active_tasks.pop(task_done)
+                latency = int((time.time() - s_time) * 1000)
+                budget.record_attempt(is_paid=pt_done.is_paid(), latency_ms=latency)
+                try:
+                    res = task_done.result()
+                except Exception as e:
+                    err_type = _detect_error_type(e)
+                    if err_type not in (ErrorType.AUTH_ERROR, ErrorType.SSRF_BLOCKED):
+                        circuit_breakers.record_failure(p_name_done)
+                    metrics.record_provider(pt_done, latency, False)
+                    continue
+                if res:
+                    content = res.content if isinstance(res, ResolvedResult) else str(res)
+                    q_score = scripts.quality.score_content(content)
+                    if _accept(q_score, pt_done):
+                        circuit_breakers.record_success(p_name_done)
+                        metrics.record_provider(pt_done, latency, True)
+                        routing_memory.record(
+                            routing_key, p_name_done, True, latency, q_score.score
+                        )
 
-            logger.info("Starting probe: %s", p_name)
-            start_time_probe = time.time()
-            task = asyncio.create_task(func())
-            active_tasks[task] = (p_name, pt, start_time_probe)
-            threshold = routing_memory.get_p75_latency(routing_key, p_name) / 1000.0
-
-            while active_tasks:
-                elapsed = time.time() - start_time_probe
-                if i < len(eligible) - 1 and elapsed >= threshold:
-                    break
-
-                # Calculate timeout: use remaining time until threshold, or None if no threshold
-                remaining = threshold - elapsed if i < len(eligible) - 1 else None
-                done, _ = await asyncio.wait(
-                    active_tasks.keys(),
-                    timeout=remaining,
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                found_final = False
-                for task_done in list(done):
-                    if task_done not in active_tasks:
-                        continue
-                    p_name_done, pt_done, s_time = active_tasks.pop(task_done)
-                    latency = int((time.time() - s_time) * 1000)
-                    budget.record_attempt(is_paid=pt_done.is_paid(), latency_ms=latency)
-                    try:
-                        res = task_done.result()
-                    except Exception as e:
-                        err_type = _detect_error_type(e)
-                        if err_type not in (ErrorType.AUTH_ERROR, ErrorType.SSRF_BLOCKED):
-                            circuit_breakers.record_failure(p_name_done)
-                        metrics.record_provider(pt_done, latency, False)
-                        continue
-                    if res:
-                        content = res.content if isinstance(res, ResolvedResult) else str(res)
-                        q_score = scripts.quality.score_content(content)
-                        if _accept(q_score, pt_done):
-                            circuit_breakers.record_success(p_name_done)
-                            metrics.record_provider(pt_done, latency, True)
-                            routing_memory.record(
-                                routing_key, p_name_done, True, latency, q_score.score
+                        if result_builder:
+                            result_dict = result_builder(
+                                res, target, p_name_done, metrics, q_score.score
                             )
+                        elif isinstance(res, ResolvedResult):
+                            res.metrics, res.score = metrics, q_score.score
+                            result_dict = res.to_dict()
+                        else:
+                            result_dict = {
+                                "source": p_name_done,
+                                "content": content,
+                                "metrics": asdict(metrics),
+                                "score": q_score.score,
+                            }
 
-                            if result_builder:
-                                result_dict = result_builder(
-                                    res, target, p_name_done, metrics, q_score.score
+                        if pt_done.is_paid():
+                            # Paid provider succeeded - return immediately
+                            semantic_cache_store(target, result_dict)
+                            yield result_dict
+                            return
+                        else:
+                            if not best_free_result or q_score.score > best_free_result.get(
+                                "score", 0.0
+                            ):
+                                best_free_result = result_dict
+
+                            # Early exit: excellent quality
+                            if q_score.score >= EXCELLENT_QUALITY_THRESHOLD:
+                                logger.info(
+                                    "Early exit: excellent quality %.2f from %s",
+                                    q_score.score,
+                                    p_name_done,
                                 )
-                            elif isinstance(res, ResolvedResult):
-                                res.metrics, res.score = metrics, q_score.score
-                                result_dict = res.to_dict()
-                            else:
-                                result_dict = {
-                                    "source": p_name_done,
-                                    "content": content,
-                                    "metrics": asdict(metrics),
+                                metrics.quality_gate = {
+                                    "passed": True,
                                     "score": q_score.score,
+                                    "early_exit": True,
                                 }
-
-                            if pt_done.is_paid():
+                                result_dict["metrics"] = asdict(metrics)
                                 semantic_cache_store(target, result_dict)
                                 yield result_dict
-                                found_final = True
-                                break
-                            else:
-                                if not best_free_result or q_score.score > best_free_result.get(
-                                    "score", 0.0
-                                ):
-                                    best_free_result = result_dict
+                                return
 
-                                # Early exit: if quality is excellent, return immediately
-                                if q_score.score >= EXCELLENT_QUALITY_THRESHOLD:
-                                    logger.info(
-                                        "Early exit: excellent quality %.2f from %s",
-                                        q_score.score,
-                                        p_name_done,
-                                    )
-                                    metrics.quality_gate = {
-                                        "passed": True,
-                                        "score": q_score.score,
-                                        "early_exit": True,
-                                    }
-                                    result_dict["metrics"] = asdict(metrics)
-                                    semantic_cache_store(target, result_dict)
-                                    yield result_dict
-                                    found_final = True
-                                    break
-
-                                if q_score.score >= budget.min_free_quality_to_skip_paid:
-                                    metrics.quality_gate = {"passed": True, "score": q_score.score}
-                                    result_dict["metrics"] = asdict(metrics)
-                                    semantic_cache_store(target, result_dict)
-                                    yield result_dict
-                                    found_final = True
-                                    break
-                        else:
-                            scripts.cache_negative.write_negative_cache(
-                                cache, target, p_name_done, "thin_content"
-                            )
-                            routing_memory.record(
-                                routing_key, p_name_done, False, latency, q_score.score
-                            )
+                            # Quality gate: skip paid if free result is good enough
+                            if q_score.score >= budget.min_free_quality_to_skip_paid:
+                                metrics.quality_gate = {"passed": True, "score": q_score.score}
+                                result_dict["metrics"] = asdict(metrics)
+                                semantic_cache_store(target, result_dict)
+                                yield result_dict
+                                return
                     else:
-                        circuit_breakers.record_failure(p_name_done)
-                        metrics.record_provider(pt_done, latency, False)
+                        scripts.cache_negative.write_negative_cache(
+                            cache, target, p_name_done, "thin_content"
+                        )
+                        routing_memory.record(
+                            routing_key, p_name_done, False, latency, q_score.score
+                        )
+                else:
+                    circuit_breakers.record_failure(p_name_done)
+                    metrics.record_provider(pt_done, latency, False)
 
-                if found_final:
-                    return
-                if done:
-                    break
-                if not active_tasks:
-                    break
     finally:
         for task in active_tasks:
             task.cancel()
