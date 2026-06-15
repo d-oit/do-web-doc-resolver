@@ -390,8 +390,8 @@ fn merge_map<K, V>(target: &mut HashMap<K, V>, value: HashMap<K, V>)
 where
     K: Eq + std::hash::Hash,
 {
-    if !value.is_empty() {
-        target.extend(value);
+    for (name, provider_config) in value {
+        target.entry(name).or_insert(provider_config);
     }
 }
 
