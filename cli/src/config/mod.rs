@@ -237,7 +237,9 @@ impl Config {
             self.semantic_cache.enabled = true;
         }
         if other.semantic_cache.path != ".do-wdr_cache" {
-            self.semantic_cache.path = other.semantic_cache.path.clone();
+            self.semantic_cache
+                .path
+                .clone_from(&other.semantic_cache.path);
         }
         if (other.semantic_cache.threshold - 0.85).abs() > f32::EPSILON {
             self.semantic_cache.threshold = other.semantic_cache.threshold;

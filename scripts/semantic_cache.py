@@ -47,28 +47,10 @@ class SemanticCacheEntry:
 
 
 class SemanticCache:
-    """
-    Semantic cache using sqlite-vec for vector similarity search.
-
-    Uses sentence-transformers for local embeddings (all-MiniLM-L6-v2 model).
-    Falls back gracefully if sqlite-vec or embeddings fail to load.
-
-    Attributes:
-        cache_dir: Directory for cache storage
-        threshold: Minimum similarity score for cache hits (0.0-1.0)
-        max_entries: Maximum number of entries to store
-        enabled: Whether the cache is operational
-    """
-
     @staticmethod
     def normalize_text(text: str, filter_stop_words: bool = False) -> str:
-        """
-        Internal normalization for cache keys and semantic comparison.
-        Matches Rust implementation in cli/src/semantic_cache/ops.rs.
-        """
         import re
 
-        # Basic tokenization: split by whitespace and remove non-alphanumeric
         tokens = [
             re.sub(r"[^a-zA-Z0-9]", "", w) for w in text.split() if re.sub(r"[^a-zA-Z0-9]", "", w)
         ]
@@ -109,15 +91,6 @@ class SemanticCache:
         max_entries: int = DEFAULT_MAX_ENTRIES,
         model_name: str = DEFAULT_MODEL,
     ) -> None:
-        """
-        Initialize semantic cache.
-
-        Args:
-            cache_dir: Directory for cache storage. Defaults to ~/.cache/do-web-doc-resolver/semantic
-            threshold: Minimum cosine similarity for cache hits (0.0-1.0)
-            max_entries: Maximum number of entries before LRU eviction
-            model_name: Sentence-transformers model to use
-        """
         self.enabled = False
         self._model: Any = None
         self._model_name = model_name
@@ -149,11 +122,9 @@ class SemanticCache:
             self.enabled = False
 
     def _init_db(self) -> None:
-        """Initialize sqlite-vec extension and database schema."""
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
 
-        # Try to load sqlite-vec extension
         vec_loaded = False
         try:
             import sqlite_vec
@@ -169,10 +140,8 @@ class SemanticCache:
             logger.warning("Failed to load sqlite-vec via Python API: %s", e)
 
         if not vec_loaded:
-            # Try loading as dynamic library
             try:
                 self._conn.enable_load_extension(True)
-                # Try common paths
                 lib_paths = [
                     "libsqlite_vec.so",
                     "libsqlite_vec.dylib",
@@ -195,7 +164,6 @@ class SemanticCache:
         if not vec_loaded:
             raise RuntimeError("sqlite-vec extension could not be loaded")
 
-        # Create tables
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS cache_entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -207,12 +175,9 @@ class SemanticCache:
             )
         """)
 
-        # Virtual table for vector search - will be created after we know embedding dim
         self._conn.commit()
 
     def _init_model(self) -> None:
-        """Initialize sentence-transformers model (lazy loading)."""
-        # Don't load model yet - do it on first use
         self._model = None
         self._model_loading = False
 
