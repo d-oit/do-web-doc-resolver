@@ -31,12 +31,13 @@ async def resolve_with_tavily_async(
         return None
     try:
         from tavily import TavilyClient
+        from scripts.utils.thread_pool import get_shared_pool
 
         def _sync_search():
             client = TavilyClient(api_key=api_key)
             return client.search(query, max_results=TAVILY_RESULTS)
 
-        res = await asyncio.to_thread(_sync_search)
+        res = await asyncio.to_thread(_sync_search, executor=get_shared_pool())
         if not res or not res.get("results"):
             logger.warning("Tavily returned no results for query: %s", query)
             return None

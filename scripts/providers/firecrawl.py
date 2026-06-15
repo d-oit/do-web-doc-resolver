@@ -40,7 +40,8 @@ async def resolve_with_firecrawl_async(
             app = Firecrawl(api_key=api_key)
             return app.scrape(url, formats=["markdown"])
 
-        res = await asyncio.to_thread(_sync_scrape)
+        from scripts.utils.thread_pool import get_shared_pool
+        res = await asyncio.to_thread(_sync_scrape, executor=get_shared_pool())
         if not res or not hasattr(res, "markdown"):
             logger.warning("Firecrawl returned no markdown for URL: %s", url)
             return None
