@@ -68,6 +68,7 @@ async def resolve_with_mistral_browser_async(
                     logger.warning("Mistral browser agent cleanup failed: %s", e)
 
         from scripts.utils.thread_pool import get_shared_pool
+
         loop = asyncio.get_event_loop()
         content = await loop.run_in_executor(get_shared_pool(), _sync_extract)
         if not content:
@@ -121,6 +122,7 @@ async def resolve_with_mistral_websearch_async(
             )
 
         from scripts.utils.thread_pool import get_shared_pool
+
         loop = asyncio.get_event_loop()
         resp = await loop.run_in_executor(get_shared_pool(), _sync_search)
         content = ""

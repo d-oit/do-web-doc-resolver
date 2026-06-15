@@ -41,6 +41,7 @@ async def resolve_with_firecrawl_async(
             return app.scrape(url, formats=["markdown"])
 
         from scripts.utils.thread_pool import get_shared_pool
+
         loop = asyncio.get_event_loop()
         res = await loop.run_in_executor(get_shared_pool(), _sync_scrape)
         if not res or not hasattr(res, "markdown"):

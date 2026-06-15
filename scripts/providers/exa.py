@@ -90,6 +90,7 @@ async def resolve_with_exa_async(query: str, max_chars: int = MAX_CHARS) -> Reso
             )
 
         from scripts.utils.thread_pool import get_shared_pool
+
         loop = asyncio.get_event_loop()
         res = await loop.run_in_executor(get_shared_pool(), _sync_search)
         if not res or not res.results:
