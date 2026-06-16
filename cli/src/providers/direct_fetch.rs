@@ -347,9 +347,7 @@ impl StripperState<'_> {
 fn normalize_formula(formula: &str) -> String {
     formula
         .replace("{\\displaystyle", "")
-        .replace('}', "")
-        .replace('\\', "")
-        .replace(' ', "")
+        .replace(['}', '\\', ' '], "")
         .trim()
         .to_lowercase()
 }
@@ -370,7 +368,7 @@ fn strip_html(html: &str) -> String {
             let next_3: String = chars.clone().take(3).collect();
             if next_3 == "!--" {
                 // Skip comment
-                while let Some(c) = chars.next() {
+                for c in chars.by_ref() {
                     if c == '>' && current_tag.ends_with("--") {
                         break;
                     }
@@ -391,7 +389,7 @@ fn strip_html(html: &str) -> String {
                 // Optimized skip: look for </script or </style efficiently
                 let close_tag_start = format!("</{}", tag_name);
                 let mut buffer = String::with_capacity(tag_name.len() + 2);
-                while let Some(c) = chars.next() {
+                for c in chars.by_ref() {
                     if c == '<' {
                         buffer.clear();
                         buffer.push('<');
@@ -399,7 +397,7 @@ fn strip_html(html: &str) -> String {
                         buffer.push(c);
                         if buffer.to_lowercase() == close_tag_start {
                             // Found it, now eat until >
-                            while let Some(next_c) = chars.next() {
+                            for next_c in chars.by_ref() {
                                 if next_c == '>' {
                                     break;
                                 }
