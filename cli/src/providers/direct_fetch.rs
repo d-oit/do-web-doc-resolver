@@ -109,6 +109,8 @@ fn decode_entities(text: &str) -> String {
         .replace("&rsquo;", "’")
         .replace("&ldquo;", "“")
         .replace("&rdquo;", "”")
+        .replace("&#91;", "[")
+        .replace("&#93;", "]")
         .replace("&#8288;", "") // word joiner
         .replace("&amp;", "&") // Ampersand last to avoid double-unescaping
         .replace("\u{2060}", "") // Remove word joiner
@@ -162,6 +164,7 @@ struct StripperState<'a> {
     in_pre: bool,
     current_pre_lang: String,
     block_tags: HashSet<&'a str>,
+    last_formula: String, // Track last extracted formula for deduplication
 }
 
 impl StripperState<'_> {
@@ -199,6 +202,7 @@ impl StripperState<'_> {
             in_pre: false,
             current_pre_lang: String::new(),
             block_tags,
+            last_formula: String::new(),
         }
     }
 
@@ -211,11 +215,30 @@ impl StripperState<'_> {
             .next()
             .unwrap_or("");
 
-        if matches!(tag_name, "script" | "style" | "math" | "svg" | "noscript") {
+        if matches!(tag_name, "script" | "style" | "svg" | "noscript") {
             if is_closing {
                 self.skip_content_depth = self.skip_content_depth.saturating_sub(1);
             } else if !tag_lower.trim().ends_with('/') {
                 self.skip_content_depth += 1;
+            }
+            return;
+        }
+
+        if tag_name == "math" {
+            if is_closing {
+                self.skip_content_depth = self.skip_content_depth.saturating_sub(1);
+            } else if !tag_lower.trim().ends_with('/') {
+                self.skip_content_depth += 1;
+                if let Some(alt) = get_attribute(tag_content, "alttext") {
+                    let formula = alt.trim().to_string();
+                    let normalized = normalize_formula(&formula);
+                    if !formula.is_empty() && normalized != self.last_formula {
+                        self.result.push_str(" $");
+                        self.result.push_str(&formula);
+                        self.result.push_str("$ ");
+                        self.last_formula = normalized;
+                    }
+                }
             }
             return;
         }
@@ -268,16 +291,25 @@ impl StripperState<'_> {
             "img" => {
                 if let Some(alt) = get_attribute(tag_content, "alt") {
                     if !alt.is_empty() {
-                        self.result.push(' ');
                         let trimmed_alt = alt.trim();
-                        if trimmed_alt.starts_with("{\\displaystyle") {
-                            self.result.push('$');
-                            self.result.push_str(trimmed_alt);
-                            self.result.push('$');
+                        if trimmed_alt.contains('\\')
+                            || trimmed_alt.contains('^')
+                            || trimmed_alt.contains('_')
+                        {
+                            let normalized = normalize_formula(trimmed_alt);
+                            if normalized != self.last_formula {
+                                self.result.push(' ');
+                                self.result.push('$');
+                                self.result.push_str(trimmed_alt);
+                                self.result.push('$');
+                                self.result.push(' ');
+                                self.last_formula = normalized;
+                            }
                         } else {
+                            self.result.push(' ');
                             self.result.push_str(&alt);
+                            self.result.push(' ');
                         }
-                        self.result.push(' ');
                     }
                 }
             }
@@ -311,19 +343,75 @@ impl StripperState<'_> {
     }
 }
 
+/// Normalize a LaTeX formula for deduplication
+fn normalize_formula(formula: &str) -> String {
+    formula
+        .replace("{\\displaystyle", "")
+        .replace(['}', '\\', ' '], "")
+        .trim()
+        .to_lowercase()
+}
+
 /// Strip HTML tags and convert to plain text with basic formatting
 fn strip_html(html: &str) -> String {
     let mut state = StripperState::new();
     let mut in_tag = false;
     let mut current_tag = String::new();
 
-    for ch in html.chars() {
+    let mut chars = html.chars().peekable();
+    while let Some(ch) = chars.next() {
         if ch == '<' {
             in_tag = true;
             current_tag.clear();
+
+            // Special handling for comments
+            let next_3: String = chars.clone().take(3).collect();
+            if next_3 == "!--" {
+                // Skip comment
+                for c in chars.by_ref() {
+                    if c == '>' && current_tag.ends_with("--") {
+                        break;
+                    }
+                    current_tag.push(c);
+                }
+                in_tag = false;
+                continue;
+            }
         } else if ch == '>' {
             in_tag = false;
             state.handle_tag(&current_tag);
+
+            // If we just entered a script or style tag, look for the closing tag
+            // to avoid getting tripped up by '<' or '>' inside the content
+            let tag_lower = current_tag.to_lowercase();
+            let tag_name = tag_lower.split_whitespace().next().unwrap_or("");
+            if matches!(tag_name, "script" | "style") && !tag_lower.starts_with('/') {
+                // Optimized skip: look for </script or </style efficiently
+                let close_tag_start = format!("</{}", tag_name);
+                let mut buffer = String::with_capacity(tag_name.len() + 2);
+                for c in chars.by_ref() {
+                    if c == '<' {
+                        buffer.clear();
+                        buffer.push('<');
+                    } else if !buffer.is_empty() {
+                        buffer.push(c);
+                        if buffer.to_lowercase() == close_tag_start {
+                            // Found it, now eat until >
+                            for next_c in chars.by_ref() {
+                                if next_c == '>' {
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                        if buffer.len() > close_tag_start.len() {
+                            buffer.clear();
+                        }
+                    }
+                }
+                // We've skipped the content and the closing tag
+                state.skip_content_depth = state.skip_content_depth.saturating_sub(1);
+            }
         } else if in_tag {
             current_tag.push(ch);
         } else if state.skip_content_depth == 0 {
