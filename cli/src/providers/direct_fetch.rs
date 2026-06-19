@@ -92,28 +92,76 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
     }
 }
 
-/// Decode basic HTML entities
+/// Decode basic HTML entities using a single-pass scanner for performance
 fn decode_entities(text: &str) -> String {
-    text.replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&#x27;", "'")
-        .replace("&#39;", "'")
-        .replace("&nbsp;", " ")
-        .replace("&copy;", "©")
-        .replace("&reg;", "®")
-        .replace("&trade;", "™")
-        .replace("&ndash;", "–")
-        .replace("&mdash;", "—")
-        .replace("&lsquo;", "‘")
-        .replace("&rsquo;", "’")
-        .replace("&ldquo;", "“")
-        .replace("&rdquo;", "”")
-        .replace("&#91;", "[")
-        .replace("&#93;", "]")
-        .replace("&#8288;", "") // word joiner
-        .replace("&amp;", "&") // Ampersand last to avoid double-unescaping
-        .replace("\u{2060}", "") // Remove word joiner
+    if !text.contains('&') && !text.contains('\u{2060}') {
+        return text.to_string();
+    }
+
+    let mut result = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '&' {
+            let mut entity = String::new();
+            let mut found = false;
+            let mut temp_chars = chars.clone();
+
+            while let Some(next_ch) = temp_chars.next() {
+                entity.push(next_ch);
+                if next_ch == ';' {
+                    found = true;
+                    break;
+                }
+                if entity.len() > 10 {
+                    // Max entity length safely exceeded
+                    break;
+                }
+            }
+
+            if found {
+                let decoded = match entity.as_str() {
+                    "lt;" => Some("<"),
+                    "gt;" => Some(">"),
+                    "quot;" => Some("\""),
+                    "#x27;" | "#39;" => Some("'"),
+                    "nbsp;" => Some(" "),
+                    "copy;" => Some("©"),
+                    "reg;" => Some("®"),
+                    "trade;" => Some("™"),
+                    "ndash;" => Some("–"),
+                    "mdash;" => Some("—"),
+                    "lsquo;" => Some("‘"),
+                    "rsquo;" => Some("’"),
+                    "ldquo;" => Some("“"),
+                    "rdquo;" => Some("”"),
+                    "#91;" => Some("["),
+                    "#93;" => Some("]"),
+                    "#8288;" => Some(""),
+                    "amp;" => Some("&"),
+                    _ => None,
+                };
+
+                if let Some(d) = decoded {
+                    result.push_str(d);
+                    // Consume the used characters from the original peekable
+                    for _ in 0..entity.len() {
+                        chars.next();
+                    }
+                    continue;
+                }
+            }
+        }
+
+        if ch == '\u{2060}' {
+            // Remove word joiner
+            continue;
+        }
+
+        result.push(ch);
+    }
+
+    result
 }
 
 /// Get an attribute value from a tag string
