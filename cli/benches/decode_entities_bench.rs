@@ -37,9 +37,9 @@ fn decode_entities_optimized(text: &str) -> String {
         if ch == '&' {
             let mut entity = String::new();
             let mut found = false;
-            let mut temp_chars = chars.clone();
+            let temp_chars = chars.clone();
 
-            while let Some(next_ch) = temp_chars.next() {
+            for next_ch in temp_chars {
                 entity.push(next_ch);
                 if next_ch == ';' {
                     found = true;
