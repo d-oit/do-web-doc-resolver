@@ -71,7 +71,8 @@ export function MetadataBar({
           onClick={handleCopyResult}
           aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
           aria-live="polite"
-          className="hover:text-foreground transition-colors min-h-[36px] px-2"
+          title="Copy full result as markdown"
+          className={`transition-colors min-h-[36px] px-2 ${copied ? "text-accent" : "text-text-muted hover:text-foreground"}`}
         >
           {copied ? "Copied" : "Copy"}
         </button>
