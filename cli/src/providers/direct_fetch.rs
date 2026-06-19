@@ -99,28 +99,31 @@ fn decode_entities(text: &str) -> String {
     }
 
     let mut result = String::with_capacity(text.len());
-    let mut chars = text.chars().peekable();
+    let mut chars = text.char_indices().peekable();
 
-    while let Some(ch) = chars.next() {
+    while let Some((_, ch)) = chars.next() {
         if ch == '&' {
-            let mut entity = String::new();
-            let mut found = false;
+            let mut found_semi = false;
+            let mut end_idx = 0;
             let temp_chars = chars.clone();
 
-            for next_ch in temp_chars {
-                entity.push(next_ch);
+            for (idx, next_ch) in temp_chars.take(10) {
                 if next_ch == ';' {
-                    found = true;
-                    break;
-                }
-                if entity.len() > 10 {
-                    // Max entity length safely exceeded
+                    found_semi = true;
+                    end_idx = idx + 1;
                     break;
                 }
             }
 
-            if found {
-                let decoded = match entity.as_str() {
+            if found_semi {
+                let start_idx = if let Some(&(idx, _)) = chars.peek() {
+                    idx
+                } else {
+                    end_idx
+                };
+
+                let entity = &text[start_idx..end_idx];
+                let decoded = match entity {
                     "lt;" => Some("<"),
                     "gt;" => Some(">"),
                     "quot;" => Some("\""),
@@ -144,9 +147,13 @@ fn decode_entities(text: &str) -> String {
 
                 if let Some(d) = decoded {
                     result.push_str(d);
-                    // Consume the used characters from the original peekable
-                    for _ in 0..entity.len() {
-                        chars.next();
+                    // Advance main iterator to after the semicolon
+                    while let Some(&(idx, _)) = chars.peek() {
+                        if idx < end_idx {
+                            chars.next();
+                        } else {
+                            break;
+                        }
                     }
                     continue;
                 }

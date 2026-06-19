@@ -14,23 +14,21 @@ interface ResultCardProps {
 
 const ResultHeader = ({ id, title, url, normalizedUrl }: { id: string; title: string; url?: string | null; normalizedUrl?: string | null }) => (
   <header className="flex flex-col gap-1">
-    <h3 className="text-[15px]">
-      {url ? (
-        <a
-          id={id}
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-accent hover:underline"
-        >
-          {title}
-        </a>
-      ) : (
-        <span id={id} className="text-foreground">
-          {title}
-        </span>
-      )}
-    </h3>
+    {url ? (
+      <a
+        id={id}
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="text-accent text-[15px] hover:underline"
+      >
+        {title}
+      </a>
+    ) : (
+      <h3 id={id} className="text-[15px] text-foreground">
+        {title}
+      </h3>
+    )}
     {normalizedUrl && (
       <div className="text-[10px] text-text-dim break-all">{normalizedUrl}</div>
     )}
@@ -78,11 +76,8 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
       <footer className="flex flex-wrap gap-2 text-[11px]">
         <button
           onClick={handleCopy}
-          className={`px-3 py-2 border-2 transition-colors ${
-            copying ? "border-accent text-accent" : "border-border-muted text-text-muted hover:border-accent"
-          }`}
+          className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted"
           aria-live="polite"
-          title="Copy full result as markdown"
         >
           {copying ? "Copied" : "Copy markdown"}
         </button>
