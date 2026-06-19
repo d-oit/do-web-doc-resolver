@@ -46,6 +46,7 @@ const SearchActions = ({
       <button
         onClick={onClear}
         aria-label="Clear input and results"
+        title="Clear input and results"
         className="bg-transparent text-text-dim px-4 py-2 text-[13px] border-2 border-border-muted hover:border-accent hover:text-accent min-h-[44px]"
       >
         Clear
@@ -130,6 +131,7 @@ export function SearchSection({
               onClick={handleClearQuery}
               className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-text-dim hover:text-accent transition-colors"
               aria-label="Clear query"
+              title="Clear query"
             >
               ×
             </button>
