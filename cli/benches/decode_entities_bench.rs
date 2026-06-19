@@ -45,7 +45,8 @@ fn decode_entities_optimized(text: &str) -> String {
                     found = true;
                     break;
                 }
-                if entity.len() > 10 { // Max entity length
+                if entity.len() > 10 {
+                    // Max entity length
                     break;
                 }
             }
