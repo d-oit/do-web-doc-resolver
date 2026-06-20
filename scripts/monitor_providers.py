@@ -158,7 +158,7 @@ def log_issue(provider_name: str, issue_desc: str):
 
     if should_append:
         alert_text = f"""
-# Provider Alert: {provider_name} unstable
+## Provider Alert: {provider_name} unstable
 
 - **Date**: {date_str}
 - **Issue**: {issue_desc}
