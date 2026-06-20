@@ -61,6 +61,11 @@ name = "quality_bench"
 harness = false
 path = "benches/quality_bench.rs"
 
+[[bench]]
+name = "decode_entities_bench"
+harness = false
+path = "benches/decode_entities_bench.rs"
+
 [[bin]]
 name = "do-wdr"
 path = "src/main.rs"
