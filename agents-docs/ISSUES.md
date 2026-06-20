@@ -14,3 +14,17 @@
 - **Action Taken**: Restored 'firecrawl' to `PROVIDERS` list and `PROFILES` in `web/app/constants.ts`. Added `web/tests/e2e/firecrawl-visibility.spec.ts` to verify UI visibility.
 - **Status**: Resolved.
 - **Prevention**: Any new provider added to the backend MUST also be registered in `web/app/constants.ts` to be visible in the Web UI.
+
+## Provider Alert: serper unstable
+
+- **Date**: 2026-06-20
+- **Issue**: Status code 403: {"message":"Unauthorized.","statusCode":403}
+- **Action Taken**: Deprioritized serper in the routing logic.
+- **Status**: Monitoring for stability.
+
+## Provider Alert: firecrawl unstable
+
+- **Date**: 2026-06-20
+- **Issue**: The read operation timed out
+- **Action Taken**: Deprioritized firecrawl in the routing logic.
+- **Status**: Monitoring for stability.
