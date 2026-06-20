@@ -102,7 +102,7 @@ jobs:
           cache: 'pip'
 
       - name: Install lint tools
-        run: pip install ruff black flake8 mypy types-requests
+        run: pip install -r requirements.txt
 
       - name: Run ruff
         run: ruff check .

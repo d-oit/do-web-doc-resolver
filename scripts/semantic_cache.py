@@ -19,12 +19,16 @@ try:
 except ImportError:
     import sqlite3
 
+from scripts.constants import (
+    ENABLE_SEMANTIC_CACHE,
+    SEMANTIC_CACHE_MAX_ENTRIES,
+    SEMANTIC_CACHE_THRESHOLD,
+)
+
 logger = logging.getLogger(__name__)
 
 # Default configuration
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
-DEFAULT_THRESHOLD = 0.85
-DEFAULT_MAX_ENTRIES = 10000
 
 
 @dataclass
@@ -87,8 +91,8 @@ class SemanticCache:
     def __init__(
         self,
         cache_dir: str | None = None,
-        threshold: float = DEFAULT_THRESHOLD,
-        max_entries: int = DEFAULT_MAX_ENTRIES,
+        threshold: float = SEMANTIC_CACHE_THRESHOLD,
+        max_entries: int = SEMANTIC_CACHE_MAX_ENTRIES,
         model_name: str = DEFAULT_MODEL,
     ) -> None:
         self.enabled = False
@@ -367,31 +371,32 @@ class SemanticCache:
             return False
 
     def _maybe_evict(self) -> None:
-        try:
-            cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
-            count = cursor.fetchone()["count"]
+        with self._conn_lock:
+            try:
+                cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
+                count = cursor.fetchone()["count"]
 
-            if count > self.max_entries:
-                to_delete = count - self.max_entries
-                cursor = self._conn.execute(
-                    """
-                    SELECT id FROM cache_entries
-                    ORDER BY last_accessed ASC, access_count ASC
-                    LIMIT ?
-                """,
-                    (to_delete,),
-                )
-                ids_to_delete = [row["id"] for row in cursor.fetchall()]
+                if count > self.max_entries:
+                    to_delete = count - self.max_entries
+                    cursor = self._conn.execute(
+                        """
+                        SELECT id FROM cache_entries
+                        ORDER BY last_accessed ASC, access_count ASC
+                        LIMIT ?
+                    """,
+                        (to_delete,),
+                    )
+                    ids_to_delete = [row["id"] for row in cursor.fetchall()]
 
-                for entry_id in ids_to_delete:
-                    self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (entry_id,))
-                    self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
+                    for entry_id in ids_to_delete:
+                        self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (entry_id,))
+                        self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
 
-                self._conn.commit()
-                logger.info("Evicted %d old semantic cache entries", len(ids_to_delete))
+                    self._conn.commit()
+                    logger.info("Evicted %d old semantic cache entries", len(ids_to_delete))
 
-        except Exception as e:
-            logger.warning("Cache eviction failed: %s", e)
+            except Exception as e:
+                logger.warning("Cache eviction failed: %s", e)
 
     def close(self) -> None:
         if hasattr(self, "_conn") and self._conn:
@@ -468,16 +473,13 @@ def get_semantic_cache() -> SemanticCache | None:
     if _semantic_cache_instance is None:
         with _semantic_cache_lock:
             if _semantic_cache_instance is None:
-                enabled = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
-                if not enabled:
+                if not ENABLE_SEMANTIC_CACHE:
                     logger.debug("Semantic cache disabled via DO_WDR_SEMANTIC_CACHE=0")
                     return None
 
                 try:
-                    threshold = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
-                    max_entries = int(os.environ.get("DO_WDR_CACHE_MAX_ENTRIES", "10000"))
                     _semantic_cache_instance = SemanticCache(
-                        threshold=threshold, max_entries=max_entries
+                        threshold=SEMANTIC_CACHE_THRESHOLD, max_entries=SEMANTIC_CACHE_MAX_ENTRIES
                     )
                     if not _semantic_cache_instance.enabled:
                         return None
