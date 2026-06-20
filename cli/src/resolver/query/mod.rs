@@ -28,13 +28,16 @@ use tokio::sync::RwLock;
 
 use super::cascade::{build_budget, classify_error};
 
+#[cfg(test)]
+mod query_tests;
+
 /// Query cascade resolver
 pub struct QueryCascade {
-    exa_mcp: ExaMcpProvider,
+    pub(crate) exa_mcp: ExaMcpProvider,
     exa_sdk: ExaSdkProvider,
     tavily: crate::providers::TavilyProvider,
     serper: SerperProvider,
-    duckduckgo: DuckDuckGoProvider,
+    pub(crate) duckduckgo: DuckDuckGoProvider,
     mistral_ws: MistralWebSearchProvider,
 }
 
@@ -59,52 +62,25 @@ impl QueryCascade {
         exa_limit: usize,
         tavily_limit: usize,
     ) -> Result<Vec<ResolvedResult>, ResolverError> {
+        macro_rules! try_provider {
+            ($provider:expr, $query:expr, $limit:expr, $name:expr) => {
+                if $provider.is_available() {
+                    $provider.search($query, $limit).await
+                } else {
+                    Err(ResolverError::Provider(format!("{} unavailable", $name)))
+                }
+            };
+        }
         match provider_type {
-            ProviderType::ExaMcp => {
-                if self.exa_mcp.is_available() {
-                    self.exa_mcp.search(query, exa_limit).await
-                } else {
-                    Err(ResolverError::Provider("exa_mcp unavailable".to_string()))
-                }
-            }
-            ProviderType::Exa => {
-                if self.exa_sdk.is_available() {
-                    self.exa_sdk.search(query, exa_limit).await
-                } else {
-                    Err(ResolverError::Provider("exa unavailable".to_string()))
-                }
-            }
-            ProviderType::Tavily => {
-                if self.tavily.is_available() {
-                    self.tavily.search(query, tavily_limit).await
-                } else {
-                    Err(ResolverError::Provider("tavily unavailable".to_string()))
-                }
-            }
-            ProviderType::Serper => {
-                if self.serper.is_available() {
-                    self.serper.search(query, exa_limit).await
-                } else {
-                    Err(ResolverError::Provider("serper unavailable".to_string()))
-                }
-            }
+            ProviderType::ExaMcp => try_provider!(self.exa_mcp, query, exa_limit, "exa_mcp"),
+            ProviderType::Exa => try_provider!(self.exa_sdk, query, exa_limit, "exa"),
+            ProviderType::Tavily => try_provider!(self.tavily, query, tavily_limit, "tavily"),
+            ProviderType::Serper => try_provider!(self.serper, query, exa_limit, "serper"),
             ProviderType::DuckDuckGo => {
-                if self.duckduckgo.is_available() {
-                    self.duckduckgo.search(query, exa_limit).await
-                } else {
-                    Err(ResolverError::Provider(
-                        "duckduckgo unavailable".to_string(),
-                    ))
-                }
+                try_provider!(self.duckduckgo, query, exa_limit, "duckduckgo")
             }
             ProviderType::MistralWebSearch => {
-                if self.mistral_ws.is_available() {
-                    self.mistral_ws.search(query, exa_limit).await
-                } else {
-                    Err(ResolverError::Provider(
-                        "mistral_websearch unavailable".to_string(),
-                    ))
-                }
+                try_provider!(self.mistral_ws, query, exa_limit, "mistral_websearch")
             }
             _ => Err(ResolverError::Provider(format!(
                 "Invalid query provider: {}",
@@ -186,9 +162,7 @@ impl QueryCascade {
             if provider.is_paid {
                 if let Some(ref result) = best_free_result {
                     let score = result.score as f32;
-
                     let threshold = profile_defaults.min_free_quality_to_skip_paid;
-
                     if score + f32::EPSILON >= threshold {
                         metrics.record_gate(score);
                         let mut final_res = result.clone();
@@ -305,7 +279,6 @@ impl QueryCascade {
 
             match results {
                 Ok(results) if !results.is_empty() => {
-                    // Concatenate all results for better quality scoring
                     let combined_content = results
                         .iter()
                         .filter_map(|r| r.content.as_deref())
@@ -320,7 +293,6 @@ impl QueryCascade {
                         .quality_threshold
                         .unwrap_or(profile_defaults.quality_threshold);
                     let quality = score_content(content_str, &links, threshold);
-
                     let acceptable = quality.acceptable && first.is_valid(min_chars);
 
                     tracing::debug!(
@@ -362,7 +334,6 @@ impl QueryCascade {
                         first.metrics = Some(metrics.clone());
                         first.routing_decisions = routing_decisions.clone();
 
-                        // Record success
                         {
                             let mut cb = circuit_breakers.write().await;
                             cb.record_success(&provider.name);
@@ -377,35 +348,32 @@ impl QueryCascade {
 
                         if provider.is_paid {
                             return Ok(first);
-                        } else {
-                            if best_free_result.is_none()
-                                || (quality.score as f64) > best_free_result.as_ref().unwrap().score
-                            {
-                                best_free_result = Some(first.clone());
-                                best_free_result.as_mut().unwrap().score = quality.score as f64;
-                            }
+                        }
 
-                            let threshold = profile_defaults.min_free_quality_to_skip_paid;
+                        let dominated = best_free_result
+                            .as_ref()
+                            .is_none_or(|b| quality.score as f64 > b.score);
+                        if dominated {
+                            best_free_result = Some(first.clone());
+                            best_free_result.as_mut().unwrap().score = quality.score as f64;
+                        }
 
-                            if quality.score + f32::EPSILON >= threshold {
-                                metrics.record_gate(quality.score);
-                                first.metrics = Some(metrics);
-                                first.score = quality.score as f64;
-                                return Ok(first);
-                            }
+                        let threshold = profile_defaults.min_free_quality_to_skip_paid;
+                        if quality.score + f32::EPSILON >= threshold {
+                            metrics.record_gate(quality.score);
+                            first.metrics = Some(metrics);
+                            first.score = quality.score as f64;
+                            return Ok(first);
                         }
                     } else {
-                        // Record thin content
-                        {
-                            let mut nc = negative_cache.write().await;
-                            nc.insert(
-                                query,
-                                &provider.name,
-                                "thin_content",
-                                Duration::from_secs(config.negative_cache_ttl_secs),
-                                HashMap::new(),
-                            );
-                        }
+                        Self::record_negative_cache(
+                            &negative_cache,
+                            query,
+                            &provider.name,
+                            "thin_content",
+                            config.negative_cache_ttl_secs,
+                        )
+                        .await;
                         if !config.disable_routing_memory {
                             let mut rm = routing_memory.write().await;
                             rm.record("", &provider.name, false, latency, quality.score);
@@ -472,16 +440,14 @@ impl QueryCascade {
                         );
                     }
 
-                    {
-                        let mut nc = negative_cache.write().await;
-                        nc.insert(
-                            query,
-                            &provider.name,
-                            reason,
-                            Duration::from_secs(config.error_cache_ttl_secs),
-                            HashMap::new(),
-                        );
-                    }
+                    Self::record_negative_cache(
+                        &negative_cache,
+                        query,
+                        &provider.name,
+                        &reason,
+                        config.error_cache_ttl_secs,
+                    )
+                    .await;
                 }
             }
         }
@@ -496,103 +462,27 @@ impl QueryCascade {
             "No query resolution method available".to_string(),
         ))
     }
+
+    async fn record_negative_cache(
+        negative_cache: &Arc<RwLock<NegativeCache>>,
+        query: &str,
+        provider_name: &str,
+        reason: &str,
+        ttl_secs: u64,
+    ) {
+        let mut nc = negative_cache.write().await;
+        nc.insert(
+            query,
+            provider_name,
+            reason,
+            Duration::from_secs(ttl_secs),
+            HashMap::new(),
+        );
+    }
 }
 
 impl Default for QueryCascade {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::{Config, routing_profile_defaults};
-
-    #[test]
-    fn test_query_cascade_new() {
-        let cascade = QueryCascade::new();
-        assert!(cascade.exa_mcp.is_available());
-        assert!(cascade.duckduckgo.is_available());
-    }
-
-    #[test]
-    fn test_query_cascade_default() {
-        let cascade = QueryCascade::default();
-        assert!(cascade.exa_mcp.is_available());
-    }
-
-    #[test]
-    fn test_build_budget_free() {
-        let config = Config::default();
-        let profile_defaults = routing_profile_defaults("free");
-        let budget = build_budget(&config, &profile_defaults);
-        assert_eq!(budget.max_provider_attempts, 3);
-        assert_eq!(budget.max_paid_attempts, 0);
-        assert!(!budget.allow_paid);
-    }
-
-    #[test]
-    fn test_build_budget_balanced() {
-        let config = Config::default();
-        let profile_defaults = routing_profile_defaults("balanced");
-        let budget = build_budget(&config, &profile_defaults);
-        assert_eq!(budget.max_provider_attempts, 6);
-        assert!(budget.max_paid_attempts >= 2);
-        assert!(budget.allow_paid);
-    }
-
-    #[test]
-    fn test_build_budget_quality() {
-        let config = Config::default();
-        let profile_defaults = routing_profile_defaults("quality");
-        let budget = build_budget(&config, &profile_defaults);
-        assert!(budget.max_provider_attempts >= 6);
-        assert!(budget.allow_paid);
-    }
-
-    #[test]
-    fn test_build_budget_fast() {
-        let config = Config::default();
-        let profile_defaults = routing_profile_defaults("fast");
-        let budget = build_budget(&config, &profile_defaults);
-        assert_eq!(budget.max_provider_attempts, 2);
-        assert!(budget.max_paid_attempts >= 1);
-        assert!(budget.allow_paid);
-    }
-
-    #[test]
-    fn test_classify_error_rate_limit() {
-        let err = ResolverError::RateLimit("429 rate limit".to_string());
-        let classified = classify_error(&err);
-        assert_eq!(classified, "rate_limited");
-    }
-
-    #[test]
-    fn test_classify_error_auth() {
-        let err = ResolverError::Auth("401 unauthorized".to_string());
-        let classified = classify_error(&err);
-        assert_eq!(classified, "auth_required");
-    }
-
-    #[test]
-    fn test_classify_error_network() {
-        let err = ResolverError::Network("connection refused".to_string());
-        let classified = classify_error(&err);
-        assert_eq!(classified, "provider_error");
-    }
-
-    #[test]
-    fn test_classify_error_timeout() {
-        let err = ResolverError::Network("request timeout".to_string());
-        let classified = classify_error(&err);
-        assert_eq!(classified, "timeout");
-    }
-
-    #[test]
-    fn test_classify_error_provider_5xx() {
-        let err = ResolverError::Provider("500 internal server error".to_string());
-        let classified = classify_error(&err);
-        assert_eq!(classified, "provider_5xx");
     }
 }
