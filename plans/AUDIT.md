@@ -279,7 +279,7 @@ were already deleted before this audit and confirmed not present.
 
 ---
 
-*Last updated: 2026-06-20. v0.3.8 on main. Waves 1-8 ✅. Plan 21 Waves A-C ✅. PR #451 ✅ merged. PR #453 ✅ merged. PR #454 ✅ merged. PR #455 ✅ merged. 0 open PRs, 0 open issues. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
+*Last updated: 2026-06-20. v0.3.9 on main. Waves 1-8 ✅. Plan 21 Waves A-C ✅. PR #451 ✅ merged. PR #453 ✅ merged. PR #454 ✅ merged. PR #455 ✅ merged. 0 open PRs, 0 open issues. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
 
