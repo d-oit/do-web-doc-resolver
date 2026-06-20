@@ -33,7 +33,7 @@ blake3 = "1.5"
 chaotic_semantic_memory = { version = "0.3", optional = true }
 
 [features]
-default = []
+default = ["semantic-cache"]
 semantic-cache = ["dep:chaotic_semantic_memory"]
 
 [dev-dependencies]

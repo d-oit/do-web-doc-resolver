@@ -113,7 +113,7 @@ impl SemanticCacheConfig {
 impl Default for SemanticCacheConfig {
     fn default() -> Self {
         Self {
-            enabled: false,
+            enabled: true,
             path: ".do-wdr_cache".to_string(),
             threshold: 0.85,
             max_entries: 10000,
