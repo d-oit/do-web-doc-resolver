@@ -20,7 +20,6 @@ except ImportError:
     import sqlite3
 
 from scripts.constants import (
-    ENABLE_SEMANTIC_CACHE,
     SEMANTIC_CACHE_MAX_ENTRIES,
     SEMANTIC_CACHE_THRESHOLD,
 )
@@ -473,7 +472,7 @@ def get_semantic_cache() -> SemanticCache | None:
     if _semantic_cache_instance is None:
         with _semantic_cache_lock:
             if _semantic_cache_instance is None:
-                if not ENABLE_SEMANTIC_CACHE:
+                if os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") != "1":
                     logger.debug("Semantic cache disabled via DO_WDR_SEMANTIC_CACHE=0")
                     return None
 
