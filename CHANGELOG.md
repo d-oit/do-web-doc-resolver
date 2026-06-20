@@ -1,3 +1,62 @@
+## [0.3.9] - 2026-06-20
+
+### Added
+
+- **CLI**: enable semantic-cache by default
+- **Web**: enhance result card accessibility and interactive feedback consistency (#450)
+- async-aware locks for Rust CLI (Plan 03 Opt 8)
+- shared reqwest Client for Rust CLI (Plan 03 Opt 7)
+- Python async migration + CI improvements
+- **Web**: improve input intent and button accessibility (#434)
+
+### Changed
+
+- **Docs**: update plans/ folder with latest progress
+- **Docs**: update AUDIT.md and README.md after PR #455 merge
+- **Docs**: refresh AUDIT.md timestamp, add merged PRs #450-#452, flag query.rs over limit (#453)
+- Optimize HTML entity decoding in direct_fetch provider (#451) (be0df36)
+- Enhance Provider Monitoring and Routing Logic (#452) (5b2a156)
+- build(deps)(deps-dev): bump js-yaml from 4.1.1 to 4.2.0 in /web (#447) (2a53733)
+- build(deps)(deps-dev): bump form-data from 4.0.5 to 4.0.6 in /web (#448) (8a9f958)
+- build(deps)(deps-dev): bump vite from 8.0.10 to 8.0.16 in /web (#445) (7058076)
+- Optimize and harden Python-Rust bridge parsing (#446) (40bb016)
+- **Performance**: optimize semantic cache and achieve parity
+- **Performance**: optimize semantic cache and fix config merge
+- build(deps)(deps-dev): bump the npm-deps group in /web with 7 updates (e09318f)
+- build(deps)(deps-dev): bump @next/eslint-plugin-next in /web (071e5a0)
+- build(deps)(deps): bump next from 15.5.18 to 16.2.9 in /web (c394498)
+- build(deps)(deps): bump regex (48bd9e9)
+- request coalescing (Plan 03 Opt 10)
+- reuse ThreadPoolExecutor (Plan 03 Opt 1)
+- true parallel provider launch (Plan 03 Opt 9)
+- L1 in-memory TTL cache (Plan 03 Opt 4)
+- HTTP/2 + keep-alive for Python and Rust (Plan 03 Opt 3)
+- early quality exit in Python cascade (Plan 03 Opt 6)
+- eliminate busy-polling in Python cascade (Plan 03 Opt 2)
+- **Web**: reduce cyclomatic complexity and fix JS-0067 anti-patterns in results.ts (#438)
+- **Web**: reduce component complexity and improve regex correctness (#436)
+- Align quality synthesis logic with 2026 standards (#437) (2ce80f2)
+- **CLI**: optimize quality scoring with single-pass regex and efficient line counting (#435)
+- Update badge links and improve README formatting (b9c1260)
+- Improve LaTeX and JS-heavy site parsing in Rust CLI (#433) (9394d31)
+
+### Fixed
+
+- **Security**: add content security policy and security headers (#449)
+- address DeepSource provider merge warning (#444)
+- reduce config merge complexity (#444)
+- address PR review feedback (#444)
+- black formatting for providers
+- mypy and black compatibility for Python 3.12
+- black formatting
+- ruff lint errors in cache and tavily
+- update test mocks and add get_session to providers_impl exports
+- make cargo-audit install non-blocking in CI
+- make security audit non-blocking, increase semantic cache latency threshold
+
+### Dependencies
+
+- bump actions/checkout in the github-actions group
 ## [0.3.8] - 2026-06-08
 
 ### Added
