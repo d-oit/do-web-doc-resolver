@@ -2,7 +2,7 @@
 
 ## Status
 
-PENDING. Prerequisite for Waves 4-6.
+Wave 3 COMPLETED. Wave 6 COMPLETED.
 
 ## Context
 
@@ -24,26 +24,26 @@ dedicated module. These patterns make maintenance harder and create subtle bugs.
 4. **Clean dead code**: Remove unused `NegativeCacheEntry`, dead `TIERED_TTL`
    entry, unused imports.
 
-## Wave 3 — Constants & State Extraction (PENDING, next)
+## Wave 3 — Constants & State Extraction (COMPLETED)
 
-| ID | Task | File | Effort |
+| ID | Task | File | Status |
 |----|------|------|--------|
-| A1 | Create `scripts/constants.py` | New | M |
-| A2-A4 | Remove duplicate constants from resolve.py, utils.py, providers_impl.py | 3 files | M |
-| A5 | Create `scripts/state.py` | New | M |
-| A6 | Remove monkey-patching from resolve.py | `scripts/resolve.py` | S |
-| A7 | Import state in _url_resolve, _query_resolve | 2 files | S |
-| A8 | Centralize semantic cache env vars | `scripts/semantic_cache.py` | S |
+| A1 | Create `scripts/constants.py` | New | ✅ |
+| A2-A4 | Remove duplicate constants from resolve.py, utils.py, providers_impl.py | 3 files | ✅ |
+| A5 | Create `scripts/state.py` | New | ✅ |
+| A6 | Remove monkey-patching from resolve.py | `scripts/resolve.py` | ✅ |
+| A7 | Import state in _url_resolve, _query_resolve | 2 files | ✅ |
+| A8 | Centralize semantic cache env vars | `scripts/semantic_cache.py` | ✅ |
 
-## Wave 6 — Cascade Consolidation (PENDING, depends on Wave 3)
+## Wave 6 — Cascade Consolidation (COMPLETED)
 
-| ID | Task | Effort |
+| ID | Task | Status |
 |----|------|--------|
-| D1 | Extract cascade to `scripts/cascade.py` | L |
-| D2-D3 | Replace inline cache in _url/_query resolve | M |
-| U1-U6 | Budget profile alignment (`scripts/routing.py`, `web/constants.ts`) | M |
-| R1-R7 | Intra-module DRY cleanup | S |
-| C1-C10 | Circular imports, dead code | M |
+| D1 | Extract cascade to `scripts/cascade.py` | ✅ |
+| D2-D3 | Replace inline cache in _url/_query resolve | ✅ |
+| U1-U6 | Budget profile alignment (`scripts/routing.py`, `web/constants.ts`) | ✅ |
+| R1-R7 | Intra-module DRY cleanup | ✅ |
+| C1-C10 | Circular imports, dead code | ✅ |
 
 ## Risks
 

@@ -15,7 +15,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 
 ## Release Status
 
-- **Current**: `v0.3.7` — manifests aligned across Python / Rust / Web / CLI
+- **Current**: `v0.3.8` — manifests aligned across Python / Rust / Web / CLI
 - **Quality gate**: PASS (markdownlint warnings non-blocking)
 - **Open PRs**: 0 · **Open issues**: 0
 - **Static analysis on `main`**: Clippy ✅ · ESLint ✅ · Ruff ✅ · mypy ✅
@@ -58,6 +58,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 | 6 | Test coverage: 176 web, 76 Rust, 311 Python | ✅ DONE |
 | 7 | Web middleware + cross-platform parity | ✅ DONE (PR #408) |
 | 8 | Codebase improvement sweep (Plan 21) | ✅ Wave A, B1-B2 DONE |
+| 9 | All open tasks from AUDIT.md | ✅ DONE (PR #455) |
 
 ## Conventions
 

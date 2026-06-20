@@ -2,7 +2,7 @@
 
 ## Status
 
-Wave 1b COMPLETED. Waves 2 and 5 PENDING.
+Wave 1b COMPLETED. Wave 2 COMPLETED. Wave 5 PENDING.
 
 ## Context
 
@@ -23,19 +23,19 @@ poisoning, npm peer dep conflicts).
 | — | libsql `--test-threads=1` for semantic cache tests | ✅ |
 | — | ESLint config update (playwright globals, build exclusions) | ✅ |
 
-## Wave 2 — CI Config Fixes (PENDING)
+## Wave 2 — CI Config Fixes (COMPLETED)
 
-| ID | Task | File | Effort |
+| ID | Task | File | Status |
 |----|------|------|--------|
-| I1 | Fix coverage upload condition | `.github/workflows/ci.yml:106` | S |
-| I2 | Fix gitleaks branch triggers | `.github/workflows/gitleaks.yml:5-6` | S |
-| I3 | Update actions/checkout in gitleaks | `.github/workflows/gitleaks.yml:21` | S |
-| I4 | Install lint deps from requirements.txt | `.github/workflows/ci.yml:69` | S |
-| I5 | Shellcheck severity → error | `.pre-commit-config.yaml:34` | S |
-| K1-K3 | Consolidate pre-commit hooks | `scripts/setup-hooks.sh`, `.githooks/` | M |
-| K4 | Fix requirements.txt package names | `requirements.txt` | S |
-| K5 | Add Python 3.13 classifier | `pyproject.toml:16-18` | S |
-| K7 | Fix close-resolved-issues.yml trigger | `.github/workflows/close-resolved-issues.yml:4` | S |
+| I1 | Fix coverage upload condition | `.github/workflows/ci.yml:106` | ✅ |
+| I2 | Fix gitleaks branch triggers | `.github/workflows/gitleaks.yml:5-6` | ✅ |
+| I3 | Update actions/checkout in gitleaks | `.github/workflows/gitleaks.yml:21` | ✅ |
+| I4 | Install lint deps from requirements.txt | `.github/workflows/ci.yml:69` | ✅ |
+| I5 | Shellcheck severity → error | `.pre-commit-config.yaml:34` | ✅ |
+| K1-K3 | Consolidate pre-commit hooks | `scripts/setup-hooks.sh`, `.githooks/` | ✅ |
+| K4 | Fix requirements.txt package names | `requirements.txt` | ✅ |
+| K5 | Add Python 3.13 classifier | `pyproject.toml:16-18` | ✅ |
+| K7 | Fix close-resolved-issues.yml trigger | `.github/workflows/close-resolved-issues.yml:4` | ✅ |
 
 ## Wave 5 — New Test Files (PENDING)
 

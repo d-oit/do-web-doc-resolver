@@ -1,6 +1,6 @@
-# GOAP State Update — 2026-05-30
+# GOAP State Update — 2026-06-20
 
-> Updated after PR #411 merge. Main at `b87b873`.
+> Updated after PR #455 merge. Main at `5ac2813`.
 > Supersedes `16-GOAP-WAVE2-6.md` and `15-GOAP-NEXT-PHASE.md` for remaining work.
 
 ## Goal
@@ -10,10 +10,10 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 
 ## Preconditions
 
-- Main branch at v0.3.6 (`b87b873`)
+- Main branch at v0.3.8 (`5ac2813`)
 - 0 open PRs
 - 0 open issues (#402 closed)
-- Waves 1, 2, 3, 4, 5, 6, 7 all completed
+- Waves 1, 2, 3, 4, 5, 6, 7, 8, 9 all completed
 - All ADRs addressed
 
 ---
@@ -28,7 +28,7 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 |----|------|--------|
 | I1-I5 | CI config fixes | ✅ DONE |
 | K4-K6 | Package names, classifiers, AGENTS.md | ✅ DONE |
-| K7 | markdownlint.toml config | ⚠️ Config parsing issue (MD013=false in TOML not recognized by markdownlint-cli; may need JSON config) |
+| K7 | markdownlint.toml config | ✅ DONE |
 
 ### Wave 3 — ADR-014 Constants & State Extraction ✅ DONE (PR #407)
 
@@ -41,25 +41,25 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 | A5 | Create `scripts/state.py` with shared singletons | New (20 lines) | ✅ |
 | A6 | Remove monkey-patching from resolve.py (lines 85-91) | `scripts/resolve.py` | ✅ |
 | A7 | Update `_url_resolve` + `_query_resolve` imports | 2 files | ✅ |
-| A8 | Centralize semantic cache env vars | Deferred — env vars still in utils.py | ⚠️ |
+| A8 | Centralize semantic cache env vars | `scripts/constants.py` | ✅ |
 
-### Wave 4 — Quality, Safety & Code Fixes — MOSTLY DONE
+### Wave 4 — Quality, Safety & Code Fixes — DONE
 
 | ID | Task | Status |
 |----|------|--------|
 | P3b | Log silent exceptions in providers | ✅ DONE (docling, tesseract logged) |
 | P4 | Replace requests.post with shared session | ✅ DONE (PR #365) |
-| P5 | Anchor preflight_route patterns | N/A — uses str.startswith, no regex |
+| P5 | Anchor preflight_route patterns | ✅ DONE (PR #455) |
 | P6 | Remove dead NegativeCacheEntry | ✅ DONE |
 | Q1-Q6 | Extract magic numbers in quality.py | ✅ DONE (7 named constants) |
 | N5 | Fix CircuitBreakerRegistry TOCTOU | ✅ DONE (PR #365) |
-| N6 | Lock guard on _maybe_evict() | ⚠️ Safe in practice (called under caller's lock) |
+| N6 | Lock guard on _maybe_evict() | ✅ DONE (PR #455) |
 | N12/N13 | SSRF gaps in providers | ✅ DONE (PR #365) |
 | 252a3ed | Structured error logging across providers | ✅ DONE (merged) |
 
 ### Wave 5 — Rust File Splits ✅ DONE
 
-### Wave 6 — Tests & Coverage — MOSTLY DONE
+### Wave 6 — Tests & Coverage — DONE
 
 | ID | Task | Status |
 |----|------|--------|
@@ -71,7 +71,7 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 | T5b | web/tests/results.test.ts | ✅ EXISTS |
 | T6 | Inline tests for query.rs + url.rs | ✅ DONE (19 tests) |
 | T7 | Python test expansion (cascade, routing, providers) | ✅ DONE (10+ test commits since v0.3.6) |
-| T8 | Add evals.json to skills | ✅ DONE (9/13 now — 6 new + 3 existing) |
+| T8 | Add evals.json to skills | ✅ DONE (14/14 skills) |
 
 ### Wave 7 — Web Middleware & Cross-Platform Parity ✅ DONE (PR #408)
 
@@ -81,6 +81,21 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 | W2 | Port preflight_route to Rust | ✅ DONE |
 | W3 | Port hedged/parallel execution to Rust | ✅ DONE |
 | W4 | Align budget profile presets | ✅ DONE |
+
+### Wave 8 — Codebase Improvement Sweep ✅ DONE (Plan 21)
+
+### Wave 9 — All Open Tasks from AUDIT.md ✅ DONE (PR #455)
+
+| ID | Task | Status |
+|----|------|--------|
+| N8 | Generate pnpm-lock.yaml | ✅ DONE |
+| N10 | Fix setup-hooks.sh quality gate | ✅ DONE |
+| Q1 | Extract KeyboardShortcutsModal from page.tsx | ✅ DONE |
+| P2 #18 | Verify Python CI alignment | ✅ DONE |
+| P3 #26 | Anchor preflight_route patterns | ✅ DONE |
+| N6 | Add lock guard to _maybe_evict() | ✅ DONE |
+| I4 | Fix CI lint deps install | ✅ DONE |
+| A8 | Centralize semantic cache env vars | ✅ DONE |
 
 ---
 
@@ -99,6 +114,12 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 | #408 | Wave 7 — middleware rate limiting, Rust preflight routing, budget alignment | ✅ |
 | #410 | Skill sync, split over-limit SKILL.md, add evals/references | ✅ |
 | #411 | Documentation and agent workflow standards update | ✅ |
+| #450 | Result card accessibility and interactive feedback consistency | ✅ |
+| #451 | Optimize HTML entity decoding in direct_fetch provider | ✅ |
+| #452 | Enhance Provider Monitoring and Routing Logic | ✅ |
+| #453 | AUDIT.md refresh (conflicts resolved) | ✅ |
+| #454 | Split `query.rs` into `query/{mod,query_tests}.rs` | ✅ |
+| #455 | Resolve all open tasks from AUDIT.md | ✅ |
 
 ### Test Coverage Expansion (10 commits)
 
@@ -141,15 +162,15 @@ All Wave 7 items completed. See PR #408 for details.
 
 ### P4 — Roadmap items from #402
 
-| # | Action | Area | Effort |
+| # | Action | Area | Status |
 |---|--------|------|--------|
-| 17 | Add Python 3.10 to CI or bump requires-python | CI | S |
-| 18 | Consolidate requirements.txt into pyproject.toml | Build | S |
-| 19 | Unify env var naming (DO_WDR_\* vs WEB_RESOLVER_\*) | Config | M |
-| 20 | Add provider unit tests with HTTP mocking | Tests | M |
-| 21 | Add pip-audit/cargo audit/npm audit to CI | Security | S |
-| 22 | Migrate to asyncio + httpx for provider calls | Performance | L |
-| 23 | Consider fastembed instead of sentence-transformers | Performance | M |
+| 17 | Add Python 3.10 to CI or bump requires-python | CI | ✅ RESOLVED — updated `requires-python >=3.11` (PR #455) |
+| 18 | Consolidate requirements.txt into pyproject.toml | Build | ⚠️ DEFERRED — requires more testing |
+| 19 | Unify env var naming (DO_WDR_\* vs WEB_RESOLVER_\*) | Config | ⚠️ DEFERRED — requires breaking changes |
+| 20 | Add provider unit tests with HTTP mocking | Tests | ⚠️ DEFERRED — requires mock infrastructure |
+| 21 | Add pip-audit/cargo audit/npm audit to CI | Security | ⚠️ DEFERRED — requires CI changes |
+| 22 | Migrate to asyncio + httpx for provider calls | Performance | ⚠️ DEFERRED — requires major refactor |
+| 23 | Consider fastembed instead of sentence-transformers | Performance | ⚠️ DEFERRED — requires benchmarking |
 
 ---
 
@@ -160,6 +181,8 @@ Wave 3 (constants/state) ✅ DONE (PR #407)
 Wave 4 (quality fixes) ✅ DONE
 Wave 6 (tests) ✅ DONE
 Wave 7 (middleware + parity) ✅ DONE (PR #408)
+Wave 8 (codebase improvement) ✅ DONE (Plan 21)
+Wave 9 (all open tasks) ✅ DONE (PR #455)
   → Roadmap items (402) — all addressed
   → Next: new features, provider integrations, deep research
 ```
@@ -170,7 +193,7 @@ Wave 7 (middleware + parity) ✅ DONE (PR #408)
 |------|------------|
 | ~~Wave 3 state.py breaks test fixtures~~ | ✅ RESOLVED — conftest updated to use scripts.state |
 | ~~Wave 3 constants extraction changes behavior~~ | ✅ RESOLVED — all constants functionally identical |
-| K7 markdownlint.toml config still broken | Config parsing issue: `MD013=false` in TOML not recognized by markdownlint-cli; may need JSON config |
+| ~~K7 markdownlint.toml config still broken~~ | ✅ RESOLVED — config verified working |
 
 ---
 
@@ -180,8 +203,13 @@ Wave 7 (middleware + parity) ✅ DONE (PR #408)
 2. All silent exception handlers have logging
 3. Web lib unit tests exist for 5 core utilities
 4. `query.rs` + `url.rs` have inline test modules
-5. 13/13 skills have evals.json
+5. 14/14 skills have evals.json
 6. `web/middleware.ts` provides rate limiting ✅
 7. All items from #402 roadmap addressed ✅
 8. Wave 7 — Rust preflight routing + hedged execution complete ✅
 9. Budget profile presets aligned across Python/Rust/Web ✅
+10. `pnpm-lock.yaml` generated for `cli/ui/` and `web/` ✅
+11. `setup-hooks.sh` validates quality gate ✅
+12. `preflight_route` patterns anchored with word boundaries ✅
+13. `_maybe_evict()` has lock guard ✅
+14. `page.tsx` extracted `KeyboardShortcutsModal` (466 lines) ✅

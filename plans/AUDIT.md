@@ -77,11 +77,11 @@
 
 | # | Issue | Detail |
 |---|---|---|
-| I1 | Python 3.10 not in CI | `requires-python = ">=3.10"` but CI matrix is 3.11/3.12/3.13 |
+| I1 | Python 3.10 not in CI | `requires-python = ">=3.10"` but CI matrix is 3.11/3.12/3.13 | ✅ RESOLVED — updated `requires-python >=3.11` to match CI matrix (PR #455) |
 | I2 | `cli/ui/` no pnpm lock file in repo | CI uses pnpm but lock file not checked in |
 | I3 | Version number question | All at 0.3.1 — 234 commits since v0.3.1; GitHub latest is v0.3.3 (tag drift from PR #270 regression) | ✅ FIXED: validate-version CI job + sync_versions.py in release.sh |
 | I4 | DuckDuckGo CAPTCHA blocking | Externally blocked — deprioritized, monitoring |
-| I5 | `cli/ui/` pnpm lock file | Repo uses pnpm; lock file status needs verification |
+| I5 | `cli/ui/` pnpm lock file | Repo uses pnpm; lock file status needs verification | ✅ RESOLVED — generated `cli/ui/pnpm-lock.yaml` (PR #455) |
 | I6 | `markdownlint.toml` config not respected | `MD013 = false` set but rule still fires; pre-commit blocks valid docs-only commits; ~3262 lint warnings in quality gate | `markdownlint.toml`, `.githooks/pre-commit` |
 | I7 | Nightly Bridge CI → direct push rejected | ✅ RESOLVED — PR #366 changed push→PR creation |
 
@@ -122,6 +122,9 @@
 | #450 | Result card accessibility and interactive feedback consistency | ✅ |
 | #451 | Optimize HTML entity decoding in direct_fetch provider | ✅ |
 | #452 | Enhance Provider Monitoring and Routing Logic | ✅ |
+| #453 | AUDIT.md refresh (conflicts resolved) | ✅ |
+| #454 | Split `query.rs` into `query/{mod,query_tests}.rs` | ✅ |
+| #455 | Resolve all open tasks from AUDIT.md | ✅ |
 
 ### 7. Newly Discovered Issues (2026-05-13 Audit — updated 2026-06-20)
 
@@ -132,11 +135,11 @@
 | N3 | `build_budget()` duplicated verbatim in 2 files | `query.rs:506` + `url.rs:475` | ✅ RESOLVED — extracted to cascade.rs (Wave 5) |
 | N4 | Dead `Profile::is_provider_allowed()` + `max_hops()` — never called | `cli/src/types.rs:99-116` | ✅ RESOLVED — removed (Wave 5) |
 | N5 | `CircuitBreakerRegistry.is_open()` — TOCTOU: state object used outside lock scope | `scripts/circuit_breaker.py:46-47` | ✅ RESOLVED — inlined under lock in PR #365 |
-| N6 | `_maybe_evict()` not independently lock-protected | `scripts/semantic_cache.py:336` | ⚠️ DEFERRED — safe in practice (called under caller's lock) |
+| N6 | `_maybe_evict()` not independently lock-protected | `scripts/semantic_cache.py:336` | ✅ RESOLVED — added lock guard to `_maybe_evict()` (PR #455) |
 | N7 | Skills missing `evals.json` | `.agents/skills/*/` | ✅ RESOLVED — 14/14 skills have evals |
-| N8 | No `pnpm-lock.yaml` anywhere in repo | `cli/ui/`, `web/` | ❌ OPEN — lock file not checked in |
+| N8 | No `pnpm-lock.yaml` anywhere in repo | `cli/ui/`, `web/` | ✅ RESOLVED — generated `cli/ui/pnpm-lock.yaml` and `web/pnpm-lock.yaml` (PR #455) |
 | N9 | `duckduckgo-search` vs `ddgs` package name mismatch | `requirements.txt:9` | ⚪ CORRECTED — now uses `ddgs>=9.0.0` (correct package name) |
-| N10 | `setup-hooks.sh` only validates symlinks, not quality gate | `scripts/setup-hooks.sh` | ❌ OPEN — still only validates symlinks |
+| N10 | `setup-hooks.sh` only validates symlinks, not quality gate | `scripts/setup-hooks.sh` | ✅ RESOLVED — added quality gate validation (PR #455) |
 | N11 | CI runs 3 Playwright projects; AGENTS.md says 1 | `ci-ui.yml:176` vs `AGENTS.md:55` | P2 |
 | N12 | Raw `requests.post()` in synthesis — no SSRF, no retry, no shared session | `scripts/synthesis.py:165` | ✅ RESOLVED — switched to `get_session()` in PR #365 |
 | N13 | SSRF gaps in `resolve_with_docling()` + `resolve_with_ocr()` — no `is_safe_url()` | `scripts/providers_impl.py:373-393` | ✅ RESOLVED — added `is_safe_url()` checks in PR #365 |
@@ -189,7 +192,7 @@
 | 1 | Call `validateUrl()` before resolution | `web/app/api/resolve/route.ts` | ✅ RESOLVED (called in url.ts) |
 | 2 | Create error boundary | `web/app/error.tsx` | ✅ RESOLVED (exists) |
 | 3 | Split `query.rs` (527 > 500 limit) | `cli/src/resolver/query.rs` | ✅ RESOLVED (503 lines via build_budget extraction) |
-| 4 | Split page component (496, near limit) | `web/app/page.tsx` | ⚠️ Near limit — monitor |
+| 4 | Split page component (496, near limit) | `web/app/page.tsx` | ✅ RESOLVED — extracted `KeyboardShortcutsModal` (466 lines, PR #455) |
 | 5 | Split `semantic_cache.rs` (1056 > 500 limit) | `cli/src/semantic_cache.rs` | ✅ RESOLVED (4 files, max 401 lines) |
 | 6 | Split `config.rs` (712 > 500 limit) | `cli/src/config.rs` | ✅ RESOLVED (3 files, max 383 lines) |
 
@@ -212,7 +215,7 @@
 | 15 | Port preflight routing to Rust + Web | Cross-platform | ✅ DONE (Wave 7 W2) |
 | 16 | Add hedged requests to Rust | `cli/src/resolver/cascade.rs` | ✅ DONE (Wave 7 W3) |
 | 17 | Add `evals.json` to more skills | `.agents/skills/*/` | ✅ DONE (14/14 skills) |
-| 18 | Add Python 3.10 to CI or bump `requires-python` | `pyproject.toml`, `.github/workflows/ci.yml` | ❌ OPEN |
+| 18 | Add Python 3.10 to CI or bump `requires-python` | `pyproject.toml`, `.github/workflows/ci.yml` | ✅ RESOLVED — updated `requires-python >=3.11` (PR #455) |
 | 19 | Add `evals.json` to 3 most-used skills | `.agents/skills/*/` | ✅ DONE (14/14 skills) |
 | 20 | Remove dead `Profile::is_provider_allowed()` + `max_hops()` | `cli/src/types.rs:99-116` | ✅ DONE (Wave 5) |
 | 21 | Remove dead `NegativeCacheEntry` dataclass | `scripts/cache_negative.py:11-16` | ✅ DONE (Wave 4 P6) |
@@ -225,9 +228,9 @@
 | 23 | Port `exa_mcp_mistral` combo to Python + Rust | Cross-platform |
 | 24 | Full `--deep-research` parallel mode for CLIs | Python + Rust |
 | 25 | File-based routing memory for Python | `scripts/` |
-| 26 | Anchor `preflight_route` patterns with word boundaries | `scripts/routing.py:157-158` |
-| 27 | Add lock guard to `_maybe_evict()` | `scripts/semantic_cache.py:336` |
-| 28 | Fix `setup-hooks.sh` to install full quality gate | `scripts/setup-hooks.sh` |
+| 26 | Anchor `preflight_route` patterns with word boundaries | `scripts/routing.py:157-158` | ✅ RESOLVED — fixed word boundary anchoring (PR #455) |
+| 27 | Add lock guard to `_maybe_evict()` | `scripts/semantic_cache.py:336` | ✅ RESOLVED — added lock guard (PR #455) |
+| 28 | Fix `setup-hooks.sh` to install full quality gate | `scripts/setup-hooks.sh` | ✅ RESOLVED — added quality gate validation (PR #455) |
 
 ---
 

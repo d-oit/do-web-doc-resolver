@@ -2,7 +2,7 @@
 
 ## Status
 
-Wave 1 COMPLETED (PR #364). Waves 4-6 PENDING.
+Wave 1 COMPLETED (PR #364). Waves 4-6 COMPLETED.
 
 ## Context
 
@@ -47,13 +47,13 @@ of correctness issues across the Python codebase:
 | Minor: Bare except in Mistral browser | Changed to `except Exception as e:` with logging |
 | HIGH: TOCTOU race in CircuitBreakerState.is_open | Capture `open_until` once at function entry |
 
-## Waves 4-6 — PENDING
+## Waves 4-6 — COMPLETED
 
-| Wave | Focus | Effort | Dependency |
-|------|-------|--------|------------|
-| Wave 4 | Logging, quality, synthesis fixes (P3-P7, Q1-Q6) | M | Wave 3 (ADR-014) |
-| Wave 5 | New test files for uncovered paths (C1-C7) | L | Wave 3 |
-| Wave 6 | Cascade consolidation, budget alignment, DRY cleanup | L | Wave 3 |
+| Wave | Focus | Status |
+|------|-------|--------|
+| Wave 4 | Logging, quality, synthesis fixes (P3-P7, Q1-Q6) | ✅ DONE |
+| Wave 5 | New test files for uncovered paths (C1-C7) | ✅ DONE |
+| Wave 6 | Cascade consolidation, budget alignment, DRY cleanup | ✅ DONE |
 
 ## Learnings
 
