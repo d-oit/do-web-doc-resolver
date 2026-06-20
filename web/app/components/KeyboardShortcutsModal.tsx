@@ -1,7 +1,7 @@
 "use client";
 
 interface KeyboardShortcutsModalProps {
-  onClose(): void;
+  onClose: () => void;
 }
 
 const SHORTCUTS = [
@@ -15,15 +15,25 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
   return (
     <div
       className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+      role="button"
+      tabIndex={0}
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          onClose();
+        }
+      }}
     >
       <div
         className="bg-background border-2 border-border-muted p-6 max-w-md w-full mx-4"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
       >
         <div className="flex justify-between mb-4">
           <h2 className="text-[13px] font-bold text-foreground">Keyboard Shortcuts</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-text-muted hover:text-foreground text-[18px] leading-none"
             aria-label="Close shortcuts"

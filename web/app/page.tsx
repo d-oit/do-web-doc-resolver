@@ -456,7 +456,11 @@ export default function Home() {
         isUrl={isUrl}
       />
 
-      {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      {showShortcuts && (
+        <KeyboardShortcutsModal onClose={() => {
+          setShowShortcuts(false);
+        }} />
+      )}
     </main>
   );
 }
