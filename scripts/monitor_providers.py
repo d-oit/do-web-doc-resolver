@@ -158,7 +158,7 @@ def log_issue(provider_name: str, issue_desc: str):
 
     if should_append:
         alert_text = f"""
-# Provider Alert: {provider_name} unstable
+## Provider Alert: {provider_name} unstable
 
 - **Date**: {date_str}
 - **Issue**: {issue_desc}
@@ -278,6 +278,76 @@ def check_exa() -> tuple[CheckResult, str | None]:
         return CheckResult.FAILED, str(e)
 
 
+def check_mistral_websearch() -> tuple[CheckResult, str | None]:
+    logger.info("Checking Mistral Websearch...")
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        return CheckResult.SKIPPED, "No API Key"
+    try:
+        session = get_session()
+        resp = session.post(
+            "https://api.mistral.ai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "mistral-small-latest",
+                "messages": [{"role": "user", "content": f"Search: {TEST_QUERY}"}],
+            },
+            timeout=20,
+        )
+        if resp.status_code != 200:
+            return CheckResult.FAILED, f"Status code {resp.status_code}: {resp.text}"
+        data = resp.json()
+        if "choices" not in data:
+            return CheckResult.FAILED, "Response schema changed: 'choices' missing"
+        return CheckResult.HEALTHY, None
+    except Exception as e:
+        return CheckResult.FAILED, str(e)
+
+
+def check_mistral_browser() -> tuple[CheckResult, str | None]:
+    logger.info("Checking Mistral Browser...")
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        return CheckResult.SKIPPED, "No API Key"
+    # Verify Mistral Agent functionality by attempting a simple content extraction with tools
+    try:
+        from mistralai.client import Mistral
+
+        client = Mistral(api_key=api_key)
+        agent = client.beta.agents.create(
+            model="mistral-small-latest",
+            name="monitor-probe",
+            instructions="Extract markdown.",
+            tools=[{"type": "web_search"}],  # type: ignore[arg-type]
+        )
+        try:
+            result = client.beta.conversations.start(
+                agent_id=agent.id,
+                inputs=f"Extract markdown from: {TEST_URL}",
+            )
+            if not result.outputs:
+                return CheckResult.FAILED, "Agent returned no outputs"
+            return CheckResult.HEALTHY, None
+        finally:
+            client.beta.agents.delete(agent_id=agent.id)
+    except Exception as e:
+        return CheckResult.FAILED, f"Mistral Browser Agent check failed: {e}"
+
+
+def check_duckduckgo() -> tuple[CheckResult, str | None]:
+    logger.info("Checking DuckDuckGo...")
+    try:
+        from ddgs import DDGS
+
+        with DDGS() as ddgs:
+            results = list(ddgs.text(TEST_QUERY, max_results=1))
+            if not results:
+                return CheckResult.FAILED, "No results returned"
+            return CheckResult.HEALTHY, None
+    except Exception as e:
+        return CheckResult.FAILED, str(e)
+
+
 def main():
     checks = {
         "jina": check_jina,
@@ -286,6 +356,9 @@ def main():
         "serper": check_serper,
         "exa": check_exa,
         "exa_mcp": check_exa,
+        "mistral_websearch": check_mistral_websearch,
+        "mistral_browser": check_mistral_browser,
+        "duckduckgo": check_duckduckgo,
     }
 
     failing_providers = []
