@@ -4,6 +4,7 @@ Budget-aware routing logic for the Web Doc Resolver.
 
 import logging
 import os
+import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
@@ -117,8 +118,8 @@ def detect_doc_platform(url: str) -> str | None:
         return "notion"
     if (
         (hostname.endswith(".atlassian.net") and path.startswith("/wiki"))
-        or "confluence" in hostname
-        or "confluence" in path
+        or bool(re.search(r"\bconfluence\b", hostname))
+        or bool(re.search(r"\bconfluence\b", path))
     ):
         return "confluence"
 
