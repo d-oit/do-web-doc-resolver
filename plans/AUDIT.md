@@ -54,7 +54,7 @@
 
 | # | File | Lines | Limit | Action |
 |---|---|---|---|---|---|
-| Q1 | `web/app/page.tsx` | 496 | 500 | **Near limit** — extract components soon |
+| Q1 | `web/app/page.tsx` | 466 | 500 | ✅ Under limit — extracted `KeyboardShortcutsModal` (PR #455) |
 | Q2 | `cli/src/resolver/query.rs` | 598→488+95 | 500 | ✅ **RESOLVED** — split into `query/{mod,query_tests}.rs` (PR #454) |
 | Q3 | `cli/src/resolver/url.rs` | 474 | 500 | ✅ Under limit |
 | Q4 | `cli/src/semantic_cache.rs` | ~975 (split into 4 files) | 500 | ✅ **RESOLVED** — split into `{mod,ops,synthesis,tests}.rs`, max 401 lines |
@@ -276,7 +276,7 @@ were already deleted before this audit and confirmed not present.
 
 ---
 
-*Last updated: 2026-06-20. v0.3.8 on main. Waves 1-8 ✅. Plan 21 Waves A-C ✅. PR #451 ✅ merged. PR #454 ✅ merged. 1 open PR (#453), 0 open issues. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
+*Last updated: 2026-06-20. v0.3.8 on main. Waves 1-8 ✅. Plan 21 Waves A-C ✅. PR #451 ✅ merged. PR #453 ✅ merged. PR #454 ✅ merged. PR #455 ✅ merged. 0 open PRs, 0 open issues. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
 
