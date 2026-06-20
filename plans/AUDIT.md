@@ -55,7 +55,7 @@
 | # | File | Lines | Limit | Action |
 |---|---|---|---|---|---|
 | Q1 | `web/app/page.tsx` | 496 | 500 | **Near limit** — extract components soon |
-| Q2 | `cli/src/resolver/query.rs` | 503 | 500 | **Near limit** — was 527; trimmed via build_budget extraction ✅ |
+| Q2 | `cli/src/resolver/query.rs` | 598→488+95 | 500 | ✅ **RESOLVED** — split into `query/{mod,query_tests}.rs` (PR #454) |
 | Q3 | `cli/src/resolver/url.rs` | 474 | 500 | ✅ Under limit |
 | Q4 | `cli/src/semantic_cache.rs` | ~975 (split into 4 files) | 500 | ✅ **RESOLVED** — split into `{mod,ops,synthesis,tests}.rs`, max 401 lines |
 | Q5 | `cli/src/config.rs` | ~672 (split into 3 files) | 500 | ✅ **RESOLVED** — split into `{mod,defaults,parsing}.rs`, max 383 lines |
@@ -119,8 +119,11 @@
 | #408 | Wave 7 — middleware rate limiting, Rust preflight routing, budget alignment | ✅ |
 | #410 | Skill sync, split over-limit SKILL.md, add evals/references | ✅ |
 | #411 | Documentation and agent workflow standards update | ✅ |
+| #450 | Result card accessibility and interactive feedback consistency | ✅ |
+| #451 | Optimize HTML entity decoding in direct_fetch provider | ✅ |
+| #452 | Enhance Provider Monitoring and Routing Logic | ✅ |
 
-### 7. Newly Discovered Issues (2026-05-13 Audit — updated 2026-06-14)
+### 7. Newly Discovered Issues (2026-05-13 Audit — updated 2026-06-20)
 
 | ID | Issue | File | Severity |
 |----|-------|------|----------|
