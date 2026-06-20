@@ -118,8 +118,8 @@ def detect_doc_platform(url: str) -> str | None:
         return "notion"
     if (
         (hostname.endswith(".atlassian.net") and path.startswith("/wiki"))
-        or bool(re.search(r'\bconfluence\b', hostname))
-        or bool(re.search(r'\bconfluence\b', path))
+        or bool(re.search(r"\bconfluence\b", hostname))
+        or bool(re.search(r"\bconfluence\b", path))
     ):
         return "confluence"
 
