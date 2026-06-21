@@ -1,0 +1,396 @@
+---
+name: Security Scan
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Run every Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ============================================================================
+  # SHELL SCRIPT SECURITY SCAN
+  # Scan all bash/shell scripts for security vulnerabilities using shellcheck
+  # ============================================================================
+  shellcheck-security:
+    name: Shell Script Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Run ShellCheck with Security Focus
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38  # 2.0.0
+        continue-on-error: true
+        with:
+          severity: warning
+          format: tty
+          check_together: 'yes'
+          scandir: './scripts'
+        env:
+          # Enable additional security checks
+          SHELLCHECK_OPTS: >-
+            --shell=bash
+            --enable=add-default-case,avoid-nullary-conditions,deprecate-which
+            --enable=check-unassigned-uppercase,quote-safe-variables
+
+      - name: ShellCheck SARIF Output
+        if: always()
+        run: |
+          # Generate SARIF for GitHub Security tab
+          # Find all shell scripts
+          mapfile -t script_files < <(find scripts .agents/skills \
+            -name "*.sh" -type f 2>/dev/null || true)
+
+          if [[ ${#script_files[@]} -gt 0 ]]; then
+            # Run shellcheck once with all files to produce valid merged SARIF
+            shellcheck -f sarif -s bash -S warning "${script_files[@]}" \
+              > shellcheck-results.sarif 2>/dev/null || true
+          fi
+
+          # Validate SARIF JSON; fall back to empty if invalid or missing
+          if [[ ! -s shellcheck-results.sarif ]] || \
+             ! python3 -c "import json,sys; json.load(open('shellcheck-results.sarif'))" \
+             2>/dev/null; then
+            json_str='{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/'
+            json_str+='master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0",'
+            json_str+='"runs":[{"tool":{"driver":{"name":"shellcheck",'
+            json_str+='"informationUri":"https://www.shellcheck.net/"}},"results":[]}]}'
+            printf '%s\n' "$json_str" > shellcheck-results.sarif
+          fi
+
+      - name: Upload ShellCheck SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496  # codeql-bundle-v2.25.6
+        continue-on-error: true
+        with:
+          sarif_file: shellcheck-results.sarif
+          category: shellcheck
+
+  # ============================================================================
+  # TRIVY FILESYSTEM SCAN
+  # Scan repository for secrets, misconfigurations, and vulnerabilities
+  # ============================================================================
+  trivy-fs:
+    name: Trivy Filesystem Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy vulnerability scanner in fs mode
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496  # codeql-bundle-v2.25.6
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-fs
+
+  # ============================================================================
+  # CODEQL ANALYSIS
+  # ============================================================================
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    # Allow job to fail/skip without blocking the workflow
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Check for JavaScript/Python files
+        id: check_files
+        run: |
+          # Check if there are any JS/TS or Python files to analyze
+          if find . -name "*.js" -o -name "*.ts" -o -name "*.py" | grep -q .; then
+            echo "has_codeql_files=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_codeql_files=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No JavaScript/TypeScript/Python files found. Skipping CodeQL analysis."
+          fi
+
+      - name: Initialize CodeQL
+        if: steps.check_files.outputs.has_codeql_files == 'true'
+        uses: github/codeql-action/init@c35d1b164463ee62a100735382aaaa525c5d3496  # codeql-bundle-v2.25.6
+        continue-on-error: true
+        with:
+          languages: javascript,python
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        if: steps.check_files.outputs.has_codeql_files == 'true'
+        uses: github/codeql-action/autobuild@c35d1b164463ee62a100735382aaaa525c5d3496  # codeql-bundle-v2.25.6
+        continue-on-error: true
+
+      - name: Perform CodeQL Analysis
+        if: steps.check_files.outputs.has_codeql_files == 'true'
+        uses: github/codeql-action/analyze@c35d1b164463ee62a100735382aaaa525c5d3496  # codeql-bundle-v2.25.6
+        continue-on-error: true
+        with:
+          category: "/language:javascript"
+
+      - name: Generate empty CodeQL SARIF (no supported files found)
+        if: steps.check_files.outputs.has_codeql_files == 'false'
+        run: |
+          cat > codeql-empty-results.sarif << 'EOF'
+          {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+              {
+                "tool": {
+                  "driver": {
+                    "name": "CodeQL",
+                    "informationUri": "https://codeql.github.com/",
+                    "rules": []
+                  }
+                },
+                "results": [],
+                "properties": {
+                  "semmle.formatSpecifier": "sarifv2.1.0"
+                }
+              }
+            ]
+          }
+          EOF
+
+      - name: Upload empty CodeQL SARIF (no supported files found)
+        if: steps.check_files.outputs.has_codeql_files == 'false'
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496  # codeql-bundle-v2.25.6
+        continue-on-error: true
+        with:
+          sarif_file: codeql-empty-results.sarif
+          category: "/language:javascript"
+
+  # ============================================================================
+  # INFRASTRUCTURE AS CODE SCAN
+  # Scan GitHub Actions workflows and other IaC for misconfigurations
+  # ============================================================================
+  iac-scan:
+    name: Infrastructure as Code Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Scan GitHub Actions with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.github/workflows/'
+          severity: 'CRITICAL,HIGH'
+          format: 'sarif'
+          output: 'trivy-config-results.sarif'
+          exit-code: '0'  # Don't fail, just report
+          ignore-unfixed: true
+
+      - name: Upload IaC Scan SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496  # codeql-bundle-v2.25.6
+        with:
+          sarif_file: trivy-config-results.sarif
+          category: trivy-config
+
+  # ============================================================================
+  # DEPENDENCY AUDIT
+  # Scan for known vulnerabilities in dependencies (Cargo, NPM, Pip)
+  # ============================================================================
+  dependency-audit:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+
+      - name: Rust Dependency Audit
+        uses: rustsec/audit-check@f3118a9c77c18c35d81aa571799a2f95fe55ca22  # v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: cli
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        with:
+          node-version: '22'
+
+      - name: Run npm audit (Web)
+        run: cd web && npm audit --audit-level=high
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: '3.12'
+
+      - name: Run pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+
+  # ============================================================================
+  # RUST SAST
+  # Static analysis for Rust code using strict Clippy warnings
+  # ============================================================================
+  rust-sast:
+    name: Rust Static Analysis (Clippy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9  # v1
+        with:
+          toolchain: '1.85'
+          components: clippy
+
+      - name: Run clippy (strict mode)
+        run: cd cli && cargo clippy --all-targets --all-features -- -D warnings
+
+  # ============================================================================
+  # LICENSE COMPLIANCE
+  # Verify licenses and banned crates using cargo-deny
+  # ============================================================================
+  license-compliance:
+    name: License & Advisory Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@a50c7d58971d074b0475027585da815b5cd37ef0  # v1.6.3
+        with:
+          command: check
+          manifest-path: cli/Cargo.toml
+
+  # ============================================================================
+  # OUTDATED DEPENDENCIES
+  # Surface drift against upstream for Rust dependencies
+  # ============================================================================
+  outdated-deps:
+    name: Outdated Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9  # v1
+        with:
+          toolchain: '1.85'
+
+      - name: Install cargo-outdated
+        run: cargo install cargo-outdated
+
+      - name: Run cargo outdated
+        run: cd cli && cargo outdated --exit-code 0
+
+  # ============================================================================
+  # SECRET SCANNING (GITLEAKS)
+  # Scan full git history for secrets
+  # ============================================================================
+  gitleaks:
+    name: Gitleaks Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e  # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # AGGREGATE SECURITY REPORT
+  # Summarize all security scan results
+  # ============================================================================
+  security-summary:
+    name: Security Scan Summary
+    runs-on: ubuntu-latest
+    needs:
+      - shellcheck-security
+      - trivy-fs
+      - codeql
+      - iac-scan
+      - dependency-audit
+      - rust-sast
+      - license-compliance
+      - outdated-deps
+      - gitleaks
+    if: always()
+    steps:
+      - name: Generate Security Report
+        run: |
+          echo "=========================================="
+          echo "     🔒 SECURITY SCAN SUMMARY"
+          echo "=========================================="
+          echo ""
+          echo "Job Results:"
+          echo "  • ShellCheck Security: ${{ needs.shellcheck-security.result }}"
+          echo "  • Trivy Filesystem: ${{ needs.trivy-fs.result }}"
+          echo "  • CodeQL Analysis: ${{ needs.codeql.result }}"
+          echo "  • IaC Scan: ${{ needs.iac-scan.result }}"
+          echo "  • Dependency Audit: ${{ needs.dependency-audit.result }}"
+          echo "  • Rust SAST: ${{ needs.rust-sast.result }}"
+          echo "  • License Compliance: ${{ needs.license-compliance.result }}"
+          echo "  • Outdated Dependencies: ${{ needs.outdated-deps.result }}"
+          echo "  • Gitleaks Scan: ${{ needs.gitleaks.result }}"
+          echo ""
+
+          shellcheck_result="${{ needs.shellcheck-security.result }}"
+          trivy_result="${{ needs.trivy-fs.result }}"
+          dep_audit_result="${{ needs.dependency-audit.result }}"
+          rust_sast_result="${{ needs.rust-sast.result }}"
+          license_result="${{ needs.license-compliance.result }}"
+          gitleaks_result="${{ needs.gitleaks.result }}"
+
+          if [[ "$shellcheck_result" == "failure" ]] || \
+             [[ "$trivy_result" == "failure" ]] || \
+             [[ "$dep_audit_result" == "failure" ]] || \
+             [[ "$rust_sast_result" == "failure" ]] || \
+             [[ "$license_result" == "failure" ]] || \
+             [[ "$gitleaks_result" == "failure" ]]; then
+            echo "❌ CRITICAL/HIGH vulnerabilities detected!"
+            echo "   Review the Security tab for details."
+            exit 1
+          else
+            echo "✅ All critical security checks passed."
+          fi
+          echo ""
+          echo "All scan results available in the Security tab:"
+          echo "  https://github.com/${{ github.repository }}/security/code-scanning"

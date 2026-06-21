@@ -1,0 +1,30 @@
+# cargo-deny configuration
+
+[advisories]
+version = 2
+ignore = []
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "CC0-1.0",
+    "Unlicense",
+    "Zlib",
+]
+
+[bans]
+version = 2
+deny = []
+skip = []
+skip-tree = []
+
+[sources]
+version = 2
+allow-git = []
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
