@@ -1,27 +1,27 @@
 ---
-relevance_score: 0.95
+relevance_score: 0.98
 intent_category: Technical
-token_estimate: 480
-last_updated: 2026-06-14
+token_estimate: 420
+last_updated: 2026-06-21
 ---
 
 # LLM-Ready Synthesis: Rust Concurrency Performance (June 2026)
 
 [ANCHOR: SUMMARY]
-Rust's `async/await` provides a zero-cost abstraction for task-based concurrency, optimized for high-IO throughput. Compared to OS-level threads, async tasks exhibit significantly lower memory overhead and faster context switching at the cost of increased binary size and "function coloring" complexity [1], [2].
+Rust's `async/await` implements zero-cost task-based concurrency for high-throughput IO. Async tasks utilize stackless futures, minimizing memory footprint and enabling user-space context switching via executors (e.g., Tokio). This architecture avoids kernel-mode transition overhead associated with OS threads [1], [2].
 
 [ANCHOR: TECHNICAL_DETAILS]
-Performance characteristics of Rust concurrency models:
+Performance specifications:
 
-- **Memory Utilization**: OS threads typically require a fixed stack size (e.g., 2MB on Linux), whereas async tasks use dynamically sized futures that occupy only as much memory as needed for their state [1].
-- **Context Switching**: Thread switching involves kernel-mode transitions and register saving/restoring (approx. 1-5µs). Async task switching occurs in user-space via the executor's waker mechanism, incurring only sub-microsecond overhead [2], [3].
-- **Scaling**: A single process can efficiently manage millions of async tasks on a standard machine, while thread counts are capped by OS limits and scheduler contention (typically thousands) [1].
+- **Memory Overhead**: OS threads require fixed stacks (typically 2MB). Async tasks are sized to the state machine of the future, enabling millions of concurrent tasks per process [1].
+- **Switching Latency**: Thread switching incurs 1-5µs (kernel-space). Async task switching occurs in user-space via waker registration, typically sub-microsecond [2], [3].
+- **Instruction Density**: Rust's compilation to machine code ensures minimal runtime abstraction compared to interpreted or JIT-ed concurrency models [1].
 
 ```rust
-// Example of high-density async task spawning
+// Optimized task spawning
 let tasks: Vec<_> = (0..1_000_000).map(|_| {
     tokio::spawn(async {
-        // High-density operation
+        // Atomic operations or IO
     })
 }).collect();
 ```
@@ -30,10 +30,9 @@ let tasks: Vec<_> = (0..1_000_000).map(|_| {
 
 | Metric | OS Threads | Async/Await (Tokio) |
 |--------|------------|---------------------|
-| Context Switch | High (Kernel) | Low (User-space) |
-| Memory/Task | High (Fixed Stack) | Low (Dynamic Future) |
-| Throughput | IO-Bound Bottlenecks | High IO-Concurrency |
-| Complexity | Low (Standard Lib) | High (Async Runtimes) |
+| Context Switch | High (Kernel-space) | Low (User-space) |
+| Memory/Task | High (Static Stack) | Low (Dynamic Future) |
+| Throughput | Thread-bound limited | Executor-bound maximized |
 
 [ANCHOR: CITATIONS]
 [1] <https://rust-lang.github.io/async-book/>

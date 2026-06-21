@@ -155,14 +155,14 @@ pub async fn synthesize_results(
         token_estimate: <int>\n\
         last_updated: {}\n\
         ---\n\n\
-        2. Use Structural Anchors to partition the content, enabling precise RAG retrieval and citation mapping:\n\
+        2. Use EXACT Structural Anchors to partition the content, enabling precise RAG retrieval and citation mapping:\n\
         - [ANCHOR: SUMMARY] - Concise high-level synthesis of findings.\n\
         - [ANCHOR: TECHNICAL_DETAILS] - Deep dive into specs, code, or architecture.\n\
         - [ANCHOR: COMPARISON] - Evaluation of trade-offs and alternatives.\n\
         - [ANCHOR: CITATIONS] - Mapping of indices to source URLs.\n\n\
         3. Adhere to strict 2026 formatting requirements:\n\
         - Use strict CommonMark for maximum downstream compatibility.\n\
-        - Token-Efficiency: Aggressively remove marketing filler and 'AI slop' words (e.g., 'seamlessly', 'robust', 'powerful', 'comprehensive', 'streamlined', 'leverage', 'revolutionize', 'game-changing'). Be extremely dense and factual.\n\\
+        - Token-Efficiency: Aggressively remove marketing filler and 'AI slop' words (e.g., 'seamlessly', 'robust', 'powerful', 'comprehensive', 'streamlined', 'leverage', 'revolutionize', 'game-changing', 'intuitive', 'next-generation', 'cutting-edge', 'state-of-the-art', 'best-in-class'). Be extremely dense and factual.\n\
         - Aggressively deduplicate redundant information across sources.\n\
         - Citation Precision: Every claim MUST be followed by bracketed indices (e.g., [1], [2]) matching the CITATIONS anchor.",
         chrono::Local::now().format("%Y-%m-%d")

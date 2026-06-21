@@ -40,7 +40,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     let noisy = noisy_count > 6;
 
     let jargon_re = JARGON_PATTERNS.get_or_init(|| {
-        Regex::new("(?i)seamlessly|robust|powerful|comprehensive|streamlined|leverage|revolutionize|game-changing")
+        Regex::new("(?i)seamlessly|robust|powerful|comprehensive|streamlined|leverage|revolutionize|game-changing|intuitive|next-generation|cutting-edge|state-of-the-art|best-in-class")
             .expect("Invalid quality jargon regex patterns")
     });
     let jargon_count = jargon_re.find_iter(trimmed).count();
