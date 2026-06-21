@@ -2,7 +2,7 @@
 name: Automated Cleanup
 
 # yamllint disable-line rule:truthy
-on:
+on: # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 2 * * 0'
 

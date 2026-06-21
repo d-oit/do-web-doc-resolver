@@ -3,11 +3,72 @@
 > Primary entry point for AI agents integrating the resolver as a skill.
 > Deep reference is in **[agents-docs/](agents-docs/README.md)**.
 
-## Constants
+## Named Constants
 
-- `MAX_LINES_PER_SOURCE_FILE=500`
-- `MAX_LINES_PER_SKILL_MD=250`
-- `MAX_LINES_AGENTS_MD=150`
+```bash
+readonly MAX_LINES_PER_SOURCE_FILE=500
+readonly MAX_LINES_PER_SKILL_MD=250
+readonly MAX_LINES_AGENTS_MD=200
+readonly DEFAULT_MAX_RETRIES=3
+readonly DEFAULT_RETRY_DELAY_SECONDS=5
+readonly DEFAULT_POLL_INTERVAL_SECONDS=5
+readonly DEFAULT_MAX_POLL_ATTEMPTS=12
+readonly DEFAULT_TIMEOUT_SECONDS=1800
+readonly MAX_COMMIT_SUBJECT_LENGTH=150
+readonly MAX_PR_TITLE_LENGTH=150
+```
+
+## Behavioral Defaults
+
+- **Automation-First**: Execute autonomously within approved plans; minimize confirmation loops.
+- **Parallelism**: Use parallel tool calls for independent operations.
+- **Direct Action**: Proceed immediately when intent is clear.
+- **Diff-Oriented**: Concise diff-focused summaries, not long prose.
+- **Always-Fix Pre-Existing Issues**: No deferral — if a CI check or lint warning is failing on main, agents MUST fix it. Only acceptable exit = green CI.
+
+## Triage Protocol for Unfixable Issues
+
+When a pre-existing failure cannot be fixed in the current run:
+
+1. Create an ADR in `plans/` with root cause and why it's out of scope.
+2. Create a GOAP task in `plans/GOAP_STATE.md` with status blocked + ADR link.
+3. Ensure current commit's quality gate passes regardless.
+4. Never skip, suppress, or mark as done an open issue.
+
+## Delegation Routing
+
+| Mode | Trigger |
+| :--- | :--- |
+| **Self-Execute** | 1 trivial isolated edit (typos, single-line constants) |
+| **Delegate** | 2+ files, architectural changes, tasks requiring judgment |
+| **Swarm** | 5+ similar independent tasks (batch doc normalization, multi-file refactors) |
+
+## Post-Task Protocol — metrics.jsonl
+
+After every completed task, append to `.agents/metrics.jsonl`:
+
+```json
+{
+  "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+  "agent": "<agent-id>",
+  "task": "<description>",
+  "skill_used": "<skill or null>",
+  "status": "completed" | "failed" | "partial",
+  "tokens_used": 0,
+  "duration_seconds": 0,
+  "notes": ""
+}
+```
+
+Append-only. Never truncate. dora-report reads this file.
+
+## YAML Workflow Style Rule
+
+All `.github/workflows/*.yml` must include `# yamllint disable-line rule:truthy` on the `on:` line.
+
+## Session Bootstrap
+
+`docflow.json` drives context injection at agent startup. `hooks/session-start.sh` can be run manually to verify environment readiness.
 
 ## Repository Structure
 
@@ -60,10 +121,6 @@ Detailed reference material in `agents-docs/`:
 - **Rust**: `cd cli && cargo test`
 - **Web**: `cd web && npx playwright test --project=desktop --project=mobile --project=tablet`
 
-## Agent Tool Config
-
-No tool-specific directories (`.jules/`, `.cursor/`, etc.) currently exist in the repository root.
-
 ## Release Workflow
 
 > **Do NOT use `gh release create` manually.** The CI/CD pipeline handles releases automatically.
@@ -80,10 +137,6 @@ git add -A && git commit -m "chore(release): v$VERSION"
 # 3. Tag and push (triggers CI/CD)
 git tag -a v$VERSION -m "Release v$VERSION"
 git push origin main --tags
-
-# 4. Monitor CI/CD (builds binaries + creates GitHub release)
-gh run list --workflow=release.yml
-gh run watch <run-id>
 ```
 
 ### What CI/CD Does Automatically
