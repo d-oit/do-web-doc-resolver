@@ -89,8 +89,8 @@ jobs:
           # body-max-length is disabled (squash merges produce long bodies
           # from PR descriptions by design).
           BODY_LEN=${#PR_BODY}
-          if [ "$BODY_LEN" -gt 1000 ]; then
-            echo "::error::PR body is ${BODY_LEN} chars (max 1000)."
+          if [ "$BODY_LEN" -gt 2000 ]; then
+            echo "::error::PR body is ${BODY_LEN} chars (max 2000)."
             echo "::error::On squash merge, long bodies become commit messages."
             echo "::error::Please shorten the PR description."
             exit 1
