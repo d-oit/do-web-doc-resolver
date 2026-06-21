@@ -1,4 +1,5 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 // Current implementation
 fn decode_entities_old(text: &str) -> String {
@@ -110,19 +111,19 @@ fn bench_decode_entities(c: &mut Criterion) {
     let mut group = c.benchmark_group("decode_entities");
 
     group.bench_function("old_with_entities", |b| {
-        b.iter(|| decode_entities_old(black_box(&text_with_entities)))
+        b.iter(|| decode_entities_old(black_box(text_with_entities)))
     });
 
     group.bench_function("optimized_with_entities", |b| {
-        b.iter(|| decode_entities_optimized(black_box(&text_with_entities)))
+        b.iter(|| decode_entities_optimized(black_box(text_with_entities)))
     });
 
     group.bench_function("old_no_entities", |b| {
-        b.iter(|| decode_entities_old(black_box(&text_no_entities)))
+        b.iter(|| decode_entities_old(black_box(text_no_entities)))
     });
 
     group.bench_function("optimized_no_entities", |b| {
-        b.iter(|| decode_entities_optimized(black_box(&text_no_entities)))
+        b.iter(|| decode_entities_optimized(black_box(text_no_entities)))
     });
 
     group.bench_function("old_long", |b| {
