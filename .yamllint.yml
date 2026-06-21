@@ -1,0 +1,21 @@
+extends: default
+
+rules:
+  line-length:
+    max: 120
+    allow-non-breakable-words: true
+  truthy:
+    allowed-values: ['true', 'false']
+  indentation:
+    spaces: 2
+  document-start: disable
+  comments: disable
+
+ignore:
+  - "web/pnpm-lock.yaml"
+  - "cli/ui/pnpm-lock.yaml"
+  - "node_modules/"
+  - ".git/"
+  - ".github/workflows/monitor-providers.yml"
+  - ".github/workflows/close-resolved-issues.yml"
+  - ".github/workflows/release.yml"

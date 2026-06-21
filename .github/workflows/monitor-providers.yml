@@ -1,6 +1,6 @@
 name: Monitor Providers
 
-on:
+on:  # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 0' # Weekly on Sundays at midnight
   workflow_dispatch:
