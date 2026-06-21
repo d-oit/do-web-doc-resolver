@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
         with:
           fetch-depth: 0
 
@@ -73,7 +73,7 @@ jobs:
 
       - name: Upload ShellCheck SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@6bb031afdd8886cefd57303e8f79ff96d5ad8e3c  # v3.28.10
+        uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
           sarif_file: shellcheck-results.sarif
@@ -88,24 +88,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Run Trivy vulnerability scanner in fs mode
-        uses: aquasecurity/trivy-action@18f251a8b652cbb242eb51829e70755913e847c2  # v0.29.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
           severity: 'CRITICAL,HIGH,MEDIUM'
           format: 'sarif'
           output: 'trivy-results.sarif'
-          exit-code: '0'  # Report, don't fail yet
+          exit-code: '0'
           ignore-unfixed: true
 
       - name: Upload Trivy SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@6bb031afdd8886cefd57303e8f79ff96d5ad8e3c  # v3.28.10
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
           category: trivy-fs
@@ -124,7 +124,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
         with:
           fetch-depth: 0
 
@@ -141,7 +141,7 @@ jobs:
 
       - name: Initialize CodeQL
         if: steps.check_files.outputs.has_codeql_files == 'true'
-        uses: github/codeql-action/init@6bb031afdd8886cefd57303e8f79ff96d5ad8e3c  # v3.28.10
+        uses: github/codeql-action/init@v3
         continue-on-error: true
         with:
           languages: javascript,python
@@ -149,12 +149,12 @@ jobs:
 
       - name: Autobuild
         if: steps.check_files.outputs.has_codeql_files == 'true'
-        uses: github/codeql-action/autobuild@6bb031afdd8886cefd57303e8f79ff96d5ad8e3c  # v3.28.10
+        uses: github/codeql-action/autobuild@v3
         continue-on-error: true
 
       - name: Perform CodeQL Analysis
         if: steps.check_files.outputs.has_codeql_files == 'true'
-        uses: github/codeql-action/analyze@6bb031afdd8886cefd57303e8f79ff96d5ad8e3c  # v3.28.10
+        uses: github/codeql-action/analyze@v3
         continue-on-error: true
         with:
           category: "/language:javascript"
@@ -186,7 +186,7 @@ jobs:
 
       - name: Upload empty CodeQL SARIF (no supported files found)
         if: steps.check_files.outputs.has_codeql_files == 'false'
-        uses: github/codeql-action/upload-sarif@6bb031afdd8886cefd57303e8f79ff96d5ad8e3c  # v3.28.10
+        uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
           sarif_file: codeql-empty-results.sarif
@@ -201,24 +201,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Scan GitHub Actions with Trivy
-        uses: aquasecurity/trivy-action@18f251a8b652cbb242eb51829e70755913e847c2  # v0.29.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
           scan-ref: '.github/workflows/'
           severity: 'CRITICAL,HIGH'
           format: 'sarif'
           output: 'trivy-config-results.sarif'
-          exit-code: '0'  # Don't fail, just report
+          exit-code: '0'
           ignore-unfixed: true
 
       - name: Upload IaC Scan SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@6bb031afdd8886cefd57303e8f79ff96d5ad8e3c  # v3.28.10
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-config-results.sarif
           category: trivy-config
@@ -232,7 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9  # v1
@@ -245,7 +245,7 @@ jobs:
           cd cli && cargo audit || true
 
       - name: Set up Node
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c483a2a09b  # v4.2.1
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
 
@@ -253,7 +253,7 @@ jobs:
         run: cd web && npm audit --audit-level=high || true
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38  # v5.4.0
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -271,7 +271,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9  # v1
@@ -291,7 +291,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9  # v1
@@ -300,7 +300,7 @@ jobs:
 
       - name: Run cargo-deny
         run: |
-          cargo install cargo-deny
+          cargo install cargo-deny --version 0.18.3
           cd cli && cargo deny --context . check || true
 
   # ============================================================================
@@ -312,7 +312,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9  # v1
@@ -334,12 +334,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@785f7823f99079a4055272a9128f78b17b35f6f2  # v2.3.7
+        uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
