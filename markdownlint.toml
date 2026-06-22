@@ -1,9 +1,0 @@
-# markdownlint configuration for do-web-doc-resolver
-# See: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
-#
-# NOTE: markdownlint-cli prefers flat JSON/YAML config.
-# See .markdownlint.json for the canonical config.
-
-MD013 = false
-MD033 = false
-MD041 = false
