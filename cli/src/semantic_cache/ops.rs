@@ -27,7 +27,10 @@ impl SemanticCache {
         if crate::resolver::is_url(text) {
             tokens.retain(|w| {
                 let low = w.to_lowercase();
-                !["https", "http", "www", "html", "htm", "php", "asp", "aspx", "jsp"].contains(&low.as_str())
+                ![
+                    "https", "http", "www", "html", "htm", "php", "asp", "aspx", "jsp",
+                ]
+                .contains(&low.as_str())
             });
         }
 
@@ -244,8 +247,6 @@ impl SemanticCache {
                         serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
                     {
                         // Optimization: Alias this semantic hit as an exact hit for next time.
-                        // This avoids the expensive embedding/probe on subsequent identical queries.
-                        // We use a high threshold to ensure we don't alias poor matches.
                         if *best_score > 0.95 {
                             let _ = self.store_alias(query, &results, query_vector).await;
                         }
@@ -259,7 +260,7 @@ impl SemanticCache {
             "Semantic cache miss for query='{}' (best score: {:.2} < {})",
             query,
             best_score,
-            effective_threshold
+            self.config.threshold
         );
         self.miss_count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -290,7 +291,6 @@ impl SemanticCache {
         if let Ok(hits) = self.framework.probe(query_vector, 5).await {
             for (best_id, best_score) in hits {
                 // If score is extremely high, always skip to avoid bloat.
-                // 0.99 is enough to consider it a duplicate in terms of semantic utility.
                 if best_score > 0.99 {
                     tracing::info!(
                         "Skipping store for query='{}': extremely similar entry already exists (id: {}, score: {:.4})",
@@ -494,7 +494,7 @@ impl SemanticCache {
         tracing::debug!("Encoding query: '{}'", normalized);
         let encoder_start = std::time::Instant::now();
         let encoder = GLOBAL_ENCODER.get_or_init(|| {
-            tracing::info!("Loading text encoder (first use)...");
+            tracing::info!("Loading text encoder (first use)... ");
             TextEncoder::new_code_aware()
         });
         tracing::debug!("Encoder ready in {}ms", encoder_start.elapsed().as_millis());
