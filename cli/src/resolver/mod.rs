@@ -20,6 +20,7 @@ use crate::error::ResolverError;
 use crate::metrics::ResolveMetrics;
 use crate::negative_cache::NegativeCache;
 use crate::providers::rate_limiter::RateLimiterRegistry;
+use crate::quality::score_content;
 use crate::routing_memory::RoutingMemory;
 use crate::semantic_cache::SemanticCache;
 use crate::synthesis::{deterministic_merge, synthesize_results};
@@ -216,9 +217,19 @@ impl Resolver {
                 &mut metrics,
             )
             .await?;
-            let mut res =
-                ResolvedResult::new(results[0].url.clone(), Some(synthesized), "synthesis", 1.0);
-            metrics.record_provider(ProviderType::MistralWebSearch, 0, true); // Dummy record for synthesis
+
+            let links = extract_links(&synthesized);
+            let threshold = self.config.quality_threshold.unwrap_or(0.85);
+            let quality = score_content(&synthesized, &links, threshold);
+            metrics.record_gate(quality.score);
+
+            let mut res = ResolvedResult::new(
+                results[0].url.clone(),
+                Some(synthesized),
+                "synthesis",
+                quality.score as f64,
+            );
+            metrics.record_provider(ProviderType::MistralWebSearch, 0, true);
             res.metrics = Some(metrics);
 
             // Store in semantic cache

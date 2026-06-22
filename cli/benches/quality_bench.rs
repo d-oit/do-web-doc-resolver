@@ -1,5 +1,6 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use do_wdr_lib::quality::score_content;
+use std::hint::black_box;
 
 fn bench_quality_scoring(c: &mut Criterion) {
     let markdown = r#"
