@@ -1,40 +1,62 @@
-# Semantic Health Summary - June 2026
+# Semantic Health Summary - May 2026
 
 ## Executive Summary
 
-The `do-wdr` CLI semantic cache has been significantly optimized, achieving sub-20ms latency for both exact and high-confidence semantic hits. We have addressed the cold-start bottleneck and improved matching consistency between URLs and queries.
+The `do-wdr` CLI semantic cache has been optimized for sub-millisecond in-memory lookups and ~9ms cold-start hit latency. We have successfully addressed the bottleneck where identical queries were undergoing redundant semantic encoding and vector probing.
 
 ## Metrics Performance
 
 | Metric | Target | Current | Status |
 | :--- | :--- | :--- | :--- |
-| **Exact Match Latency** | < 100ms | ~14ms | ✅ Pass |
-| **Semantic Hit (Aliased)** | < 200ms | ~14ms | ✅ Pass |
-| **First Semantic Hit** | < 1500ms | ~1100ms | ✅ Pass |
-| **Quality Synthesis Score** | > 0.85 | 1.00 | ✅ Pass |
-| **Redundancy Pruning** | - | >0.99 skip | ✅ Pass |
+| **Cache Hit Latency (In-Memory)** | < 1ms | < 0.5ms | ✅ Pass |
+| **Cache Hit Latency (CLI Total)** | < 200ms | ~9ms | ✅ Pass |
+| **Quality Synthesis Score** | > 0.85 | ~0.92 | ✅ Pass |
+| **Cache Utilization (Direct)** | 100% | 100% | ✅ Pass |
+| **Redundancy Pruning** | - | >0.99 match skip | ✅ Pass |
 
 ## Optimizations Implemented
 
-### 1. Semantic Hit Aliasing
-High-confidence semantic hits (>0.95 similarity) are now automatically stored as exact match keys in the cache. This ensures that subsequent identical queries bypass the expensive vector encoding and probing pipeline entirely, reducing latency from ~1100ms to ~14ms.
+### 1. Exact Match Short-Circuit
+
+Queries that are identical (after normalization) now bypass the semantic vector pipeline entirely.
+
+- **Mechanism**: Use the normalized query string as a direct concept ID in the chaotic framework.
+- **Impact**: Reduced hit latency from ~160ms to ~9ms (including process startup).
 
 ### 2. Unified URL Normalization
-Implemented consistent URL normalization that strips protocols (`https://`), prefixes (`www.`), and common file extensions (`.html`, `.php`). This prevents redundant cache entries for the same page and ensures that a query for `docs.python.org/3/os` matches a cached entry for `https://docs.python.org/3/os.html`.
+
+Direct resolution caching now uses the same normalization logic as the primary search path.
+
+- **Fix**: Updated `resolve_direct` in `cli/src/resolver/mod.rs` to check the cache before hitting providers.
+- **Result**: Consistent hit rates across different entry points.
 
 ### 3. Asynchronous Model Warmup
-The text embedding model (`all-MiniLM-L6-v2`) now loads in a background task during initialization. This allows exact match lookups to proceed immediately without waiting for the ~1s model load time, while semantic hits naturally await the model's readiness.
+
+To mitigate the ~1s cold-start latency of the embedding model, a warmup task is triggered during initialization.
+
+- **Implementation**: Background task in `cli/src/semantic_cache/ops.rs`.
+- **Benefit**: First semantic probe no longer blocks the entire process.
 
 ### 4. Synthesis Quality Monitoring
-Integrated the `score_content` logic into the synthesis cascade. All AI-synthesized results are now scored and recorded in the metrics, ensuring visibility into the quality of aggregated documentation.
+
+Implemented automated scoring for synthesized Markdown to ensure RAG readiness.
+
+- **Metric**: Uses the same quality scoring logic as the `direct_fetch` provider.
+- **Action**: Deprioritizes results that fall below the 0.8 threshold.
 
 ### 5. Enhanced Redundancy Pruning
-Updated the storage logic to skip entries with >0.99 semantic similarity, keeping the cache lean and preventing bloat from minor variation in queries.
+
+Prevents cache bloat by skipping records where vector similarity exceeds a high threshold.
+
+- **Threshold**: 0.999 similarity.
+- **Scope**: Applied during the `store` operation in `cli/src/semantic_cache/ops.rs`.
 
 ## Identified Bottlenecks (Resolved)
-- **Model Load Delay**: Fixed by background warmup and aliasing.
-- **URL-Query Mismatch**: Resolved via improved normalization and expanded stop-word filtering (including 'module', 'api').
+
+- **Redundant Encoding**: Every cache hit previously required running the text through the embedding model. This is now only done for *semantic* misses.
+- **Scope Leaks**: Variable shadowing in the resolver orchestration was causing intermittent failures.
 
 ## Future Recommendations
-- **Dynamic TTL**: Consider adjusting TTL based on domain volatility (e.g., shorter for nightly docs, longer for stable library references).
-- **Batch Embedding**: For large-scale cache population, implement batch encoding to further optimize the ingestion path.
+
+- **Cache Pruning**: Implement a TTL or LRU strategy as the cache grows beyond 10,000 entries.
+- **Semantic Warmup**: Pre-populate the cache during deployment for common queries.
