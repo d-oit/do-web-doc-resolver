@@ -1,7 +1,6 @@
----
 name: Close Resolved Issues
 
-on:  # yamllint disable-line rule:truthy
+on: # yamllint disable-line rule:truthy
   pull_request_target:
     types: [closed]
 
@@ -21,7 +20,7 @@ jobs:
 
     steps:
       - name: Close referenced issues
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b  # v9.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -46,8 +45,8 @@ jobs:
             }
 
             // Conservative matching: only explicit closing keywords.
-            // Examples: "close  #12", "fixe  #34", "resolv  #56"
-            const closingPattern = /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s  #(\d+)\b/gi;
+            // Examples: "closes #12", "fixed #34", "resolve #56"
+            const closingPattern = /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)\b/gi;
 
             const found = new Set();
             for (const match of text.matchAll(closingPattern)) {
@@ -64,7 +63,7 @@ jobs:
               return;
             }
 
-            core.info(`Found issue references: ${issueNumbers.map(n =>   #${n}`).join(', ')}`);
+            core.info(`Found issue references: ${issueNumbers.map(n => `#${n}`).join(', ')}`);
 
             const closed = [];
             const skipped = [];
@@ -79,12 +78,12 @@ jobs:
                 });
 
                 if (issue.pull_request) {
-                  skipped.push(  #${issue_number} is a pull request, not an issue`);
+                  skipped.push(`#${issue_number} is a pull request, not an issue`);
                   continue;
                 }
 
                 if (issue.state === 'closed') {
-                  skipped.push(  #${issue_number} already closed`);
+                  skipped.push(`#${issue_number} already closed`);
                   continue;
                 }
 
@@ -100,15 +99,15 @@ jobs:
                   owner,
                   repo,
                   issue_number,
-                  body: `✅ Closed automatically via merged P  #${prNumber}${prUrl ? ` (${prUrl})` : ''}, merged by @${mergedBy}.`
+                  body: `✅ Closed automatically via merged PR #${prNumber}${prUrl ? ` (${prUrl})` : ''}, merged by @${mergedBy}.`
                 });
 
                 closed.push(issue_number);
-                core.info(`Closed issu  #${issue_number}`);
+                core.info(`Closed issue #${issue_number}`);
               } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
-                failed.push(  #${issue_number}: ${message}`);
-                core.warning(`Could not process issu  #${issue_number}: ${message}`);
+                failed.push(`#${issue_number}: ${message}`);
+                core.warning(`Could not process issue #${issue_number}: ${message}`);
               }
             }
 
@@ -121,7 +120,7 @@ jobs:
                 ],
                 [
                   'Closed',
-                  closed.length ? closed.map(n =>   #${n}`).join(', ') : 'None'
+                  closed.length ? closed.map(n => `#${n}`).join(', ') : 'None'
                 ],
                 [
                   'Skipped',
