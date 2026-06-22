@@ -20,10 +20,19 @@ impl SemanticCache {
     #[allow(dead_code)]
     pub(crate) fn normalize_text(text: &str, filter_stop_words: bool) -> String {
         let mut tokens: Vec<&str> = text
-            .split_whitespace()
-            .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()))
+            .split(|c: char| !c.is_alphanumeric())
             .filter(|w| !w.is_empty())
             .collect();
+
+        if crate::resolver::is_url(text) {
+            tokens.retain(|w| {
+                let low = w.to_lowercase();
+                ![
+                    "https", "http", "www", "html", "htm", "php", "asp", "aspx", "jsp",
+                ]
+                .contains(&low.as_str())
+            });
+        }
 
         if filter_stop_words && !crate::resolver::is_url(text) {
             tokens.retain(|w| {
@@ -47,6 +56,8 @@ impl SemanticCache {
                     "and",
                     "programming",
                     "language",
+                    "module",
+                    "api",
                 ]
                 .contains(&low.as_str())
             });
@@ -114,7 +125,10 @@ impl SemanticCache {
         // This ensures the first semantic hit in a long-running session is fast,
         // and for CLI it makes the 'init' phase include model loading.
         tokio::task::spawn_blocking(|| {
-            let _ = GLOBAL_ENCODER.get_or_init(TextEncoder::new_code_aware);
+            let _ = GLOBAL_ENCODER.get_or_init(|| {
+                tracing::info!("Warming up text encoder in background...");
+                TextEncoder::new_code_aware()
+            });
         });
 
         Ok(Some(Self {
@@ -232,6 +246,10 @@ impl SemanticCache {
                     if let Ok(results) =
                         serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
                     {
+                        // Optimization: Alias this semantic hit as an exact hit for next time.
+                        if *best_score > 0.95 {
+                            let _ = self.store_alias(query, &results, query_vector).await;
+                        }
                         return Ok(Some(results));
                     }
                 }
@@ -273,7 +291,8 @@ impl SemanticCache {
         if let Ok(hits) = self.framework.probe(query_vector, 5).await {
             for (best_id, best_score) in hits {
                 // If score is extremely high (1.0 after normalization), always skip to avoid bloat
-                if best_score > 0.999 {
+                // If score is extremely high, always skip to avoid bloat.
+                if best_score > 0.99 {
                     tracing::info!(
                         "Skipping store for query='{}': extremely similar entry already exists (id: {}, score: {:.4})",
                         query,
@@ -344,6 +363,42 @@ impl SemanticCache {
     }
 
     #[cfg(feature = "semantic-cache")]
+    pub async fn store_alias(
+        &self,
+        query: &str,
+        results: &[ResolvedResult],
+        vector: HVec10240,
+    ) -> StdResult<(), ResolverError> {
+        let normalized = Self::normalize_text(query, false);
+
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert(
+            "query".to_string(),
+            serde_json::Value::String(query.to_string()),
+        );
+        metadata.insert(
+            "results".to_string(),
+            serde_json::to_value(results)
+                .map_err(|e| ResolverError::Cache(format!("serialize results: {}", e)))?,
+        );
+        metadata.insert(
+            "provider".to_string(),
+            serde_json::Value::String("cache_alias".to_string()),
+        );
+        metadata.insert(
+            "timestamp".to_string(),
+            serde_json::Value::String(chrono::Utc::now().to_rfc3339()),
+        );
+
+        self.framework
+            .inject_concept_with_metadata(normalized, vector, metadata)
+            .await
+            .map_err(|e| ResolverError::Cache(format!("inject alias failed: {}", e)))?;
+
+        Ok(())
+    }
+
+    #[cfg(feature = "semantic-cache")]
     pub async fn remove(&self, query: &str) -> StdResult<(), ResolverError> {
         let normalized = Self::normalize_text(query, false);
 
@@ -353,6 +408,17 @@ impl SemanticCache {
             .map_err(|e| ResolverError::Cache(format!("delete failed: {}", e)))?;
 
         tracing::info!("Removed from semantic cache: query='{}'", query);
+        Ok(())
+    }
+
+    #[cfg(not(feature = "semantic-cache"))]
+    #[allow(dead_code)]
+    pub async fn store_alias(
+        &self,
+        _query: &str,
+        _results: &[ResolvedResult],
+        _vector: (),
+    ) -> StdResult<(), ResolverError> {
         Ok(())
     }
 
@@ -419,16 +485,27 @@ impl SemanticCache {
 
     #[cfg(feature = "semantic-cache")]
     pub(crate) fn encode_query(&self, query: &str) -> HVec10240 {
+        let start = std::time::Instant::now();
         let normalized = Self::normalize_text(query, true);
 
         if let Ok(cache) = self.embedding_cache.lock() {
             if let Some(vec) = cache.get(&normalized) {
+                tracing::debug!("Embedding cache hit in {}ms", start.elapsed().as_millis());
                 return *vec;
             }
         }
 
-        let encoder = GLOBAL_ENCODER.get_or_init(TextEncoder::new_code_aware);
+        tracing::debug!("Encoding query: '{}'", normalized);
+        let encoder_start = std::time::Instant::now();
+        let encoder = GLOBAL_ENCODER.get_or_init(|| {
+            tracing::info!("Loading text encoder (first use)... ");
+            TextEncoder::new_code_aware()
+        });
+        tracing::debug!("Encoder ready in {}ms", encoder_start.elapsed().as_millis());
+
+        let encode_start = std::time::Instant::now();
         let vec = encoder.encode(&normalized);
+        tracing::debug!("Text encoded in {}ms", encode_start.elapsed().as_millis());
 
         if let Ok(mut cache) = self.embedding_cache.lock() {
             if cache.len() < 1000 {
