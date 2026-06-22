@@ -122,8 +122,8 @@ impl SemanticCache {
             .map_err(|e| ResolverError::Config(e.to_string()))?;
 
         // Warm up the encoder in a background task to pay the ~1s loading cost upfront
-        // We don't await it here to keep exact hits fast (~20ms).
-        // Semantic hits will naturally wait for it via OnceLock in encode_query.
+        // This ensures the first semantic hit in a long-running session is fast,
+        // and for CLI it makes the 'init' phase include model loading.
         tokio::task::spawn_blocking(|| {
             let _ = GLOBAL_ENCODER.get_or_init(|| {
                 tracing::info!("Warming up text encoder in background...");
@@ -290,6 +290,7 @@ impl SemanticCache {
         // Redundancy pruning: check if a very similar entry already exists
         if let Ok(hits) = self.framework.probe(query_vector, 5).await {
             for (best_id, best_score) in hits {
+                // If score is extremely high (1.0 after normalization), always skip to avoid bloat
                 // If score is extremely high, always skip to avoid bloat.
                 if best_score > 0.99 {
                     tracing::info!(
@@ -370,8 +371,11 @@ impl SemanticCache {
     ) -> StdResult<(), ResolverError> {
         let normalized = Self::normalize_text(query, false);
 
-        let mut metadata = HashMap::new();
-        metadata.insert("query".to_string(), Value::String(query.to_string()));
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert(
+            "query".to_string(),
+            serde_json::Value::String(query.to_string()),
+        );
         metadata.insert(
             "results".to_string(),
             serde_json::to_value(results)
@@ -379,11 +383,11 @@ impl SemanticCache {
         );
         metadata.insert(
             "provider".to_string(),
-            Value::String("cache_alias".to_string()),
+            serde_json::Value::String("cache_alias".to_string()),
         );
         metadata.insert(
             "timestamp".to_string(),
-            Value::String(chrono::Utc::now().to_rfc3339()),
+            serde_json::Value::String(chrono::Utc::now().to_rfc3339()),
         );
 
         self.framework
