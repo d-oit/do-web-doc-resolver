@@ -37,5 +37,4 @@ jobs:
 
       - name: Run markdownlint
         run: |
-          markdownlint-cli2 '**/*.md' 2>&1 || \
-            (echo "❌ Markdown lint failed. Fix errors with: markdownlint-cli2 --fix '**/*.md'" && exit 1)
+          markdownlint-cli2 '**/*.md'

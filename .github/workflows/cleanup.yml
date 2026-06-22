@@ -2,7 +2,7 @@
 name: Automated Cleanup
 
 # yamllint disable-line rule:truthy
-on: # yamllint disable-line rule:truthy
+on:  # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 2 * * 0'
 
@@ -54,6 +54,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # shellcheck disable=SC2129
           pip install -r requirements.txt
           pip install ruff black mypy types-requests
           cd web && npm ci --legacy-peer-deps
@@ -61,8 +62,9 @@ jobs:
       - name: Detect unused scripts
         id: unused
         run: |
+          # shellcheck disable=SC2129
           {
-            echo "# Detecting potentially unused files..."
+            echo "  # Detecting potentially unused files..."
             echo ""
 
             markdown_list=""
@@ -74,7 +76,7 @@ jobs:
             if [ -f ".cleanup-ignore" ]; then
               while IFS= read -r line || [[ -n "$line" ]]; do
                 # Skip comments and empty lines
-                [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+                [[ "$line" =~ ^  #.*$ || -z "$line" ]] && continue
                 ignored_files+=("$line")
               done < ".cleanup-ignore"
             fi
@@ -119,7 +121,7 @@ jobs:
               grep -v ".git" || true)
             if [ -n "${broken_links}" ]; then
               echo ""
-              echo "## Broken Symlinks"
+              echo "  ## Broken Symlinks"
               echo "${broken_links}"
             fi
 
@@ -127,13 +129,13 @@ jobs:
               -name "*debug*" -o -name "*temp*" -o -name "*backup*" 2>/dev/null || true)
             if [ -n "${old_files}" ]; then
               echo ""
-              echo "## Temp/Debug Files"
+              echo "  ## Temp/Debug Files"
               echo "${old_files}"
             fi
 
             if [ "${skipped_count}" -gt 0 ]; then
               echo ""
-              echo "## Ignored Files"
+              echo "  ## Ignored Files"
               echo "Skipped ${skipped_count} files based on .cleanup-ignore"
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -146,8 +148,9 @@ jobs:
       - name: Check file ages via git history
         id: ages
         run: |
+          # shellcheck disable=SC2129
           {
-            echo "## Files Not Modified in 90+ Days"
+            echo "  ## Files Not Modified in 90+ Days"
             echo ""
 
             now=$(date +%s)
@@ -175,6 +178,7 @@ jobs:
       - name: Remove identified unused files
         if: github.event.inputs.dry_run != 'true' && steps.unused.outputs.raw_files != ''
         run: |
+          # shellcheck disable=SC2129
           for file in ${{ steps.unused.outputs.raw_files }}; do
             if [ -f "${file}" ]; then
               git rm -f "${file}"
@@ -184,7 +188,8 @@ jobs:
       - name: Run quality gate
         id: quality
         run: |
-          echo "## Quality Gate Check" >> "${GITHUB_STEP_SUMMARY}"
+          # shellcheck disable=SC2129
+          echo "  ## Quality Gate Check" >> "${GITHUB_STEP_SUMMARY}"
 
           if bash ./scripts/quality_gate.sh; then
             echo "Quality gate passes" >> "${GITHUB_STEP_SUMMARY}"
@@ -242,8 +247,9 @@ jobs:
     steps:
       - name: Summary
         run: |
+          # shellcheck disable=SC2129
           {
-            echo "## Cleanup Workflow Complete"
+            echo "  ## Cleanup Workflow Complete"
             echo ""
             echo "- Detection job: ${{ needs.detect-unused.result }}"
             echo "- If files were detected, a DRAFT PR was created"

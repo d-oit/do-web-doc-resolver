@@ -88,7 +88,7 @@ jobs:
           # commit message. Enforce body limits here since commitlint
           # body-max-length is disabled (squash merges produce long bodies
           # from PR descriptions by design).
-          BODY_LEN=${#PR_BODY}
+          BODY_LEN=${  #PR_BODY}
           if [ "$BODY_LEN" -gt 2000 ]; then
             echo "::error::PR body is ${BODY_LEN} chars (max 2000)."
             echo "::error::On squash merge, long bodies become commit messages."
