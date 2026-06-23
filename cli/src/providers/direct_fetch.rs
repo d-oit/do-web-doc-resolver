@@ -123,13 +123,12 @@ fn decode_entities(text: &str) -> String {
                 };
 
                 let entity = &text[start_idx..end_idx];
-                let decoded_string: String;
                 let decoded = match entity {
                     "lt;" => Some("<"),
                     "gt;" => Some(">"),
                     "quot;" => Some("\""),
                     "#x27;" | "#39;" => Some("'"),
-                    "nbsp;" | "#160;" => Some(" "),
+                    "nbsp;" => Some(" "),
                     "copy;" => Some("©"),
                     "reg;" => Some("®"),
                     "trade;" => Some("™"),
@@ -143,30 +142,6 @@ fn decode_entities(text: &str) -> String {
                     "#93;" => Some("]"),
                     "#8288;" => Some(""),
                     "amp;" => Some("&"),
-                    e if e.starts_with("#x") => {
-                        if let Ok(code) = u32::from_str_radix(&e[2..e.len() - 1], 16) {
-                            if let Some(c) = char::from_u32(code) {
-                                decoded_string = c.to_string();
-                                Some(decoded_string.as_str())
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    }
-                    e if e.starts_with('#') => {
-                        if let Ok(code) = e[1..e.len() - 1].parse::<u32>() {
-                            if let Some(c) = char::from_u32(code) {
-                                decoded_string = c.to_string();
-                                Some(decoded_string.as_str())
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    }
                     _ => None,
                 };
 
@@ -313,9 +288,8 @@ impl StripperState<'_> {
                     let formula = alt.trim().to_string();
                     let normalized = normalize_formula(&formula);
                     if !formula.is_empty() && normalized != self.last_formula {
-                        let cleaned = clean_formula(&formula);
                         self.result.push_str(" $");
-                        self.result.push_str(&cleaned);
+                        self.result.push_str(&formula);
                         self.result.push_str("$ ");
                         self.last_formula = normalized;
                     }
@@ -379,10 +353,9 @@ impl StripperState<'_> {
                         {
                             let normalized = normalize_formula(trimmed_alt);
                             if normalized != self.last_formula {
-                                let cleaned = clean_formula(trimmed_alt);
                                 self.result.push(' ');
                                 self.result.push('$');
-                                self.result.push_str(&cleaned);
+                                self.result.push_str(trimmed_alt);
                                 self.result.push('$');
                                 self.result.push(' ');
                                 self.last_formula = normalized;
@@ -425,31 +398,11 @@ impl StripperState<'_> {
     }
 }
 
-/// Clean a LaTeX formula for output by removing noisy formatting commands
-fn clean_formula(formula: &str) -> String {
-    let mut cleaned = formula
-        .replace("{\\displaystyle", "")
-        .replace("\\textstyle", "")
-        .replace("\\scriptstyle", "")
-        .replace("\\scriptscriptstyle", "")
-        .replace("\\!", "");
-
-    if formula.contains("{\\displaystyle") && cleaned.ends_with('}') {
-        cleaned.pop();
-    }
-
-    cleaned.trim().to_string()
-}
-
 /// Normalize a LaTeX formula for deduplication
 fn normalize_formula(formula: &str) -> String {
     formula
         .replace("{\\displaystyle", "")
-        .replace("\\textstyle", "")
-        .replace("\\scriptstyle", "")
-        .replace("\\scriptscriptstyle", "")
-        .replace("\\!", "")
-        .replace(['}', '\\', ' ', '\n', '\t'], "")
+        .replace(['}', '\\', ' '], "")
         .trim()
         .to_lowercase()
 }
@@ -599,7 +552,7 @@ mod tests {
     fn test_img_alt_latex() {
         let html = "<img src=\"math.svg\" alt=\"{\\displaystyle x^2 + y^2 = z^2}\">";
         let result = strip_html(html);
-        assert!(result.contains("$x^2 + y^2 = z^2$"));
+        assert!(result.contains("${\\displaystyle x^2 + y^2 = z^2}$"));
     }
 
     #[test]
