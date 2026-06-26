@@ -37,14 +37,12 @@ pub fn compact_content(content: &str, max_chars: usize) -> String {
     // Truncate to max_chars safely (avoiding UTF-8 slicing panics)
     if joined.len() <= max_chars {
         joined
+    } else if let Some((idx, _)) = joined.char_indices().nth(max_chars) {
+        let mut result = joined;
+        result.truncate(idx);
+        result
     } else {
-        if let Some((idx, _)) = joined.char_indices().nth(max_chars) {
-            let mut result = joined;
-            result.truncate(idx);
-            result
-        } else {
-            joined
-        }
+        joined
     }
 }
 
