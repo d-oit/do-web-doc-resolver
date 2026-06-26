@@ -4,6 +4,8 @@ use std::sync::OnceLock;
 static NOISY_PATTERNS: OnceLock<Regex> = OnceLock::new();
 static JARGON_PATTERNS: OnceLock<Regex> = OnceLock::new();
 
+const INITIAL_LINE_CAPACITY: usize = 128;
+
 #[derive(Debug, Clone)]
 pub struct QualityScore {
     pub score: f32,
@@ -23,7 +25,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
 
     // Optimize duplicate detection: single pass over lines
     let mut total_lines = 0;
-    let mut unique_set = std::collections::HashSet::with_capacity(128);
+    let mut unique_set = std::collections::HashSet::with_capacity(INITIAL_LINE_CAPACITY);
     for line in trimmed.lines() {
         total_lines += 1;
         unique_set.insert(line);
