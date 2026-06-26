@@ -8,11 +8,13 @@ use regex::RegexSet;
 static BOILERPLATE_SET: OnceLock<RegexSet> = OnceLock::new();
 static PROTECTED_SET: OnceLock<RegexSet> = OnceLock::new();
 
+const INITIAL_LINE_CAPACITY: usize = 128;
+
 /// Compact content by removing boilerplate and redundant information
 pub fn compact_content(content: &str, max_chars: usize) -> String {
     let lines = content.lines();
-    let mut unique_lines = HashSet::with_capacity(128);
-    let mut compacted = Vec::with_capacity(128);
+    let mut unique_lines = HashSet::with_capacity(INITIAL_LINE_CAPACITY);
+    let mut compacted = Vec::with_capacity(INITIAL_LINE_CAPACITY);
 
     for line in lines {
         let trimmed = line.trim();
