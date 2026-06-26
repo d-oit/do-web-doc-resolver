@@ -11,8 +11,8 @@ static PROTECTED_SET: OnceLock<RegexSet> = OnceLock::new();
 /// Compact content by removing boilerplate and redundant information
 pub fn compact_content(content: &str, max_chars: usize) -> String {
     let lines = content.lines();
-    let mut unique_lines = HashSet::new();
-    let mut compacted = Vec::new();
+    let mut unique_lines = HashSet::with_capacity(128);
+    let mut compacted = Vec::with_capacity(128);
 
     for line in lines {
         let trimmed = line.trim();
@@ -27,9 +27,8 @@ pub fn compact_content(content: &str, max_chars: usize) -> String {
         }
 
         // Deduplication
-        if !unique_lines.contains(trimmed) {
+        if unique_lines.insert(trimmed) {
             compacted.push(trimmed);
-            unique_lines.insert(trimmed);
         }
     }
 
@@ -39,7 +38,13 @@ pub fn compact_content(content: &str, max_chars: usize) -> String {
     if joined.len() <= max_chars {
         joined
     } else {
-        joined.chars().take(max_chars).collect()
+        if let Some((idx, _)) = joined.char_indices().nth(max_chars) {
+            let mut result = joined;
+            result.truncate(idx);
+            result
+        } else {
+            joined
+        }
     }
 }
 
