@@ -21,9 +21,9 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     let too_short = len < 500;
     let missing_links = links.is_empty();
 
-    // Optimize duplicate detection: single pass over lines to avoid intermediate Vec allocation
+    // Optimize duplicate detection: single pass over lines
     let mut total_lines = 0;
-    let mut unique_set = std::collections::HashSet::new();
+    let mut unique_set = std::collections::HashSet::with_capacity(128);
     for line in trimmed.lines() {
         total_lines += 1;
         unique_set.insert(line);
