@@ -99,7 +99,8 @@ jobs:
                   owner,
                   repo,
                   issue_number,
-                  body: `✅ Closed automatically via merged PR #${prNumber}${prUrl ? ` (${prUrl})` : ''}, merged by @${mergedBy}.`
+                  body: `✅ Closed automatically via merged PR #${prNumber}${
+                    prUrl ? ` (${prUrl})` : ''}, merged by @${mergedBy}.`
                 });
 
                 closed.push(issue_number);

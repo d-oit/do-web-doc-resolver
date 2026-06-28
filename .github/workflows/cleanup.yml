@@ -1,7 +1,6 @@
 ---
 name: Automated Cleanup
 
-# yamllint disable-line rule:truthy
 on: # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 2 * * 0'
@@ -138,10 +137,12 @@ jobs:
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
-          echo "unused_files_list<<EOF" >> "${GITHUB_OUTPUT}"
-          echo -e "${markdown_list}" >> "${GITHUB_OUTPUT}"
-          echo "EOF" >> "${GITHUB_OUTPUT}"
-          echo "raw_files=${raw_list}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "unused_files_list<<EOF"
+            echo -e "${markdown_list}"
+            echo "EOF"
+            echo "raw_files=${raw_list}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Check file ages via git history
         id: ages
@@ -184,16 +185,18 @@ jobs:
       - name: Run quality gate
         id: quality
         run: |
-          echo "## Quality Gate Check" >> "${GITHUB_STEP_SUMMARY}"
+          {
+            echo "## Quality Gate Check"
 
-          if bash ./scripts/quality_gate.sh; then
-            echo "Quality gate passes" >> "${GITHUB_STEP_SUMMARY}"
-            echo "quality_passed=true" >> "${GITHUB_OUTPUT}"
-          else
-            echo "Quality gate failed - cleanup aborted" >> "${GITHUB_STEP_SUMMARY}"
-            echo "quality_passed=false" >> "${GITHUB_OUTPUT}"
-            exit 1
-          fi
+            if bash ./scripts/quality_gate.sh; then
+              echo "Quality gate passes"
+              echo "quality_passed=true" >> "${GITHUB_OUTPUT}"
+            else
+              echo "Quality gate failed - cleanup aborted"
+              echo "quality_passed=false" >> "${GITHUB_OUTPUT}"
+              exit 1
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
         continue-on-error: true
 
       - name: Create cleanup PR
