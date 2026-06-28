@@ -55,6 +55,9 @@ def _check_jargon(text_lower: str) -> bool:
         "cutting-edge",
         "state-of-the-art",
         "best-in-class",
+        "unlock",
+        "transform",
+        "supercharge",
     ]
     jargon_count = sum(text_lower.count(signal) for signal in jargon_signals)
     return jargon_count > 3

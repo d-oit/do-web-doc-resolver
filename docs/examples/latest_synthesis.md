@@ -1,27 +1,27 @@
 ---
-relevance_score: 0.98
+relevance_score: 1.00
 intent_category: Technical
-token_estimate: 420
-last_updated: 2026-06-21
+token_estimate: 385
+last_updated: 2026-06-28
 ---
 
 # LLM-Ready Synthesis: Rust Concurrency Performance (June 2026)
 
 [ANCHOR: SUMMARY]
-Rust's `async/await` implements zero-cost task-based concurrency for high-throughput IO. Async tasks utilize stackless futures, minimizing memory footprint and enabling user-space context switching via executors (e.g., Tokio). This architecture avoids kernel-mode transition overhead associated with OS threads [1], [2].
+Rust concurrency utilizes stackless futures and task-based multiplexing to achieve zero-cost abstractions. By avoiding kernel-space transitions and fixed-stack overhead of OS threads, Rust executors (e.g., Tokio) support millions of concurrent tasks with sub-microsecond switching latency [1], [2].
 
 [ANCHOR: TECHNICAL_DETAILS]
-Performance specifications:
+Core performance metrics:
 
-- **Memory Overhead**: OS threads require fixed stacks (typically 2MB). Async tasks are sized to the state machine of the future, enabling millions of concurrent tasks per process [1].
-- **Switching Latency**: Thread switching incurs 1-5µs (kernel-space). Async task switching occurs in user-space via waker registration, typically sub-microsecond [2], [3].
-- **Instruction Density**: Rust's compilation to machine code ensures minimal runtime abstraction compared to interpreted or JIT-ed concurrency models [1].
+- **Memory Efficiency**: OS threads require static 2MB stacks. Rust async tasks are sized precisely to the future's state machine, minimizing heap footprint [1].
+- **Switching Overhead**: Kernel-mode context switching costs 1-5µs. User-space waker-based task switching is sub-microsecond [2], [3].
+- **Execution Density**: Compilation to machine code removes runtime overhead found in JIT-ed or interpreted concurrency models [1].
 
 ```rust
-// Optimized task spawning
+// Million-task spawn efficiency
 let tasks: Vec<_> = (0..1_000_000).map(|_| {
     tokio::spawn(async {
-        // Atomic operations or IO
+        // High-density IO/Atomic operations
     })
 }).collect();
 ```
