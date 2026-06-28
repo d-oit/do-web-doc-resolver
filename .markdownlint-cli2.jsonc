@@ -1,0 +1,28 @@
+{
+  "config": {
+    "MD013": false,
+    "MD024": false,
+    "MD028": false,
+    "MD033": false,
+    "MD036": false,
+    "MD041": false,
+    "MD047": false,
+    "MD056": false,
+    "MD060": false
+  },
+  "ignores": [
+    ".agents/skills/*/references/**",
+    ".opencode/**",
+    ".claude/**",
+    ".blackbox/**",
+    ".blackboxcli/**",
+    "CHANGELOG.md",
+    "cli/ui/node_modules/**",
+    "cli/target/**",
+    "web/node_modules/**",
+    "web/playwright-report/**",
+    "web/test-results/**",
+    ".cache/**",
+    "plans/**"
+  ]
+}
