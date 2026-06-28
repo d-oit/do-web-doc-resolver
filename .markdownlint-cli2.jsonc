@@ -23,6 +23,6 @@
     "web/playwright-report/**",
     "web/test-results/**",
     ".cache/**",
-    "plans/**"
+    "plans/**/*.md"
   ]
 }

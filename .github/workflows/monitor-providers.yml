@@ -50,6 +50,7 @@ jobs:
             1. Deprioritizes failing providers in `scripts/routing.py`.
             2. Logs the failure in `agents-docs/ISSUES.md`.
 
-            Please review the changes and verify if the API keys need rotation or if the provider is experiencing a service outage.
+            Please review the changes and verify if the API keys need rotation or if the
+            provider is experiencing a service outage.
           branch: automated/provider-alert
           delete-branch: true

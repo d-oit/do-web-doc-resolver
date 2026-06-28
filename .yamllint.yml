@@ -16,3 +16,4 @@ ignore: |
   cli/ui/pnpm-lock.yaml
   web/package-lock.json
   **/node_modules/
+  plans/**/*.md
