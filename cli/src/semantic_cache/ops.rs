@@ -290,9 +290,8 @@ impl SemanticCache {
         // Redundancy pruning: check if a very similar entry already exists
         if let Ok(hits) = self.framework.probe(query_vector, 5).await {
             for (best_id, best_score) in hits {
-                // If score is extremely high (1.0 after normalization), always skip to avoid bloat
                 // If score is extremely high, always skip to avoid bloat.
-                if best_score > 0.99 {
+                if best_score > 0.995 {
                     tracing::info!(
                         "Skipping store for query='{}': extremely similar entry already exists (id: {}, score: {:.4})",
                         query,
@@ -318,6 +317,28 @@ impl SemanticCache {
                                     best_score
                                 );
                                 return Ok(());
+                            }
+
+                            // If results are semantically identical (same content), also skip
+                            if let (Some(existing_results_vec), Some(new_results_vec)) = (
+                                serde_json::from_value::<Vec<ResolvedResult>>(
+                                    existing_results.clone(),
+                                )
+                                .ok(),
+                                Some(results),
+                            ) {
+                                if !existing_results_vec.is_empty()
+                                    && !new_results_vec.is_empty()
+                                    && existing_results_vec[0].content == new_results_vec[0].content
+                                {
+                                    tracing::info!(
+                                        "Skipping store for query='{}': result with identical content already exists (id: {}, score: {:.4})",
+                                        query,
+                                        best_id,
+                                        best_score
+                                    );
+                                    return Ok(());
+                                }
                             }
                         }
                     }
