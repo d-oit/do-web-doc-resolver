@@ -165,17 +165,17 @@ class ClipEncoder:
 
     def encode_image(self, img: Any) -> np.ndarray:
         """Returns L2-normalised 512-d float32 vector."""
-        vec = self.model.encode(img)
+        vec: np.ndarray = self.model.encode(img)  # type: ignore[no-any-return]
         if not isinstance(vec, np.ndarray):
             vec = np.array(vec)
-        return vec / (np.linalg.norm(vec) + 1e-10)
+        return vec / (np.linalg.norm(vec) + 1e-10)  # type: ignore[no-any-return]
 
     def encode_text(self, text: str) -> np.ndarray:
         """Returns L2-normalised 512-d float32 vector."""
-        vec = self.model.encode(text)
+        vec: np.ndarray = self.model.encode(text)  # type: ignore[no-any-return]
         if not isinstance(vec, np.ndarray):
             vec = np.array(vec)
-        return vec / (np.linalg.norm(vec) + 1e-10)
+        return vec / (np.linalg.norm(vec) + 1e-10)  # type: ignore[no-any-return]
 
     def similarity(self, a: np.ndarray, b: np.ndarray) -> float:
         """Cosine similarity clipped to [0, 1]."""
