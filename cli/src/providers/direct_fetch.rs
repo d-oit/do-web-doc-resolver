@@ -354,9 +354,17 @@ impl StripperState<'_> {
                             let normalized = normalize_formula(trimmed_alt);
                             if normalized != self.last_formula {
                                 self.result.push(' ');
-                                self.result.push('$');
+                                let has_delimiters = trimmed_alt.starts_with('$')
+                                    || trimmed_alt.starts_with("\\(")
+                                    || trimmed_alt.starts_with("\\[");
+
+                                if !has_delimiters {
+                                    self.result.push('$');
+                                }
                                 self.result.push_str(trimmed_alt);
-                                self.result.push('$');
+                                if !has_delimiters {
+                                    self.result.push('$');
+                                }
                                 self.result.push(' ');
                                 self.last_formula = normalized;
                             }
