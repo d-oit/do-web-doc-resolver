@@ -379,7 +379,7 @@ def main():
 
     for name, error in failing_providers:
         update_routing_priority(name)
-        log_issue(name, error)
+        log_issue(name, error or "Unknown error")
 
 
 if __name__ == "__main__":
