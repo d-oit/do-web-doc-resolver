@@ -37,7 +37,7 @@ default = ["semantic-cache"]
 semantic-cache = ["dep:chaotic_semantic_memory"]
 
 [dev-dependencies]
-mockall = "0.14"
+mockall = "0.15"
 tempfile = "3"
 criterion = { version = "0.7", features = ["async_tokio"] }
 
