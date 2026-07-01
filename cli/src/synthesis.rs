@@ -222,7 +222,7 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
              [ANCHOR: TECHNICAL_DETAILS]\n\
              {}\n\n\
              [ANCHOR: COMPARISON]\n\
-             Not applicable for single source extraction.\n\n\
+             Comparison not applicable for single source extraction.\n\n\
              [ANCHOR: CITATIONS]\n\
              [1] {}",
             results[0].source, content, results[0].url
