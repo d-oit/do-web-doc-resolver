@@ -4,28 +4,25 @@
 
 ### Python
 
-The Python core uses Ruff for linting and Black for formatting.
-
 ```bash
+# Run tests
+python -m pytest tests/ -v -m "not live"
+
+# Linting and formatting
 python -m ruff check .
 python -m black .
-python -m pytest tests/ -m "not live"
 ```
 
 ### Rust CLI
 
-The Rust components require `cargo fmt` and `cargo clippy`.
-
 ```bash
 cd cli
-cargo fmt
-cargo clippy -- -D warnings
 cargo test
+cargo clippy -- -D warnings
+cargo fmt
 ```
 
 ### Web UI
-
-The frontend uses ESLint, TypeScript type-checking, and Playwright for E2E tests.
 
 ```bash
 cd web
@@ -36,7 +33,7 @@ npx playwright test --project=desktop
 
 ### Quality Gate
 
-Before submitting any changes, run the unified quality gate script:
+Run the full suite before submitting:
 
 ```bash
 ./scripts/quality_gate.sh
@@ -44,14 +41,21 @@ Before submitting any changes, run the unified quality gate script:
 
 ## Standards
 
-- **File Size**: Python source files in `scripts/` must not exceed 500 lines.
-- **Commits**: Use Conventional Commits (`type(scope): description`).
+- **Python**: Follow Black formatting and Ruff rules. Use type hints for public functions.
+- **Rust**: Ensure `cargo clippy` and `cargo fmt` pass.
+- **Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/):
+  - `feat:` new feature
+  - `fix:` bug fix
+  - `docs:` documentation
+  - `chore:` maintenance
+  - `refactor:` code restructuring
+  - `test:` test updates
 - **Branching**: Use `feat/`, `fix/`, `chore/`, or `docs/` prefixes.
-- **Documentation**: Update `AGENTS.md` if the repository structure or skills change.
+- **File Size**: Source files must not exceed 500 lines. Split into sub-modules if they grow larger.
 
 ## Pull Request Process
 
-1. Fork the repository and create a branch.
-2. Implement changes and add tests.
-3. Ensure `./scripts/quality_gate.sh` passes.
-4. Submit the PR for review.
+1. Update documentation for user-facing changes.
+2. Add tests for new features or bug fixes.
+3. Ensure the quality gate passes: `./scripts/quality_gate.sh`.
+4. Update `AGENTS.md` if repository structure or skills change.

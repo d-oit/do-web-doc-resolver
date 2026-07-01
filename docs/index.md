@@ -11,8 +11,8 @@ Reference for the **do-web-doc-resolver** project.
 ## Technical Reference
 
 - **[Architecture](../agents-docs/OVERVIEW.md)**: Component breakdown and data flow.
-- **[Cascade Logic](../.agents/skills/do-web-doc-resolver/references/CASCADE.md)**: Query and URL resolution decision trees.
-- **[Provider Details](../.agents/skills/do-web-doc-resolver/references/PROVIDERS.md)**: Provider capabilities and API details.
+- **[Cascade Logic](https://github.com/d-oit/do-web-doc-resolver/blob/main/.agents/skills/do-web-doc-resolver/references/CASCADE.md)**: Query and URL resolution decision trees.
+- **[Provider Details](https://github.com/d-oit/do-web-doc-resolver/blob/main/.agents/skills/do-web-doc-resolver/references/PROVIDERS.md)**: Provider capabilities and API details.
 - **[Semantic Health](../agents-docs/SEMANTIC_HEALTH.md)**: Metrics and output quality standards.
 - **[Standards](standards.md)**: LLM-readable document standards (2026).
 
