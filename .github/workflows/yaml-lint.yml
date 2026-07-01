@@ -1,0 +1,54 @@
+---
+name: YAML Lint
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**.yml'
+      - '**.yaml'
+      - '.github/workflows/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**.yml'
+      - '**.yaml'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  yamllint:
+    name: YAML Syntax Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.x'
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        run: |
+          yamllint . || (echo "❌ YAML lint failed" && exit 1)
+
+  actionlint:
+    name: GitHub Actions Workflow Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1
+        with:
+          fail_level: error
+          filter_mode: nofilter

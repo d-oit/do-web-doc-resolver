@@ -4,7 +4,7 @@
 
 # do-web-doc-resolver
 
-**Resolve queries or URLs into compact, LLM-ready Markdown** — intelligent cascade routing across free and paid providers.  
+**Resolve queries or URLs into compact, LLM-ready Markdown** — intelligent cascade routing across free and paid providers.
 Zero-config by default: works out of the box with no API keys.
 
 [![CI](https://github.com/d-oit/do-web-doc-resolver/actions/workflows/ci.yml/badge.svg)](https://github.com/d-oit/do-web-doc-resolver/actions)
@@ -85,7 +85,7 @@ Input (URL or query)
 └────────────────────────────────────────────────┘
 ```
 
-Query providers: Semantic Cache → Exa MCP → Exa SDK → Tavily → Serper → DuckDuckGo → Mistral  
+Query providers: Semantic Cache → Exa MCP → Exa SDK → Tavily → Serper → DuckDuckGo → Mistral
 URL providers: Semantic Cache → llms.txt → Jina Reader → Firecrawl → Direct HTTP → Mistral Browser → DuckDuckGo
 
 ---
