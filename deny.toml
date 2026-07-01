@@ -1,0 +1,70 @@
+# This template contains all of the possible sections and their default values
+
+# Options for checking advisories
+[advisories]
+version = 2
+# The path where the advisory database is cloned/updated
+db-path = "~/.cargo/advisory-db"
+# The url of the advisory database to use
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# Any advisory ids to ignore e.g. ["RUSTSEC-2019-0001", "...]
+ignore = [
+    "RUSTSEC-2026-0185", # quinn-proto remote memory exhaustion
+    "RUSTSEC-2025-0141", # bincode is unmaintained
+]
+# Threshold for advisory severity
+severity-threshold = "medium"
+
+# Options for checking licenses
+[licenses]
+version = 2
+# List of explicitly allowed licenses
+# See https://spdx.org/licenses/ for list of ids
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "OpenSSL",
+    "Zlib",
+]
+# The confidence level for license detection, 0.0 to 1.0
+confidence-threshold = 0.8
+# Allow 1 or more licenses to be combined
+allow-osi-fsf-free = "either"
+
+[[licenses.clarify]]
+name = "ring"
+# version = "*"
+expression = "OpenSSL"
+license-files = [
+    { path = "LICENSE", hash = 0xbd0ced23 }
+]
+
+# Options for checking crate bans
+[bans]
+version = 2
+# How to handle multiple versions of the same crate
+multiple-versions = "warn"
+# Standard list of crates to ban
+deny = [
+]
+# Crates that are allowed to have multiple versions
+skip = [
+]
+# Crates that are allowed to have multiple versions but only within a certain range
+skip-tree = [
+]
+
+# Options for checking crate sources
+[sources]
+version = 2
+# List of allowed sources
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# List of allowed git sources
+allow-git = []
+
+[sources.allow-org]
+# github = ["..."]
