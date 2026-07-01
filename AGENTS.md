@@ -9,74 +9,140 @@
 readonly MAX_LINES_PER_SOURCE_FILE=500
 readonly MAX_LINES_PER_SKILL_MD=250
 readonly MAX_LINES_AGENTS_MD=200
+readonly DEFAULT_MAX_RETRIES=3
+readonly DEFAULT_RETRY_DELAY_SECONDS=5
+readonly DEFAULT_POLL_INTERVAL_SECONDS=5
+readonly DEFAULT_MAX_POLL_ATTEMPTS=12
+readonly DEFAULT_TIMEOUT_SECONDS=1800
 readonly MAX_COMMIT_SUBJECT_LENGTH=150
 readonly MAX_PR_TITLE_LENGTH=150
 ```
 
 ## Behavioral Defaults
 
-- **Automation-First**: Execute autonomously; minimize confirmation loops.
+- **Automation-First**: Execute autonomously within approved plans; minimize confirmation loops.
+- **Parallelism**: Use parallel tool calls for independent operations.
 - **Direct Action**: Proceed immediately when intent is clear.
-- **Diff-Oriented**: Concise diff-focused summaries.
-- **Always-Fix Pre-Existing Issues**: Resolve CI/lint failures encountered on `main`.
+- **Diff-Oriented**: Concise diff-focused summaries, not long prose.
+- **Always-Fix Pre-Existing Issues**: No deferral — if a CI check or lint warning is failing on main, agents MUST fix it. Only acceptable exit = green CI.
 
-## Triage Protocol
+## Triage Protocol for Unfixable Issues
 
-1. Create ADR in `plans/` explaining the unfixable issue.
-2. Create GOAP task in `plans/GOAP_STATE.md` (status: blocked).
-3. Ensure current commit passes its quality gate.
+When a pre-existing failure cannot be fixed in the current run:
 
-## Delegation
+1. Create an ADR in `plans/` with root cause and why it's out of scope.
+2. Create a GOAP task in `plans/GOAP_STATE.md` with status blocked + ADR link.
+3. Ensure current commit's quality gate passes regardless.
+4. Never skip, suppress, or mark as done an open issue.
 
-- **Self-Execute**: 1 trivial edit.
-- **Delegate**: 2+ files or architectural changes.
-- **Swarm**: 5+ similar independent tasks.
+## Delegation Routing
 
-## Post-Task Metrics
+| Mode | Trigger |
+| :--- | :--- |
+| **Self-Execute** | 1 trivial isolated edit (typos, single-line constants) |
+| **Delegate** | 2+ files, architectural changes, tasks requiring judgment |
+| **Swarm** | 5+ similar independent tasks (batch doc normalization, multi-file refactors) |
 
-Append to `.agents/metrics.jsonl` after task completion:
-`{"timestamp": "...", "agent": "...", "task": "...", "skill_used": "...", "status": "...", "tokens_used": 0, "duration_seconds": 0}`
+## Post-Task Protocol — metrics.jsonl
+
+After every completed task, append to `.agents/metrics.jsonl`:
+
+```json
+{
+  "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+  "agent": "<agent-id>",
+  "task": "<description>",
+  "skill_used": "<skill or null>",
+  "status": "completed" | "failed" | "partial",
+  "tokens_used": 0,
+  "duration_seconds": 0,
+  "notes": ""
+}
+```
+
+Append-only. Never truncate. dora-report reads this file.
+
+## YAML Workflow Style Rule
+
+All `.github/workflows/*.yml` must include `# yamllint disable-line rule:truthy` on the `on:` line.
+
+## Session Bootstrap
+
+`docflow.json` drives context injection at agent startup. `hooks/session-start.sh` can be run manually to verify environment readiness.
 
 ## Repository Structure
 
-- `scripts/`: Python resolver core
-- `cli/`: Rust CLI (`do-wdr`)
-- `web/`: Next.js web UI
-- `tests/`: Python test suite
-- `docs/`: Project documentation
-- `agents-docs/`: Agent-specific reference
-- `.agents/skills/`: Canonical skill definitions
+```text
+./
+├── scripts/               # Python resolver core
+├── cli/                   # Rust CLI (do-wdr)
+├── web/                   # Next.js web UI
+├── tests/                 # Python test suite
+├── docs/                  # Project documentation
+├── agents-docs/           # Agent-specific reference
+├── .agents/skills/        # Canonical skill definitions
+├── assets/                # Visual assets
+└── config.toml            # Optional configuration
+```
 
 ## Project Documentation
 
-| Document | Path |
-| :--- | :--- |
-| **Development** | `agents-docs/DEVELOPMENT.md` |
-| **Configuration** | `agents-docs/CONFIG.md` |
-| **Overview** | `agents-docs/OVERVIEW.md` |
-| **Semantic Health** | `agents-docs/SEMANTIC_HEALTH.md` |
+Detailed reference material in `agents-docs/`:
+
+- [Development](agents-docs/DEVELOPMENT.md)
+- [Configuration](agents-docs/CONFIG.md)
+- [Overview](agents-docs/OVERVIEW.md)
+- [Semantic Health](agents-docs/SEMANTIC_HEALTH.md)
 
 ## Skills
 
-| Skill | Path |
-| :--- | :--- |
-| **do-web-doc-resolver** | `.agents/skills/do-web-doc-resolver/` |
-| **anti-ai-slop** | `.agents/skills/anti-ai-slop/` |
-| **readme-best-practices** | `.agents/skills/readme-best-practices/` |
-| **skill-creator** | `.agents/skills/skill-creator/` |
-| **do-wdr-cli** | `.agents/skills/do-wdr-cli/` |
-| **do-wdr-release** | `.agents/skills/do-wdr-release/` |
+- `do-web-doc-resolver`: `.agents/skills/do-web-doc-resolver/`
+- `anti-ai-slop`: `.agents/skills/anti-ai-slop/`
+- `readme-best-practices`: `.agents/skills/readme-best-practices/`
+- `skill-creator`: `.agents/skills/skill-creator/`
 
 ## Coding Workflow
 
-- **Branching**: `feat/`, `fix/`, `chore/`, `docs/`
-- **Commits**: Conventional Commits (`type(scope): description`)
-- **PR Checklist**: Tests pass, lint clean, no new secrets, `AGENTS.md` updated if structure changed.
-- **File size limit**: 500 lines max per source file.
-- **Quality Gate**: `./scripts/quality_gate.sh`
+### Branching & Commits
+
+- Branch naming: `feat/`, `fix/`, `chore/`, `docs/`
+- Commit format: Conventional Commits (`type(scope): description`)
+
+### PR Checklist
+
+- `./scripts/quality_gate.sh` passes
+- Linting clean (`ruff`, `black`, `cargo fmt`, `cargo clippy`, `npm run lint`)
+- No new secrets (verified via Gitleaks)
+- `AGENTS.md` updated if structure changed
 
 ### Test Commands
 
 - **Python**: `pytest -m "not live"`
 - **Rust**: `cd cli && cargo test`
-- **Web**: `cd web && npx playwright test --project=desktop`
+- **Web**: `cd web && npx playwright test --project=desktop --project=mobile --project=tablet`
+
+## Release Workflow
+
+> **Do NOT use `gh release create` manually.** The CI/CD pipeline handles releases automatically.
+
+### Correct Release Steps
+
+```bash
+# 1. Bump versions
+python scripts/sync_versions.py --set $VERSION
+
+# 2. Commit
+git add -A && git commit -m "chore(release): v$VERSION"
+
+# 3. Tag and push (triggers CI/CD)
+git tag -a v$VERSION -m "Release v$VERSION"
+git push origin main --tags
+```
+
+### What CI/CD Does Automatically
+
+- Runs Python + Rust test suites
+- Builds binaries: Linux x86_64, macOS aarch64, Windows x86_64
+- Generates build attestations
+- Extracts changelog from `CHANGELOG.md`
+- Creates GitHub release with binaries + install instructions
