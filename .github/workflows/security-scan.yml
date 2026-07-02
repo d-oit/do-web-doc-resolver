@@ -19,7 +19,7 @@ permissions:
 
 env:
   PYTHON_VERSION: '3.12'
-  RUST_TOOLCHAIN: '1.88'
+  RUST_TOOLCHAIN: '1.89'
   NODE_VERSION: '22'
 
 jobs:
