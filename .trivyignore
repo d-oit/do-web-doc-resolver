@@ -1,3 +1,4 @@
 # postcss < 8.5.10: XSS via Unescaped </style> in CSS Stringify Output
 # Transitive dependency of next.js — requires breaking next.js upgrade to fix
 GHSA-qx2v-qp2m-jg93
+CVE-2026-41305
