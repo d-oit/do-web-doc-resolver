@@ -96,13 +96,38 @@ stash → abort rebase → abort merge → fetch main → retry. Never retry mor
 See [AGENTS.md § CI Fix Workflow](../../../AGENTS.md#ci-fix-workflow) for the
 full incremental CI fix workflow.
 
-### 7. Close issues on pass
+### 7. Verify ALL CI passes before merge
+
+**HARD RULE: NEVER merge with failing CI — NO EXCEPTIONS.**
+
+Before merging ANY PR, verify every single check passes:
+
+```bash
+# BLOCK if ANY check is failing
+gh pr view {N} --json statusCheckRollup | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+failed = [c for c in data.get('statusCheckRollup', []) if c.get('conclusion') == 'FAILURE']
+if failed:
+    print(f'BLOCKED: {len(failed)} failing checks:')
+    for c in failed:
+        print(f'  - {c.get(\"name\", \"unknown\")}')
+    sys.exit(1)
+print('All CI checks passing')
+"
+```
+
+**If ANY check fails — STOP. Do NOT merge.** Fix the failure first, or close the PR.
+
+"Pre-existing on main" is NOT a valid reason to merge with failing CI. Fix main first.
+
+### 8. Close issues on pass
 
 ```bash
 gh issue close {N} --comment "Implemented in {commit_sha}. Component: cli/ui/components/{name}.css"
 ```
 
-### 8. Loop on failure
+### 9. Loop on failure
 
 If CI fails:
 

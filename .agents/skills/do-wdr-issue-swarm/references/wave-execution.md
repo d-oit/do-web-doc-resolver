@@ -53,3 +53,27 @@ wc -l cli/ui/components/*.css   # Verify <200 lines each
 - Max 4 parallel agents to avoid context window pressure
 - Each wave is independent — can push after each wave
 - Always verify `wc -l < 200` before committing
+
+## Merge Guard Rails (MANDATORY)
+
+**NEVER merge with failing CI — NO EXCEPTIONS.**
+
+Before any merge, verify ALL checks pass:
+
+```bash
+gh pr view {N} --json statusCheckRollup | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+failed = [c for c in data.get('statusCheckRollup', []) if c.get('conclusion') == 'FAILURE']
+if failed:
+    print(f'BLOCKED: {len(failed)} failing checks:')
+    for c in failed:
+        print(f'  - {c.get(\"name\", \"unknown\")}')
+    sys.exit(1)
+print('All CI checks passing')
+"
+```
+
+- `gh pr merge --admin` is FORBIDDEN when CI is failing
+- "Pre-existing on main" is NOT a valid justification
+- If CI fails: fix the failure, or close the PR, or escalate to user

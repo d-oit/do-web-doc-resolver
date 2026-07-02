@@ -43,3 +43,28 @@ Also update `components/README.md` to replace the issue link with `{name}.css`.
 - Follow existing error handling patterns
 - Use `thiserror` for library errors
 - Use `anyhow` at binary boundary
+
+## CRITICAL: Never Merge with Failing CI
+
+This is an ABSOLUTE RULE with no exceptions:
+
+- **NEVER** use `gh pr merge --admin` when CI checks are failing
+- **NEVER** use `gh pr merge --auto` when required checks are failing
+- **NEVER** justify merging with "pre-existing on main" — fix main first
+- **ALWAYS** verify ALL checks pass before merging:
+
+```bash
+gh pr view {N} --json statusCheckRollup | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+failed = [c for c in data.get('statusCheckRollup', []) if c.get('conclusion') == 'FAILURE']
+if failed:
+    print(f'BLOCKED: {len(failed)} failing checks:')
+    for c in failed:
+        print(f'  - {c.get(\"name\", \"unknown\")}')
+    sys.exit(1)
+print('All CI checks passing')
+"
+```
+
+If ANY check fails: fix it, close the PR, or escalate to the user. NEVER merge.
