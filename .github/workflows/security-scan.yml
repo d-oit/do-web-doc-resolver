@@ -247,7 +247,7 @@ jobs:
         run: cd cli && cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run cargo deny
-        uses: EmbarkStudios/cargo-deny-action@9b7d65878c2d28c8e3c16e30bf555c29abe505bd # v2.0.11
+        uses: EmbarkStudios/cargo-deny-action@8a45e1c7c9a95dfae3276e89a553705e40ae45a2 # v2.0.20
 
       - name: Run cargo outdated
         run: |
