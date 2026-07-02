@@ -248,6 +248,8 @@ jobs:
 
       - name: Run cargo deny
         uses: EmbarkStudios/cargo-deny-action@8a45e1c7c9a95dfae3276e89a553705e40ae45a2 # v2.0.20
+        with:
+          manifest-path: ./cli/Cargo.toml
 
       - name: Run cargo outdated
         run: |
