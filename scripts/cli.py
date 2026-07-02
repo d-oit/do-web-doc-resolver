@@ -33,7 +33,9 @@ async def _async_main(args):
         if is_url(args.input):
             # Use async URL resolver
             results = []
-            async for res in resolve_url_stream_async(args.input, args.max_chars, profile):
+            async for res in resolve_url_stream_async(
+                args.input, args.max_chars, profile, skip_providers=skip
+            ):
                 results.append(res)
         else:
             results = list(resolve_query_stream(args.input, args.max_chars, skip, profile))
@@ -49,7 +51,7 @@ def main():
         "--profile", type=str, choices=[p.value for p in Profile], default="balanced"
     )
     parser.add_argument("--skip", action="append")
-    parser.add_argument("--provider", type=str)
+    parser.add_argument("--provider", type=str, choices=[p.value for p in ProviderType])
     parser.add_argument("--providers-order", type=str)
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()

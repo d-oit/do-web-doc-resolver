@@ -15,6 +15,7 @@ from scripts.providers_impl import (
     resolve_with_jina,
     resolve_with_mistral_browser,
     resolve_with_ocr,
+    resolve_with_visual_clip,
 )
 from scripts.semantic_cache import get_semantic_cache
 from scripts.state import circuit_breakers as _circuit_breakers
@@ -74,16 +75,26 @@ __all__ = [
 
 
 def resolve_url(
-    url: str, max_chars: int = 8000, profile: Profile = Profile.BALANCED
+    url: str,
+    max_chars: int = 8000,
+    profile: Profile = Profile.BALANCED,
+    query: str | None = None,
+    skip_providers: set[str] | None = None,
 ) -> dict[str, Any]:
-    for result in resolve_url_stream(url, max_chars, profile):
+    for result in resolve_url_stream(
+        url, max_chars, profile, query=query, skip_providers=skip_providers
+    ):
         if result.get("source") != "partial":
             return result
     return {"source": "none", "url": url, "content": "Failed"}
 
 
 def resolve_url_stream(
-    url: str, max_chars: int = 8000, profile: Profile = Profile.BALANCED
+    url: str,
+    max_chars: int = 8000,
+    profile: Profile = Profile.BALANCED,
+    query: str | None = None,
+    skip_providers: set[str] | None = None,
 ) -> Generator[dict[str, Any]]:
     logger.info(f"Resolving URL: {url}")
 
@@ -119,7 +130,7 @@ def resolve_url_stream(
             return
 
     provider_names = scripts.routing.plan_provider_order(
-        target=url, is_url=True, routing_memory=_routing_memory
+        target=url, is_url=True, routing_memory=_routing_memory, skip_providers=skip_providers
     )
     cascade_map: dict[str, tuple[ProviderType, Any]] = {
         "llms_txt": (ProviderType.LLMS_TXT, lambda: fetch_llms_txt(url)),
@@ -132,6 +143,10 @@ def resolve_url_stream(
         "mistral_browser": (
             ProviderType.MISTRAL_BROWSER,
             lambda: resolve_with_mistral_browser(url, max_chars),
+        ),
+        "visual_clip": (
+            ProviderType.VISUAL_CLIP,
+            lambda: resolve_with_visual_clip(url, max_chars, query=query),
         ),
         "duckduckgo": (ProviderType.DUCKDUCKGO, lambda: resolve_with_duckduckgo(url, max_chars)),
     }

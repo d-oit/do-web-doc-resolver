@@ -21,6 +21,8 @@ from scripts.providers import (
     resolve_with_ocr,
     resolve_with_serper,
     resolve_with_tavily,
+    resolve_with_visual_clip,
+    resolve_with_visual_clip_async,
     set_rate_limit,
 )
 from scripts.utils import get_session
@@ -37,6 +39,8 @@ __all__ = [
     "resolve_with_mistral_websearch",
     "resolve_with_docling",
     "resolve_with_ocr",
+    "resolve_with_visual_clip",
+    "resolve_with_visual_clip_async",
     "_is_rate_limited",
     "_set_rate_limit",
     "_clear_rate_limits",

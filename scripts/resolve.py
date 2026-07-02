@@ -37,6 +37,7 @@ from scripts.providers_impl import (
     resolve_with_ocr,
     resolve_with_serper,
     resolve_with_tavily,
+    resolve_with_visual_clip,
 )
 from scripts.semantic_cache import get_semantic_cache
 from scripts.state import circuit_breakers, routing_memory
@@ -144,12 +145,15 @@ def resolve(
     max_chars: int = MAX_CHARS,
     skip_providers: set[str] | None = None,
     profile: Profile | str = Profile.BALANCED,
+    query: str | None = None,
 ) -> dict[str, Any]:
     if isinstance(profile, str):
         profile = Profile(profile.lower())
 
     if is_url(input_str):
-        return resolve_url(input_str, max_chars, profile=profile)
+        return resolve_url(
+            input_str, max_chars, profile=profile, query=query, skip_providers=skip_providers
+        )
     return resolve_query(input_str, max_chars, skip_providers, profile=profile)
 
 
@@ -174,6 +178,7 @@ def resolve_direct(
         ProviderType.SERPER: resolve_with_serper,
         ProviderType.DOCLING: resolve_with_docling,
         ProviderType.OCR: resolve_with_ocr,
+        ProviderType.VISUAL_CLIP: resolve_with_visual_clip,
     }
     if provider in funcs:
         res = funcs[provider](input_str, max_chars)
@@ -207,12 +212,18 @@ def resolve_query_with_order(
 
 
 async def resolve_url_async(
-    url: str, max_chars: int = MAX_CHARS, profile: Profile | str = Profile.BALANCED
+    url: str,
+    max_chars: int = MAX_CHARS,
+    profile: Profile | str = Profile.BALANCED,
+    query: str | None = None,
+    skip_providers: set[str] | None = None,
 ) -> dict[str, Any]:
     """Async version of resolve_url."""
     if isinstance(profile, str):
         profile = Profile(profile.lower())
-    return await scripts._url_resolve_async.resolve_url_async(url, max_chars, profile)
+    return await scripts._url_resolve_async.resolve_url_async(
+        url, max_chars, profile, query=query, skip_providers=skip_providers
+    )
 
 
 async def resolve_async(
@@ -220,20 +231,29 @@ async def resolve_async(
     max_chars: int = MAX_CHARS,
     skip_providers: set[str] | None = None,
     profile: Profile | str = Profile.BALANCED,
+    query: str | None = None,
 ) -> dict[str, Any]:
     """Async version of resolve."""
     if isinstance(profile, str):
         profile = Profile(profile.lower())
     if is_url(input_str):
-        return await resolve_url_async(input_str, max_chars, profile=profile)
+        return await resolve_url_async(
+            input_str, max_chars, profile=profile, query=query, skip_providers=skip_providers
+        )
     return resolve_query(input_str, max_chars, skip_providers, profile=profile)
 
 
 def resolve_url_background(
-    url: str, max_chars: int = MAX_CHARS, profile: Profile | str = Profile.BALANCED
+    url: str,
+    max_chars: int = MAX_CHARS,
+    profile: Profile | str = Profile.BALANCED,
+    query: str | None = None,
+    skip_providers: set[str] | None = None,
 ) -> dict[str, Any]:
     """Run async resolve_url in a new event loop (for sync callers)."""
-    return asyncio.run(resolve_url_async(url, max_chars, profile))
+    return asyncio.run(
+        resolve_url_async(url, max_chars, profile, query=query, skip_providers=skip_providers)
+    )
 
 
 def resolve_background(
