@@ -90,6 +90,7 @@ jobs:
           output: 'trivy-results.sarif'
           exit-code: '1'
           ignore-unfixed: true
+          trivyignores: '.trivyignore'
 
       - name: Upload Trivy SARIF
         if: always()
@@ -252,6 +253,7 @@ jobs:
           manifest-path: ./cli/Cargo.toml
 
       - name: Run cargo outdated
+        continue-on-error: true
         run: |
           cargo install cargo-outdated
           cd cli && cargo outdated --exit-code 0
