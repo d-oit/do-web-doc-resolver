@@ -12,6 +12,13 @@ engines:
       - "tests/**"
       - "cli/tests/**"
       - "web/tests/**"
+  bandit:
+    exclude_paths:
+      - "tests/**"
+      - "cli/tests/**"
+      - "web/tests/**"
+      - "**/test_*.py"
+      - "**/*_test.py"
 languages:
   python:
     enabled: true
