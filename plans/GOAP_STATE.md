@@ -1,7 +1,37 @@
-# GOAP State — 2026-07-01
+# GOAP State — 2026-07-03
 
-> PR swarm orchestration completed after resolving all merge conflicts and CI failures.
-> 8 PRs assessed, 5 merged, 1 closed (replaced), 6 new dependabot PRs handled.
+> PR swarm orchestration completed. All open PRs resolved with green CI.
+> Latest: PR #502 merged (2026-07-03T08:22:23Z).
+
+## Goal
+
+Resolve all open PRs — fix merge conflicts, fix failing CI, merge in correct order.
+
+## Preconditions
+
+- Main at 1782845 (before PR #502 fix)
+- 1 open PR: #502 (dependabot npm-deps bump)
+
+## Actions Executed
+
+### Wave 0 — Rebase PR branch onto main
+- Rebased `dependabot/npm_and_yarn/web/npm-deps-7cfa9ac58b` onto main
+- Picked up `.trivyignore` and `RUST_TOOLCHAIN: '1.89'` from main
+- Resolved 4 security scan failures (Trivy, Dependency Audit, Rust Security, Security Scan Summary)
+
+### Wave 1 — Fix PR title & body
+- **#502**: `build(deps)(deps-dev): bump the npm-deps group...` → `build(deps): bump the npm-deps group...`
+- PR body shortened from 6110 chars to ~450 chars (squash-merge limit: 2000)
+
+### Wave 2 — Verify CI & merge
+- All 50+ CI checks passed green
+- Auto-merge enabled, PR merged at 2026-07-03T08:22:23Z
+
+## Postconditions
+
+1. **PR #502 merged** with all CI green
+2. **0 open PRs** remaining
+3. **No destructive changes** to main branch
 
 ## Goal
 
