@@ -55,7 +55,10 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
             .expect("Invalid quality noise regex patterns")
     });
     // Early exit if noise threshold is exceeded
-    let noisy_count = noisy_re.find_iter(trimmed).take(THRESHOLD_NOISE + 1).count();
+    let noisy_count = noisy_re
+        .find_iter(trimmed)
+        .take(THRESHOLD_NOISE + 1)
+        .count();
     let noisy = noisy_count > THRESHOLD_NOISE;
 
     let jargon_re = JARGON_PATTERNS.get_or_init(|| {
