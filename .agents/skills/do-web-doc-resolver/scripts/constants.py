@@ -7,9 +7,6 @@ import typing
 
 logger = logging.getLogger(__name__)
 
-if typing.TYPE_CHECKING:
-    pass
-
 
 def _load_config() -> dict[str, typing.Any]:
     config_path = os.getenv("DO_WDR_CONFIG") or "config.toml"
