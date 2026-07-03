@@ -1,6 +1,6 @@
 """Tests for content cleaning utilities."""
 
-from scripts.utils.content_clean import _strip_html_tags, clean_content
+from scripts.utils.content_clean import _strip_html_tags, clean_content  # noqa: E402
 
 NAV_HEAVY_HTML = """
 <html><head><title>Docs</title></head><body>
@@ -16,7 +16,7 @@ NAV_HEAVY_HTML = """
 """
 
 
-class TestCleanContent:
+class TestCleanContent:  # noqa: R0201
     def test_removes_nav_and_footer(self):
         result = clean_content(NAV_HEAVY_HTML, url="https://example.com/docs")
         assert "API Reference" in result
@@ -53,7 +53,7 @@ class TestCleanContent:
         assert "pip install" in result
 
 
-class TestStripHtmlTags:
+class TestStripHtmlTags:  # noqa: R0201
     def test_strips_simple_tags(self):
         html = "<p>Hello <b>world</b></p>"
         result = _strip_html_tags(html)
