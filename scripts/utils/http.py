@@ -15,6 +15,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 
 from scripts.constants import (
+    BLOCKED_HOSTNAMES,
     BLOCKED_NETWORKS,
     BLOCKED_SCHEMES,
     DNS_CACHE_TTL,
@@ -83,6 +84,27 @@ def _getaddrinfo_cached(host: str, port: int | str | None = None) -> list[tuple]
     return _getaddrinfo_bucketed(host, port, bucket)
 
 
+def _normalize_host(hostname: str) -> str:
+    """Normalise encoded IP representations to dotted-decimal.
+
+    Handles decimal integer notation, hex notation, and IPv4-mapped IPv6.
+    """
+    h = hostname.strip().lower()
+    if h.isdigit():
+        try:
+            return str(ipaddress.IPv4Address(int(h)))
+        except (ValueError, OverflowError):
+            pass
+    if h.startswith("0x"):
+        try:
+            return str(ipaddress.IPv4Address(int(h, 16)))
+        except (ValueError, OverflowError):
+            pass
+    if h.startswith("::ffff:"):
+        return h[7:]
+    return h
+
+
 def is_safe_url(url: str) -> bool:
     """Check if a URL is safe to fetch (no SSRF)."""
     try:
@@ -94,7 +116,7 @@ def is_safe_url(url: str) -> bool:
         hostname = parsed.hostname
         if not hostname:
             return False
-        normalized = hostname.lower()
+        normalized = _normalize_host(hostname)
         if normalized in (
             "localhost",
             "localhost.localdomain",
@@ -102,6 +124,13 @@ def is_safe_url(url: str) -> bool:
             "::1",
             "0.0.0.0",
         ):
+            return False
+        hostname_lower = hostname.lower().strip(".")
+        if hostname_lower in BLOCKED_HOSTNAMES:
+            logger.warning("SSRF blocked (hostname blocklist): %s", url)
+            return False
+        if any(hostname_lower.endswith("." + blocked) for blocked in BLOCKED_HOSTNAMES):
+            logger.warning("SSRF blocked (hostname suffix): %s", url)
             return False
         try:
             ip = ipaddress.ip_address(normalized)

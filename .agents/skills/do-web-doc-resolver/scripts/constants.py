@@ -78,14 +78,37 @@ USER_AGENT: str = (
 
 BLOCKED_NETWORKS: list = [
     ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("0.0.0.0/8"),
     ipaddress.ip_network("10.0.0.0/8"),
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("169.254.0.0/16"),
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("100.64.0.0/10"),
+    ipaddress.ip_network("192.0.0.0/24"),
+    ipaddress.ip_network("198.18.0.0/15"),
+    ipaddress.ip_network("198.51.100.0/24"),
+    ipaddress.ip_network("203.0.113.0/24"),
+    ipaddress.ip_network("240.0.0.0/4"),
+    ipaddress.ip_network("255.255.255.255/32"),
+    ipaddress.ip_network("::ffff:0:0/96"),
 ]
+
+BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
+    [
+        "metadata.google.internal",
+        "metadata.google",
+        "metadata.azure.com",
+        "169.254.169.254",
+        "kubernetes.default.svc",
+        "kubernetes.default",
+        "kubernetes",
+        "host.docker.internal",
+        "gateway.docker.internal",
+    ]
+)
 
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
