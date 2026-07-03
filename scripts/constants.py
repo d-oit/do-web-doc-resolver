@@ -113,3 +113,5 @@ BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
 DNS_CACHE_TTL: int = 60
+
+CLEAN_CONTENT: bool = os.environ.get("WDR_CLEAN_CONTENT", "1") != "0"

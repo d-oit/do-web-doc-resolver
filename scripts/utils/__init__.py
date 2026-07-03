@@ -22,6 +22,7 @@ from scripts.utils.cache import (
     get_cache,
     get_ttl,
 )
+from scripts.utils.content_clean import clean_content
 from scripts.utils.fetch import (
     fetch_llms_txt,
     fetch_url_content,
@@ -141,6 +142,7 @@ __all__ = [
     "EnhancedHTMLParser",
     "extract_text_from_html",
     "compact_content",
+    "clean_content",
     # Cache utilities
     "_cache_key",
     "_get_cache",
