@@ -6,7 +6,7 @@ import logging
 from typing import cast
 from urllib.parse import urlparse
 
-from scripts.constants import DEFAULT_TIMEOUT, MAX_CHARS
+from scripts.constants import CLEAN_CONTENT, DEFAULT_TIMEOUT, MAX_CHARS
 from scripts.models import ResolvedResult
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def fetch_url_content(
     url: str, timeout: int = DEFAULT_TIMEOUT, max_chars: int = MAX_CHARS
 ) -> ResolvedResult | None:
-    from scripts.utils import _safe_request, extract_text_from_html, get_session, validate_url
+    from scripts.utils import _safe_request, get_session, validate_url
 
     validation = validate_url(url, timeout=timeout // 2)
     if not validation.is_valid:
@@ -25,16 +25,29 @@ def fetch_url_content(
         response = _safe_request("GET", url, session=session, timeout=timeout, verify=True)
         if response.status_code >= 400:
             return None
-        content = (
-            extract_text_from_html(response.text, url)
-            if "text/html" in response.headers.get("Content-Type", "")
-            else response.text
-        )
+        raw_html = response.text
+        is_html = "text/html" in response.headers.get("Content-Type", "")
+
+        if is_html and CLEAN_CONTENT:
+            from scripts.utils.content_clean import clean_content
+
+            content = clean_content(raw_html, url=url, max_chars=max_chars)
+        elif is_html:
+            from scripts.utils import extract_text_from_html
+
+            content = extract_text_from_html(raw_html, url)[:max_chars]
+        else:
+            content = raw_html[:max_chars]
+
         return ResolvedResult(
             source="direct_fetch",
-            content=content[:max_chars],
+            content=content,
             url=validation.final_url or url,
-            metadata={"status_code": response.status_code},
+            metadata={
+                "status_code": response.status_code,
+                "cleaned": is_html and CLEAN_CONTENT,
+                "raw_length": len(raw_html),
+            },
         )
     except Exception:
         logger.debug("Direct fetch failed: %s", url, exc_info=True)

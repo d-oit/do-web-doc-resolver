@@ -329,6 +329,58 @@ def compact_content(content: str, max_chars: int) -> str:
     return "\n".join(compacted)[:max_chars]
 
 
+def _strip_html_tags(html: str) -> str:
+    """Minimal fallback: strip all HTML tags."""
+    text = re.sub(r"<[^>]+>", " ", html)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def clean_content(
+    html: str,
+    url: str = "",
+    max_chars: int = 32_000,
+    favor_recall: bool = False,
+) -> str:
+    """Extract main content from HTML, removing boilerplate for LLM efficiency."""
+    if not html or not html.strip():
+        return ""
+
+    try:
+        import trafilatura
+
+        result = trafilatura.extract(
+            html,
+            url=url or None,
+            include_tables=favor_recall,
+            include_links=favor_recall,
+            include_images=False,
+            favor_precision=not favor_recall,
+            output_format="txt",
+            deduplicate=True,
+        )
+        if result and len(result.strip()) > 200:
+            return result[:max_chars]
+    except ImportError:
+        pass
+    except Exception:
+        pass
+
+    try:
+        from readability import Document  # type: ignore[import]
+
+        doc = Document(html)
+        summary_html = doc.summary()
+        text = _strip_html_tags(summary_html)
+        if text and len(text.strip()) > 200:
+            return text[:max_chars]
+    except ImportError:
+        pass
+    except Exception:
+        pass
+
+    return _strip_html_tags(html)[:max_chars]
+
+
 class EnhancedHTMLParser(HTMLParser):
     _block_tags = {
         "p",
