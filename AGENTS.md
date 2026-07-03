@@ -115,6 +115,24 @@ Detailed reference material in `agents-docs/`:
 - No new secrets (verified via Gitleaks)
 - `AGENTS.md` updated if structure changed
 
+### CI & Codacy Rules (NEVER SKIP)
+
+**ALL GitHub Actions checks MUST pass before merge.** No exceptions.
+
+**Codacy MUST be up to standards before merge.** If Codacy shows `ACTION_REQUIRED`:
+
+1. Run `codacy pull-request gh <org> <repo> <prN> --output json` to get issues
+2. For false positives: `codacy pull-request gh <org> <repo> <prN> --ignore-issue <resultDataId> --ignore-reason FalsePositive`
+3. For real issues: fix the code, commit, push
+4. Re-run: `codacy pull-request gh <org> <repo> <prN> --reanalyze-and-wait`
+
+**Never merge with:**
+
+- Any failing GitHub Action (even if "pre-existing on main")
+- Codacy `ACTION_REQUIRED` status
+- Merge conflicts
+- Required reviews missing
+
 ### Test Commands
 
 - **Python**: `pytest -m "not live"`
