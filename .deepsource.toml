@@ -10,6 +10,56 @@ issues = ["PYL-R0201"]
 paths = ["tests/**"]
 issues = ["PYL-R0401"]
 
+[[ignore]]
+# Skills snapshot: TYPE_CHECKING pass block is intentional placeholder
+paths = [".agents/skills/**"]
+issues = ["PTC-W0047"]
+
+[[ignore]]
+# Skills snapshot: global statements required for singleton pattern
+paths = [".agents/skills/**"]
+issues = ["PYL-W0603"]
+
+[[ignore]]
+# Skills snapshot: lazy logging is intentional for config loading
+paths = [".agents/skills/**"]
+issues = ["PYL-W1203"]
+
+[[ignore]]
+# Skills snapshot: unused bucket arg used for LRU cache time-bucketing
+paths = [".agents/skills/**"]
+issues = ["PYL-W0613"]
+
+[[ignore]]
+# Skills snapshot: cyclomatic complexity justified for security functions
+paths = [".agents/skills/**"]
+issues = ["PY-R1000"]
+
+[[ignore]]
+# Skills snapshot: false positive — we BLOCK 0.0.0.0, not bind to it
+paths = [".agents/skills/**"]
+issues = ["BAN-B104"]
+
+[[ignore]]
+# Skills snapshot: protected member access is intentional cross-module
+paths = [".agents/skills/**"]
+issues = ["PYL-W0212"]
+
+[[ignore]]
+# Scripts: global statements required for singleton pattern
+paths = ["scripts/**"]
+issues = ["PYL-W0603"]
+
+[[ignore]]
+# Scripts: cyclomatic complexity justified for security functions
+paths = ["scripts/**"]
+issues = ["PY-R1000"]
+
+[[ignore]]
+# Scripts: false positive — we BLOCK 0.0.0.0, not bind to it
+paths = ["scripts/**"]
+issues = ["BAN-B104"]
+
 [[analyzers]]
 name = "javascript"
 
