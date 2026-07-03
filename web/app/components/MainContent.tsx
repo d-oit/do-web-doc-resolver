@@ -40,6 +40,7 @@ interface MainContentProps {
 
 export function MainContent(props: MainContentProps) {
   const {
+    mobileMenuOpen,
     setMobileMenuOpen,
     query,
     setQuery,
@@ -85,7 +86,7 @@ export function MainContent(props: MainContentProps) {
 
   return (
     <div id="main-content" className="flex-1 flex flex-col min-h-0" tabIndex={-1}>
-      <MainHeader setMobileMenuOpen={setMobileMenuOpen} />
+      <MainHeader setMobileMenuOpen={setMobileMenuOpen} mobileMenuOpen={mobileMenuOpen} />
 
       <SearchSection
         query={query}
