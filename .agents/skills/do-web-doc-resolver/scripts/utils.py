@@ -331,8 +331,6 @@ def compact_content(content: str, max_chars: int) -> str:
 
 def _strip_html_tags(html: str) -> str:
     """Minimal fallback: strip all HTML tags."""
-    import re
-
     text = re.sub(r"<[^>]+>", " ", html)
     return re.sub(r"\s+", " ", text).strip()
 

@@ -60,6 +60,11 @@ issues = ["PY-R1000"]
 paths = ["scripts/**"]
 issues = ["BAN-B104"]
 
+[[ignore]]
+# Tests: cyclic import is false positive for test utilities
+paths = ["tests/**"]
+issues = ["PYL-R0401"]
+
 [[analyzers]]
 name = "javascript"
 
