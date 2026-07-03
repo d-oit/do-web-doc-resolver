@@ -56,11 +56,12 @@ wc -l cli/ui/components/*.css   # Verify <200 lines each
 
 ## Merge Guard Rails (MANDATORY)
 
-**NEVER merge with failing CI — NO EXCEPTIONS.**
+**NEVER merge with failing CI or Codacy — NO EXCEPTIONS.**
 
-Before any merge, verify ALL checks pass:
+Before any merge, verify ALL checks pass AND Codacy is up to standards:
 
 ```bash
+# Check CI
 gh pr view {N} --json statusCheckRollup | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
@@ -72,8 +73,20 @@ if failed:
     sys.exit(1)
 print('All CI checks passing')
 "
+
+# Check Codacy
+codacy pull-request gh <org> <repo> {N} --output json | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+quality = data.get('pullRequest', {}).get('quality', {})
+if not quality.get('isUpToStandards', True):
+    print(f'BLOCKED: Codacy ACTION_REQUIRED')
+    sys.exit(1)
+print('Codacy up to standards')
+"
 ```
 
-- `gh pr merge --admin` is FORBIDDEN when CI is failing
+- `gh pr merge --admin` is FORBIDDEN when CI or Codacy is failing
 - "Pre-existing on main" is NOT a valid justification
-- If CI fails: fix the failure, or close the PR, or escalate to user
+- If CI or Codacy fails: fix it, close the PR, or escalate to user
+- Use `codacy pull-request --ignore-issue <resultDataId> --ignore-reason FalsePositive` for false positives

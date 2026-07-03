@@ -44,16 +44,18 @@ Also update `components/README.md` to replace the issue link with `{name}.css`.
 - Use `thiserror` for library errors
 - Use `anyhow` at binary boundary
 
-## CRITICAL: Never Merge with Failing CI
+## CRITICAL: Never Merge with Failing CI or Codacy
 
 This is an ABSOLUTE RULE with no exceptions:
 
 - **NEVER** use `gh pr merge --admin` when CI checks are failing
 - **NEVER** use `gh pr merge --auto` when required checks are failing
 - **NEVER** justify merging with "pre-existing on main" — fix main first
-- **ALWAYS** verify ALL checks pass before merging:
+- **NEVER** merge when Codacy shows `ACTION_REQUIRED`
+- **ALWAYS** verify ALL checks pass AND Codacy is up to standards before merging:
 
 ```bash
+# Check CI
 gh pr view {N} --json statusCheckRollup | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
@@ -65,6 +67,17 @@ if failed:
     sys.exit(1)
 print('All CI checks passing')
 "
+
+# Check Codacy
+codacy pull-request gh <org> <repo> {N} --output json | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+quality = data.get('pullRequest', {}).get('quality', {})
+if not quality.get('isUpToStandards', True):
+    print(f'BLOCKED: Codacy ACTION_REQUIRED')
+    sys.exit(1)
+print('Codacy up to standards')
+"
 ```
 
-If ANY check fails: fix it, close the PR, or escalate to the user. NEVER merge.
+If ANY check fails or Codacy is ACTION_REQUIRED: fix it, close the PR, or escalate to the user. NEVER merge.

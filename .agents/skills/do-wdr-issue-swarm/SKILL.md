@@ -96,11 +96,11 @@ stash → abort rebase → abort merge → fetch main → retry. Never retry mor
 See [AGENTS.md § CI Fix Workflow](../../../AGENTS.md#ci-fix-workflow) for the
 full incremental CI fix workflow.
 
-### 7. Verify ALL CI passes before merge
+### 7. Verify ALL CI and Codacy pass before merge
 
-**HARD RULE: NEVER merge with failing CI — NO EXCEPTIONS.**
+**HARD RULE: NEVER merge with failing CI or Codacy — NO EXCEPTIONS.**
 
-Before merging ANY PR, verify every single check passes:
+Before merging ANY PR, verify every single check passes AND Codacy is up to standards:
 
 ```bash
 # BLOCK if ANY check is failing
@@ -115,11 +115,21 @@ if failed:
     sys.exit(1)
 print('All CI checks passing')
 "
+
+# Check Codacy status
+codacy pull-request gh <org> <repo> {N} --output json | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+pr = data.get('pullRequest', {}).get('pullRequest', {})
+quality = data.get('pullRequest', {}).get('quality', {})
+if not quality.get('isUpToStandards', True):
+    print(f'BLOCKED: Codacy ACTION_REQUIRED ({quality.get(\"newIssues\", 0)} new issues)')
+    sys.exit(1)
+print('Codacy up to standards')
+"
 ```
 
-**If ANY check fails — STOP. Do NOT merge.** Fix the failure first, or close the PR.
-
-"Pre-existing on main" is NOT a valid reason to merge with failing CI. Fix main first.
+**If ANY check fails or Codacy is ACTION_REQUIRED — STOP. Do NOT merge.** Fix the issue first, or close the PR.
 
 ### 8. Close issues on pass
 
