@@ -71,6 +71,7 @@ class ProviderType(Enum):
     # New providers
     DOCLING = "docling"
     OCR = "ocr"
+    VISUAL_CLIP = "visual_clip"
 
     def is_paid(self) -> bool:
         return self in (
@@ -80,6 +81,7 @@ class ProviderType(Enum):
             ProviderType.FIRECRAWL,
             ProviderType.MISTRAL_WEBSEARCH,
             ProviderType.MISTRAL_BROWSER,
+            ProviderType.VISUAL_CLIP,
         )
 
     def is_fast(self) -> bool:

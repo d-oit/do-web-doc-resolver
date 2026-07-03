@@ -203,24 +203,33 @@ def plan_provider_order(
         strategy = preflight.get("preferred_strategy", "llms_txt")
 
         if platform in ("notion", "confluence") or preflight.get("js_heavy"):
-            base = ["mistral_browser", "jina", "direct_fetch", "duckduckgo", "firecrawl"]
+            base = [
+                "jina",
+                "firecrawl",
+                "visual_clip",
+                "mistral_browser",
+                "direct_fetch",
+                "duckduckgo",
+            ]
         elif strategy == "direct_fetch":
             base = [
                 "direct_fetch",
                 "llms_txt",
                 "jina",
+                "firecrawl",
+                "visual_clip",
                 "mistral_browser",
                 "duckduckgo",
-                "firecrawl",
             ]
         else:
             base = [
                 "llms_txt",
                 "jina",
-                "direct_fetch",
-                "mistral_browser",
-                "duckduckgo",
                 "firecrawl",
+                "visual_clip",
+                "mistral_browser",
+                "direct_fetch",
+                "duckduckgo",
             ]
     else:
         # DuckDuckGo deprioritized due to instability (Alert 2026-04-20)

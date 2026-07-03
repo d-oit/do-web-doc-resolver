@@ -9,6 +9,7 @@ import scripts.routing
 from scripts._cascade_async import cascade_stream_async
 from scripts.models import Profile, ProviderType, ResolvedResult, ResolveMetrics
 from scripts.providers.jina import resolve_with_jina_async
+from scripts.providers.visual_clip import resolve_with_visual_clip_async
 from scripts.semantic_cache import get_semantic_cache
 from scripts.state import circuit_breakers as _circuit_breakers
 from scripts.state import routing_memory as _routing_memory
@@ -18,17 +19,27 @@ logger = logging.getLogger(__name__)
 
 
 async def resolve_url_async(
-    url: str, max_chars: int = 8000, profile: Profile = Profile.BALANCED
+    url: str,
+    max_chars: int = 8000,
+    profile: Profile = Profile.BALANCED,
+    query: str | None = None,
+    skip_providers: set[str] | None = None,
 ) -> dict[str, Any]:
     """Async version of resolve_url."""
-    async for result in resolve_url_stream_async(url, max_chars, profile):
+    async for result in resolve_url_stream_async(
+        url, max_chars, profile, query=query, skip_providers=skip_providers
+    ):
         if result.get("source") != "partial":
             return result
     return {"source": "none", "url": url, "content": "Failed"}
 
 
 async def resolve_url_stream_async(
-    url: str, max_chars: int = 8000, profile: Profile = Profile.BALANCED
+    url: str,
+    max_chars: int = 8000,
+    profile: Profile = Profile.BALANCED,
+    query: str | None = None,
+    skip_providers: set[str] | None = None,
 ) -> AsyncGenerator[dict[str, Any]]:
     """Async generator version of resolve_url_stream."""
     logger.info(f"Resolving URL async: {url}")
@@ -52,12 +63,16 @@ async def resolve_url_stream_async(
     )
 
     provider_names = scripts.routing.plan_provider_order(
-        target=url, is_url=True, routing_memory=_routing_memory
+        target=url, is_url=True, routing_memory=_routing_memory, skip_providers=skip_providers
     )
 
     # Async provider map - only async providers for now
     cascade_map: dict[str, tuple[ProviderType, Any]] = {
         "jina": (ProviderType.JINA, lambda: resolve_with_jina_async(url, max_chars)),
+        "visual_clip": (
+            ProviderType.VISUAL_CLIP,
+            lambda: resolve_with_visual_clip_async(url, max_chars, query=query),
+        ),
         # TODO: Add async versions of other providers
         # "firecrawl": (ProviderType.FIRECRAWL, lambda: resolve_with_firecrawl_async(url, max_chars)),
         # "direct_fetch": (ProviderType.DIRECT_FETCH, lambda: fetch_url_content_async(url, max_chars)),
@@ -73,7 +88,9 @@ async def resolve_url_stream_async(
         logger.info("No async providers eligible, falling back to sync cascade")
         from scripts._url_resolve import resolve_url_stream
 
-        for result in resolve_url_stream(url, max_chars, profile):
+        for result in resolve_url_stream(
+            url, max_chars, profile, query=query, skip_providers=skip_providers
+        ):
             yield result
         return
 
