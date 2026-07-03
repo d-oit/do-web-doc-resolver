@@ -6,7 +6,7 @@ paths = ["tests/**"]
 issues = ["PYL-R0201"]
 
 [[ignore]]
-# Test files: reimport issues from refactored conftest removal
+# Test files: cyclic import false positive from import chain analysis
 paths = ["tests/**"]
 issues = ["PYL-R0401"]
 
@@ -61,8 +61,8 @@ paths = ["scripts/**"]
 issues = ["BAN-B104"]
 
 [[ignore]]
-# Tests: cyclic import is false positive for test utilities
-paths = ["tests/**"]
+# Pre-existing cyclic import between scripts.utils and scripts.utils.fetch
+paths = ["scripts/**"]
 issues = ["PYL-R0401"]
 
 [[analyzers]]
