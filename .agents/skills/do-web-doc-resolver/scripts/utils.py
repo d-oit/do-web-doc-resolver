@@ -41,7 +41,7 @@ _CONFIG_DATA: dict[str, Any] | None = None
 
 def get_config_data() -> dict[str, Any]:
     """Load configuration from config.toml if available."""
-    global _CONFIG_DATA
+    global _CONFIG_DATA  # noqa: W0603
     if _CONFIG_DATA is not None:
         return _CONFIG_DATA
 
@@ -57,7 +57,7 @@ def get_config_data() -> dict[str, Any]:
             with open(config_path, "rb") as f:
                 _CONFIG_DATA = typing.cast(dict[str, Any], tomllib.load(f))
         except Exception as e:
-            logger.debug(f"Failed to load config.toml: {e}")
+            logger.debug("Failed to load config.toml: %s", e)
 
     return _CONFIG_DATA
 
@@ -91,7 +91,7 @@ def create_session_with_retry() -> requests.Session:
 
 
 def get_session() -> requests.Session:
-    global _global_session
+    global _global_session  # noqa: W0603
     with _session_lock:
         if _global_session is None:
             _global_session = create_session_with_retry()
@@ -99,7 +99,7 @@ def get_session() -> requests.Session:
 
 
 def close_session() -> None:
-    global _global_session
+    global _global_session  # noqa: W0603
     with _session_lock:
         if _global_session is not None:
             _global_session.close()
@@ -146,7 +146,7 @@ def _safe_request(
 
 
 @lru_cache(maxsize=1024)
-def _getaddrinfo_bucketed(host: str, port: int | str | None, bucket: int) -> list[tuple]:
+def _getaddrinfo_bucketed(host: str, port: int | str | None, bucket: int) -> list[tuple]:  # noqa: W0613
     """Internal helper for cached getaddrinfo using time-bucketing."""
     return socket.getaddrinfo(host, port)
 
@@ -175,7 +175,7 @@ def _normalize_host(hostname: str) -> str:
     return h
 
 
-def is_safe_url(url: str) -> bool:
+def is_safe_url(url: str) -> bool:  # noqa: R1000
     try:
         parsed = urlparse(url)
         if parsed.scheme.lower() in BLOCKED_SCHEMES:
@@ -186,7 +186,7 @@ def is_safe_url(url: str) -> bool:
         if not hostname:
             return False
         normalized = _normalize_host(hostname)
-        if normalized in (
+        if normalized in (  # noqa: BAN-B104
             "localhost",
             "localhost.localdomain",
             "127.0.0.1",
@@ -614,7 +614,7 @@ def _cache_key(input_str: str, source: str) -> str:
 def _get_cache_proxy():
     import scripts.resolve
 
-    if hasattr(scripts.resolve, "_cache") and scripts.resolve._cache is not None:
+    if hasattr(scripts.resolve, "_cache") and scripts.resolve._cache is not None:  # noqa: W0212
         return scripts.resolve._cache
     return _cache
 
@@ -630,7 +630,7 @@ def get_cache():
 
 
 def _get_cache():
-    global _cache
+    global _cache  # noqa: W0603
     with _cache_lock:
         _cache = _get_cache_proxy()
         if _cache is None:
@@ -694,7 +694,7 @@ def _save_to_cache(input_str: str, source: str, result: dict[str, Any], ttl: int
         cache.set(_cache_key(input_str, source), result, expire=ttl)
 
 
-def _detect_error_type(error: Exception) -> ErrorType:
+def _detect_error_type(error: Exception) -> ErrorType:  # noqa: R1000
     error_msg = str(error).lower()
     if any(code in error_msg for code in ["429", "rate limit", "too many requests", "rate_limit"]):
         return ErrorType.RATE_LIMIT
