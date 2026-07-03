@@ -15,6 +15,11 @@ PENALTY_JARGON = 0.10
 BONUS_HAS_FRONTMATTER = 0.05
 BONUS_HAS_ANCHORS = 0.05
 
+# Quality scoring thresholds
+THRESHOLD_NOISE = 6
+THRESHOLD_JARGON = 3
+THRESHOLD_MIN_CHARS = 500
+
 # Acceptance threshold
 ACCEPTABLE_THRESHOLD = 0.65
 
@@ -60,7 +65,7 @@ def _check_jargon(text_lower: str) -> bool:
         "supercharge",
     ]
     jargon_count = sum(text_lower.count(signal) for signal in jargon_signals)
-    return jargon_count > 3
+    return jargon_count > THRESHOLD_JARGON
 
 
 def _check_frontmatter(text: str) -> bool:
@@ -89,7 +94,7 @@ def _compute_noise(text_lower: str) -> bool:
     """Detect noisy signals like cookie/subscribe prompts."""
     noisy_signals = ["cookie", "subscribe", "javascript", "log in", "sign up"]
     noise_count = sum(text_lower.count(signal) for signal in noisy_signals)
-    return noise_count > 6
+    return noise_count > THRESHOLD_NOISE
 
 
 def _compute_penalties(
@@ -131,7 +136,7 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     text = (markdown or "").strip()
     links = links or []
 
-    too_short = len(text) < 500
+    too_short = len(text) < THRESHOLD_MIN_CHARS
     missing_links = len(links) == 0
     duplicate_heavy = _check_duplicates(text)
     text_lower = text.lower()

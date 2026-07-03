@@ -123,10 +123,11 @@ Content is scored on a 0.0-1.0 scale:
 
 | Signal | Penalty | Detection |
 |--------|---------|-----------|
-| Too short | -0.35 | `< 500 characters` |
-| Missing links | -0.15 | No markdown links |
-| Duplicate-heavy | -0.25 | `< 50% unique lines` |
-| Noisy content | -0.20 | `> 6 noise signals` |
+| Too short | -0.25 | `< 500 characters` |
+| Missing links | -0.10 | No markdown links |
+| Duplicate-heavy | -0.15 | `< 1/3 unique lines` |
+| Noisy content | -0.10 | `> 6 noise signals` |
+| AI Jargon | -0.10 | `> 3 jargon signals` |
 
 ### Noise Signals
 
