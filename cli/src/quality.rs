@@ -38,14 +38,16 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
         Regex::new("(?i)cookie|subscribe|javascript|log in|sign up")
             .expect("Invalid quality noise regex patterns")
     });
-    let noisy_count = noisy_re.find_iter(trimmed).count();
+    // Early exit if noise threshold (6) is exceeded
+    let noisy_count = noisy_re.find_iter(trimmed).take(7).count();
     let noisy = noisy_count > 6;
 
     let jargon_re = JARGON_PATTERNS.get_or_init(|| {
         Regex::new("(?i)seamlessly|robust|powerful|comprehensive|streamlined|leverage|revolutionize|game-changing|intuitive|next-generation|cutting-edge|state-of-the-art|best-in-class|unlock|transform|supercharge")
             .expect("Invalid quality jargon regex patterns")
     });
-    let jargon_count = jargon_re.find_iter(trimmed).count();
+    // Early exit if jargon threshold (3) is exceeded
+    let jargon_count = jargon_re.find_iter(trimmed).take(4).count();
     let jargon_heavy = jargon_count > 3;
 
     let has_frontmatter = trimmed.starts_with("---")
