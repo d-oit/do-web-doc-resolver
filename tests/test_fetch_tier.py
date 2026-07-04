@@ -12,7 +12,14 @@ def test_fetch_tier_values_are_ascending():
 
 
 def test_provider_tiers_cover_cascade_providers():
-    cascade_providers = ["llms_txt", "jina", "firecrawl", "direct_fetch", "mistral_browser", "duckduckgo"]
+    cascade_providers = [
+        "llms_txt",
+        "jina",
+        "firecrawl",
+        "direct_fetch",
+        "mistral_browser",
+        "duckduckgo",
+    ]
     for p in cascade_providers:
         assert p in PROVIDER_TIERS, f"{p} missing from PROVIDER_TIERS"
 
