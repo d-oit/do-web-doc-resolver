@@ -1,7 +1,8 @@
 # tests/test_fetch_tier.py
 
-from scripts.models import FetchTier
 from scripts.constants import PROVIDER_TIERS
+from scripts.models import FetchTier
+
 
 def test_free_providers_have_lower_tier_than_paid():
     assert PROVIDER_TIERS["direct_fetch"] < PROVIDER_TIERS["jina"]
