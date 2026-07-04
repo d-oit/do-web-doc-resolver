@@ -63,6 +63,7 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <aside
+      id="sidebar-navigation"
       className={`
         fixed inset-y-0 left-0 z-50 w-72 bg-background border-r-2 border-border-muted transition-transform duration-300 lg:relative lg:translate-x-0
         ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -74,6 +75,8 @@ export default function Sidebar({
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
         aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+        aria-expanded={sidebarOpen}
+        aria-controls="sidebar-navigation"
       >
         {sidebarOpen ? (
           <>

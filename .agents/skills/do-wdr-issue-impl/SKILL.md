@@ -24,6 +24,7 @@ gh issue view {N} --json title,body,labels,state
 ```
 
 Parse the issue body for:
+
 - Summary and problem statement
 - Proposed solution (file changes, new files)
 - Acceptance criteria
@@ -42,6 +43,7 @@ Task(
 ```
 
 Read the key files identified. Understand:
+
 - Current implementation that needs changing
 - Related code that might be affected
 - Existing patterns to follow
@@ -90,6 +92,7 @@ git commit -m "{type}({scope}): {description} (#{N})
 **Scope must be from allowed enum:** `resolver, cli, web, ci, docs, deps, security, release, agents, test`
 
 **Commitlint rules:**
+
 - Header max 150 chars
 - Body lines max 100 chars
 - Body max 2000 chars total
