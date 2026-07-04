@@ -20,7 +20,10 @@ def test_resolved_result_satisfies_protocol():
 
 def test_lambda_satisfies_protocol():
     """A lambda with correct signature satisfies the protocol."""
-    resolver = lambda url, max_chars: ResolvedResult(source="test", content="ok", url=url)
+
+    def resolver(url, max_chars):  # noqa: E731
+        return ResolvedResult(source="test", content="ok", url=url)
+
     assert isinstance(resolver, ReadonlyResolverProtocol)
 
 

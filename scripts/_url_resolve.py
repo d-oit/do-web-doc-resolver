@@ -7,7 +7,13 @@ from typing import Any
 
 import scripts.routing
 from scripts._cascade import cascade_stream
-from scripts.models import Profile, ProviderType, ReadonlyResolverProtocol, ResolvedResult, ResolveMetrics
+from scripts.models import (
+    Profile,
+    ProviderType,
+    ReadonlyResolverProtocol,
+    ResolvedResult,
+    ResolveMetrics,
+)
 from scripts.providers_impl import (
     resolve_with_docling,
     resolve_with_duckduckgo,
