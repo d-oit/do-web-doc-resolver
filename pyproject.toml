@@ -115,8 +115,24 @@ ignore = [
 python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
-ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
 exclude = ".(agents|blackbox|claude|opencode)/skills/"
+
+[[tool.mypy.overrides]]
+module = [
+    "diskcache.*",
+    "sentence_transformers.*",
+    "trafilatura.*",
+    "readability.*",
+    "sqlite_vec.*",
+    "pysqlite3.*",
+    "exa.*",
+    "tavily.*",
+    "firecrawl.*",
+    "ddgs.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
