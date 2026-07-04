@@ -7,9 +7,13 @@ from typing import Any
 
 import scripts.routing
 from scripts._cascade_async import cascade_stream_async
-from scripts.models import Profile, ProviderType, ResolvedResult, ResolveMetrics
+from scripts.constants import PROVIDER_TIERS
+from scripts.models import FetchTier, Profile, ProviderType, ResolvedResult, ResolveMetrics
 from scripts.providers.jina import resolve_with_jina_async
 from scripts.providers.visual_clip import resolve_with_visual_clip_async
+from scripts.providers_impl import (
+    resolve_with_stealth,
+)
 from scripts.semantic_cache import get_semantic_cache
 from scripts.state import circuit_breakers as _circuit_breakers
 from scripts.state import routing_memory as _routing_memory
@@ -73,6 +77,10 @@ async def resolve_url_stream_async(
             ProviderType.VISUAL_CLIP,
             lambda: resolve_with_visual_clip_async(url, max_chars, query=query),
         ),
+        "stealth": (
+            ProviderType.DIRECT_FETCH,
+            lambda: resolve_with_stealth(url, max_chars),
+        ),
         # TODO: Add async versions of other providers
         # "firecrawl": (ProviderType.FIRECRAWL, lambda: resolve_with_firecrawl_async(url, max_chars)),
         # "direct_fetch": (ProviderType.DIRECT_FETCH, lambda: fetch_url_content_async(url, max_chars)),
@@ -81,7 +89,15 @@ async def resolve_url_stream_async(
     }
 
     domain = scripts.routing.extract_domain(url)
-    eligible = [p for p in provider_names if p in cascade_map]
+
+    def _sort_by_tier(provider_name: str) -> int:
+        val = PROVIDER_TIERS.get(provider_name, FetchTier.PAID_BROWSER)
+        return int(val)
+
+    eligible = sorted(
+        [p for p in provider_names if p in cascade_map],
+        key=_sort_by_tier,
+    )
 
     if not eligible:
         # Fall back to sync cascade for providers not yet converted
