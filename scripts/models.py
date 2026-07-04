@@ -50,6 +50,19 @@ class Profile(Enum):
         return 4
 
 
+class FetchTier(int, Enum):
+    """Escalation cost tier for fetch providers.
+
+    Lower = cheaper, always tried first in the cascade.
+    """
+
+    FREE_STATIC = 0
+    FREE_DIRECT = 1
+    FREE_SEARCH = 2
+    PAID_LITE = 3
+    PAID_BROWSER = 4
+
+
 class ProviderType(Enum):
     """Available providers for resolution."""
 

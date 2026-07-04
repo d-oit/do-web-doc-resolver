@@ -7,6 +7,7 @@ from typing import Any
 
 import scripts.routing
 from scripts._cascade import cascade_stream
+from scripts.constants import PROVIDER_TIERS
 from scripts.models import (
     Profile,
     ProviderType,
