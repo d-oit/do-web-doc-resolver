@@ -5,6 +5,8 @@ import logging
 import os
 import typing
 
+from scripts.models import FetchTier
+
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
@@ -116,12 +118,13 @@ DNS_CACHE_TTL: int = 60
 
 CLEAN_CONTENT: bool = os.environ.get("WDR_CLEAN_CONTENT", "1") != "0"
 
-PROVIDER_TIERS: dict[str, int] = {
-    "llms_txt": 0,
-    "direct_fetch": 1,
-    "duckduckgo": 2,
-    "jina": 3,
-    "firecrawl": 3,
-    "visual_clip": 3,
-    "mistral_browser": 4,
+PROVIDER_TIERS: dict[str, FetchTier] = {
+    "llms_txt": FetchTier.FREE_STATIC,
+    "direct_fetch": FetchTier.FREE_DIRECT,
+    "duckduckgo": FetchTier.FREE_SEARCH,
+    "jina": FetchTier.PAID_LITE,
+    "firecrawl": FetchTier.PAID_LITE,
+    "visual_clip": FetchTier.PAID_LITE,
+    "stealth": FetchTier.STEALTH,
+    "mistral_browser": FetchTier.PAID_BROWSER,
 }

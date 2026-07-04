@@ -9,6 +9,7 @@ import scripts.routing
 from scripts._cascade import cascade_stream
 from scripts.constants import PROVIDER_TIERS
 from scripts.models import (
+    FetchTier,
     Profile,
     ProviderType,
     ReadonlyResolverProtocol,
@@ -22,6 +23,7 @@ from scripts.providers_impl import (
     resolve_with_jina,
     resolve_with_mistral_browser,
     resolve_with_ocr,
+    resolve_with_stealth,
     resolve_with_visual_clip,
 )
 from scripts.semantic_cache import get_semantic_cache
@@ -156,12 +158,21 @@ def resolve_url_stream(
             lambda: resolve_with_visual_clip(url, max_chars, query=query),
         ),
         "duckduckgo": (ProviderType.DUCKDUCKGO, lambda: resolve_with_duckduckgo(url, max_chars)),
+        "stealth": (
+            ProviderType.DIRECT_FETCH,
+            lambda: resolve_with_stealth(url, max_chars),
+        ),
     }
 
     domain = scripts.routing.extract_domain(url)
+
+    def _sort_by_tier(provider_name: str) -> int:
+        val = PROVIDER_TIERS.get(provider_name, FetchTier.PAID_BROWSER)
+        return int(val)
+
     eligible = sorted(
         [p for p in provider_names if p in cascade_map],
-        key=lambda p: PROVIDER_TIERS.get(p, 99),
+        key=_sort_by_tier,
     )
 
     def _url_result_builder(res, target_url, p_name, met, score):

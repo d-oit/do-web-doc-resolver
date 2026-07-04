@@ -1061,11 +1061,11 @@ class TestQualityGate:
                 source="exa_mcp", content="High quality content", url="http://free.com"
             )
 
-            # Mock asyncio.to_thread to return a coroutine that returns the result
-            async def mock_thread_func():
+            # Mock asyncio.to_thread to return a callable that returns the result
+            def mock_thread_func():
                 return res_free
 
-            mock_to_thread.return_value = mock_thread_func()
+            mock_to_thread.return_value = mock_thread_func
 
             # Quality score 0.8 (above default 0.7)
             mock_score.return_value = MagicMock(acceptable=True, score=0.8)

@@ -52,15 +52,14 @@ class Profile(Enum):
 
 class FetchTier(int, Enum):
     """Escalation cost tier for fetch providers.
+    Lower = cheaper, always tried first."""
 
-    Lower = cheaper, always tried first in the cascade.
-    """
-
-    FREE_STATIC = 0
-    FREE_DIRECT = 1
-    FREE_SEARCH = 2
-    PAID_LITE = 3
-    PAID_BROWSER = 4
+    FREE_STATIC = 0  # llms_txt: static text file, zero cost
+    FREE_DIRECT = 1  # direct_fetch: plain httpx, zero cost
+    FREE_SEARCH = 2  # duckduckgo: free web search
+    PAID_LITE = 3  # jina, firecrawl: paid but cheap per-call
+    STEALTH = 4  # anti-bot bypass tier
+    PAID_BROWSER = 5  # mistral_browser: paid + JS execution
 
 
 class ProviderType(Enum):
