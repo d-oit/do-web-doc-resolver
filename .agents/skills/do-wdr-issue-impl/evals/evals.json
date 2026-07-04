@@ -1,0 +1,61 @@
+{
+  "evals": [
+    {
+      "id": "single-issue-impl",
+      "prompt": "Implement issue #492: harden BLOCKED_NETWORKS with cloud metadata endpoints",
+      "expected_output": "PR created with expanded BLOCKED_NETWORKS, BLOCKED_HOSTNAMES, _normalize_host(), and tests passing",
+      "assertions": [
+        "The agent reads the issue with gh issue view 492",
+        "The agent explores scripts/constants.py and scripts/utils/http.py",
+        "The agent creates or modifies files with proper type annotations (no Any)",
+        "The agent runs pytest and all tests pass",
+        "The agent runs ruff and mypy with no errors",
+        "The agent commits with conventional format: fix(security): ...",
+        "The agent creates a PR with proper title matching scope-enum",
+        "The agent monitors CI until checks pass"
+      ]
+    },
+    {
+      "id": "commitlint-scope-validation",
+      "prompt": "Implement issue #491: add trafilatura/readability content-clean mode",
+      "expected_output": "Commit uses perf(resolver) scope, not perf(quality)",
+      "assertions": [
+        "The commit message uses a scope from the allowed enum: resolver, cli, web, ci, docs, deps, security, release, agents, test",
+        "The PR title matches the commit format",
+        "The commit header is under 150 characters",
+        "The commit body lines are under 100 characters"
+      ]
+    },
+    {
+      "id": "skills-snapshot-sync",
+      "prompt": "Implement issue #490: introduce ReadonlyResolverProtocol",
+      "expected_output": "Both scripts/models.py and .agents/skills/do-web-doc-resolver/scripts/models.py are updated",
+      "assertions": [
+        "The agent updates scripts/models.py with the new protocol",
+        "The agent updates .agents/skills/do-web-doc-resolver/scripts/models.py with the same changes",
+        "Both files have consistent implementations"
+      ]
+    },
+    {
+      "id": "ci-failure-recovery",
+      "prompt": "PR title has wrong scope 'architecture' - fix it",
+      "expected_output": "PR title updated to use 'resolver' scope, empty commit pushed to re-trigger CI",
+      "assertions": [
+        "The agent identifies the commitlint scope error",
+        "The agent fixes the PR title with gh pr edit",
+        "The agent pushes an empty commit to re-trigger CI",
+        "The agent verifies CI passes after the fix"
+      ]
+    },
+    {
+      "id": "no-any-type-annotation",
+      "prompt": "Type the cascade_map parameter in _cascade.py",
+      "expected_output": "Uses ReadonlyResolverProtocol instead of Any or Callable",
+      "assertions": [
+        "The agent does not use 'Any' as a type annotation",
+        "The agent uses proper Protocol or Callable types",
+        "The mypy check passes with no errors"
+      ]
+    }
+  ]
+}

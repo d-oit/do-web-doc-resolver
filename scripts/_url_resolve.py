@@ -159,7 +159,10 @@ def resolve_url_stream(
     }
 
     domain = scripts.routing.extract_domain(url)
-    eligible = [p for p in provider_names if p in cascade_map]
+    eligible = sorted(
+        [p for p in provider_names if p in cascade_map],
+        key=lambda p: PROVIDER_TIERS.get(p, 99),
+    )
 
     def _url_result_builder(res, target_url, p_name, met, score):
         if isinstance(res, ResolvedResult):

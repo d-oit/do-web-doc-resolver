@@ -1930,13 +1930,13 @@ class TestCascadeErrorHandling:
 
         mock_llms.return_value = None
         low_quality = ResolvedResult(
-            source="jina",
+            source="direct_fetch",
             content="Basic URL content that is acceptable but brief. " * 30,
             url="https://example.com",
         )
-        mock_jina.return_value = low_quality
+        mock_fetch.return_value = low_quality
+        mock_jina.return_value = None
         mock_fc.return_value = None
-        mock_fetch.return_value = None
         mock_mb.return_value = None
         mock_ddg.return_value = None
 
@@ -1961,14 +1961,14 @@ class TestCascadeErrorHandling:
         )
 
         final = next((r for r in results if r.get("source") != "partial"), results[-1])
-        # Should yield best_free_result from jina, not source=none
-        assert final["source"] == "jina"
+        # Should yield best_free_result from direct_fetch (tier 1, tried before jina)
+        assert final["source"] == "direct_fetch"
         assert "Basic URL content" in final["content"]
         # Remaining providers should not be called since budget was exhausted
         mock_fc.assert_not_called()
         mock_mb.assert_not_called()
         mock_ddg.assert_not_called()
-        mock_fetch.assert_not_called()
+        mock_jina.assert_not_called()
 
     # ── Hedge & negative cache tests ───────────────────────────────────
 
