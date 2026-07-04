@@ -7,7 +7,14 @@ from typing import Any
 
 import scripts.routing
 from scripts._cascade import cascade_stream
-from scripts.models import Profile, ProviderType, ResolvedResult, ResolveMetrics
+from scripts.constants import PROVIDER_TIERS
+from scripts.models import (
+    Profile,
+    ProviderType,
+    ReadonlyResolverProtocol,
+    ResolvedResult,
+    ResolveMetrics,
+)
 from scripts.providers_impl import (
     resolve_with_docling,
     resolve_with_duckduckgo,
@@ -132,7 +139,7 @@ def resolve_url_stream(
     provider_names = scripts.routing.plan_provider_order(
         target=url, is_url=True, routing_memory=_routing_memory, skip_providers=skip_providers
     )
-    cascade_map: dict[str, tuple[ProviderType, Any]] = {
+    cascade_map: dict[str, tuple[ProviderType, ReadonlyResolverProtocol]] = {
         "llms_txt": (ProviderType.LLMS_TXT, lambda: fetch_llms_txt(url)),
         "jina": (ProviderType.JINA, lambda: resolve_with_jina(url, max_chars)),
         "firecrawl": (ProviderType.FIRECRAWL, lambda: resolve_with_firecrawl(url, max_chars)),
@@ -152,7 +159,10 @@ def resolve_url_stream(
     }
 
     domain = scripts.routing.extract_domain(url)
-    eligible = [p for p in provider_names if p in cascade_map]
+    eligible = sorted(
+        [p for p in provider_names if p in cascade_map],
+        key=lambda p: PROVIDER_TIERS.get(p, 99),
+    )
 
     def _url_result_builder(res, target_url, p_name, met, score):
         if isinstance(res, ResolvedResult):

@@ -14,6 +14,10 @@ PENALTY_NOISY = 0.10
 BONUS_HAS_FRONTMATTER = 0.05
 BONUS_HAS_ANCHORS = 0.05
 
+# Quality scoring thresholds
+THRESHOLD_NOISE = 6
+THRESHOLD_MIN_CHARS = 500
+
 # Acceptance threshold
 ACCEPTABLE_THRESHOLD = 0.65
 
@@ -37,7 +41,7 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     links = links or []
 
     length = len(text)
-    too_short = length < 500
+    too_short = length < THRESHOLD_MIN_CHARS
     missing_links = len(links) == 0
 
     lines = text.splitlines()
@@ -51,7 +55,7 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     noisy_signals = ["cookie", "subscribe", "javascript", "log in", "sign up"]
     text_lower = text.lower()
     noise_count = sum(text_lower.count(signal) for signal in noisy_signals)
-    noisy = noise_count > 6
+    noisy = noise_count > THRESHOLD_NOISE
 
     # 2026 Standard Checks
     required_yaml = [

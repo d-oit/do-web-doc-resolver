@@ -113,3 +113,15 @@ BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
 DNS_CACHE_TTL: int = 60
+
+CLEAN_CONTENT: bool = os.environ.get("WDR_CLEAN_CONTENT", "1") != "0"
+
+PROVIDER_TIERS: dict[str, int] = {
+    "llms_txt": 0,
+    "direct_fetch": 1,
+    "duckduckgo": 2,
+    "jina": 3,
+    "firecrawl": 3,
+    "visual_clip": 3,
+    "mistral_browser": 4,
+}

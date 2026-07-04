@@ -6,7 +6,7 @@ paths = ["tests/**"]
 issues = ["PYL-R0201"]
 
 [[ignore]]
-# Test files: reimport issues from refactored conftest removal
+# Test files: cyclic import false positive from import chain analysis
 paths = ["tests/**"]
 issues = ["PYL-R0401"]
 
@@ -59,6 +59,11 @@ issues = ["PY-R1000"]
 # Scripts: false positive — we BLOCK 0.0.0.0, not bind to it
 paths = ["scripts/**"]
 issues = ["BAN-B104"]
+
+[[ignore]]
+# Pre-existing cyclic import between scripts.utils and scripts.utils.fetch
+paths = ["scripts/**"]
+issues = ["PYL-R0401"]
 
 [[analyzers]]
 name = "javascript"

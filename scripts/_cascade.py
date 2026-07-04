@@ -9,7 +9,16 @@ from typing import Any
 
 import scripts.cache_negative
 import scripts.quality
-from scripts.models import ErrorType, ProviderType, ResolvedResult, ResolveMetrics
+from scripts.circuit_breaker import CircuitBreakerRegistry
+from scripts.models import (
+    ErrorType,
+    ProviderType,
+    ReadonlyResolverProtocol,
+    ResolvedResult,
+    ResolveMetrics,
+)
+from scripts.routing import ResolutionBudget
+from scripts.routing_memory import RoutingMemory
 from scripts.utils import _detect_error_type, _get_cache
 
 logger = logging.getLogger(__name__)
@@ -17,12 +26,12 @@ logger = logging.getLogger(__name__)
 
 def cascade_stream(
     target: str,
-    cascade_map: dict[str, tuple[ProviderType, Callable]],
+    cascade_map: dict[str, tuple[ProviderType, ReadonlyResolverProtocol]],
     eligible: list[str],
-    budget: Any,
+    budget: ResolutionBudget,
     metrics: ResolveMetrics,
-    routing_memory: Any,
-    circuit_breakers: Any,
+    routing_memory: RoutingMemory,
+    circuit_breakers: CircuitBreakerRegistry,
     semantic_cache_store: Callable[[str, dict], bool],
     routing_key: str,
     result_builder: Callable[[Any, str, str, ResolveMetrics, float], dict[str, Any]] | None = None,

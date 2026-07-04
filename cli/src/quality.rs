@@ -6,6 +6,22 @@ static JARGON_PATTERNS: OnceLock<Regex> = OnceLock::new();
 
 const INITIAL_LINE_CAPACITY: usize = 128;
 
+// Quality scoring thresholds
+const THRESHOLD_NOISE: usize = 6;
+const THRESHOLD_JARGON: usize = 3;
+const THRESHOLD_MIN_CHARS: usize = 500;
+
+// Quality scoring penalties
+const PENALTY_TOO_SHORT: f32 = 0.25;
+const PENALTY_MISSING_LINKS: f32 = 0.10;
+const PENALTY_DUPLICATE_HEAVY: f32 = 0.15;
+const PENALTY_NOISY: f32 = 0.10;
+const PENALTY_JARGON: f32 = 0.10;
+
+// Quality scoring bonuses
+const BONUS_HAS_FRONTMATTER: f32 = 0.05;
+const BONUS_HAS_STRUCTURAL_ANCHORS: f32 = 0.05;
+
 #[derive(Debug, Clone)]
 pub struct QualityScore {
     pub score: f32,
@@ -20,7 +36,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     let trimmed = markdown.trim();
     let len = trimmed.len();
 
-    let too_short = len < 500;
+    let too_short = len < THRESHOLD_MIN_CHARS;
     let missing_links = links.is_empty();
 
     // Optimize duplicate detection: single pass over lines
@@ -38,15 +54,23 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
         Regex::new("(?i)cookie|subscribe|javascript|log in|sign up")
             .expect("Invalid quality noise regex patterns")
     });
-    let noisy_count = noisy_re.find_iter(trimmed).count();
-    let noisy = noisy_count > 6;
+    // Early exit if noise threshold is exceeded
+    let noisy_count = noisy_re
+        .find_iter(trimmed)
+        .take(THRESHOLD_NOISE + 1)
+        .count();
+    let noisy = noisy_count > THRESHOLD_NOISE;
 
     let jargon_re = JARGON_PATTERNS.get_or_init(|| {
         Regex::new("(?i)seamlessly|robust|powerful|comprehensive|streamlined|leverage|revolutionize|game-changing|intuitive|next-generation|cutting-edge|state-of-the-art|best-in-class|unlock|transform|supercharge")
             .expect("Invalid quality jargon regex patterns")
     });
-    let jargon_count = jargon_re.find_iter(trimmed).count();
-    let jargon_heavy = jargon_count > 3;
+    // Early exit if jargon threshold is exceeded
+    let jargon_count = jargon_re
+        .find_iter(trimmed)
+        .take(THRESHOLD_JARGON + 1)
+        .count();
+    let jargon_heavy = jargon_count > THRESHOLD_JARGON;
 
     let has_frontmatter = trimmed.starts_with("---")
         && trimmed.contains("relevance_score:")
@@ -60,26 +84,26 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
 
     let mut score = 1.0_f32;
     if too_short {
-        score -= 0.25;
+        score -= PENALTY_TOO_SHORT;
     }
     if missing_links {
-        score -= 0.10;
+        score -= PENALTY_MISSING_LINKS;
     }
     if duplicate_heavy {
-        score -= 0.15;
+        score -= PENALTY_DUPLICATE_HEAVY;
     }
     if noisy {
-        score -= 0.10;
+        score -= PENALTY_NOISY;
     }
     if jargon_heavy {
-        score -= 0.10;
+        score -= PENALTY_JARGON;
     }
 
     if has_frontmatter {
-        score += 0.05;
+        score += BONUS_HAS_FRONTMATTER;
     }
     if has_structural_anchors {
-        score += 0.05;
+        score += BONUS_HAS_STRUCTURAL_ANCHORS;
     }
 
     let score = score.clamp(0.0, 1.0);
