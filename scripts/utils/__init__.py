@@ -120,6 +120,7 @@ def _detect_error_type(error: Exception):
         code in error_msg
         for code in [
             "bot_challenge",
+            "bot challenge",
             "cloudflare",
             "cf-ray",
             "checking your browser",
