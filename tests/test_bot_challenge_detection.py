@@ -48,9 +48,11 @@ def test_fetch_url_content_raises_on_bot_challenge():
     mock_response.status_code = 200
     mock_response.text = CF_CHALLENGE_HTML
 
-    with patch("scripts.utils.validate_url") as mock_validate, \
-        patch("scripts.utils._safe_request", return_value=mock_response), \
-        patch("scripts.utils.get_session"):
+    with (
+        patch("scripts.utils.validate_url") as mock_validate,
+        patch("scripts.utils._safe_request", return_value=mock_response),
+        patch("scripts.utils.get_session"),
+    ):
         mock_validate.return_value = MagicMock(is_valid=True, final_url="https://example.com")
 
         with pytest.raises(ValueError, match="Bot challenge detected"):
@@ -62,9 +64,11 @@ def test_fetch_url_content_raises_on_403_bot_challenge():
     mock_response.status_code = 403
     mock_response.text = "cf-challenge"
 
-    with patch("scripts.utils.validate_url") as mock_validate, \
-        patch("scripts.utils._safe_request", return_value=mock_response), \
-        patch("scripts.utils.get_session"):
+    with (
+        patch("scripts.utils.validate_url") as mock_validate,
+        patch("scripts.utils._safe_request", return_value=mock_response),
+        patch("scripts.utils.get_session"),
+    ):
         mock_validate.return_value = MagicMock(is_valid=True)
 
         with pytest.raises(ValueError, match="Bot challenge detected"):
@@ -81,7 +85,5 @@ def test_should_skip_from_bot_challenge_cache():
         should_skip_from_bot_challenge_cache("direct_fetch", "https://example.com/docs", cache)
         is True
     )
-    assert (
-        should_skip_from_bot_challenge_cache("direct_fetch", "https://other.com", cache) is False
-    )
+    assert should_skip_from_bot_challenge_cache("direct_fetch", "https://other.com", cache) is False
     assert should_skip_from_bot_challenge_cache("jina", "https://example.com", cache) is False

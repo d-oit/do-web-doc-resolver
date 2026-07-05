@@ -65,8 +65,6 @@ def should_skip_from_bot_challenge_cache(
 
     try:
         domain = urlparse(url).netloc
-        return provider in ("direct_fetch",) and domain in bot_challenge_cache.get(
-            provider, set()
-        )
+        return provider in ("direct_fetch",) and domain in bot_challenge_cache.get(provider, set())
     except Exception:
         return False
