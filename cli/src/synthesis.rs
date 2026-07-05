@@ -162,7 +162,9 @@ pub async fn synthesize_results(
         - [ANCHOR: CITATIONS] - Mapping of indices to source URLs.\n\n\
         3. Adhere to strict 2026 formatting requirements:\n\
         - Use strict CommonMark for maximum downstream compatibility.\n\
-        - Token-Efficiency: Adhere to Section 3 of docs/standards.md. Aggressively remove marketing filler and 'AI slop' words (e.g., 'seamlessly', 'robust', 'powerful', 'comprehensive', 'streamlined', 'leverage', 'revolutionize', 'game-changing', 'intuitive', 'next-generation', 'cutting-edge', 'state-of-the-art', 'best-in-class', 'unlock', 'transform', 'supercharge'). Be extremely dense and factual.\n\
+        - Token-Efficiency: Adhere to Section 3 of docs/standards.md.\n\
+          - Zero Filler: Remove all conversational intros (\"Certainly!\", \"I'd be happy to help\"), transition theater (\"In conclusion\", \"It is worth noting that\"), and hollow affirmations.\n\
+          - AI-Slop Prohibition: Aggressively remove marketing filler and 'AI slop' words (e.g., 'seamlessly', 'robust', 'powerful', 'comprehensive', 'streamlined', 'leverage', 'revolutionize', 'game-changing', 'intuitive', 'next-generation', 'cutting-edge', 'state-of-the-art', 'best-in-class', 'unlock', 'transform', 'supercharge'). Be extremely dense and factual.\n\
         - Aggressively deduplicate redundant information across sources.\n\
         - Citation Precision: Every claim MUST be followed by bracketed indices (e.g., [1], [2]) matching the CITATIONS anchor.",
         chrono::Local::now().format("%Y-%m-%d")
