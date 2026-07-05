@@ -23,6 +23,27 @@ THRESHOLD_MIN_CHARS = 500
 # Acceptance threshold
 ACCEPTABLE_THRESHOLD = 0.65
 
+# Bot challenge detection signals (case-insensitive substring match)
+_BOT_CHALLENGE_SIGNALS: frozenset[str] = frozenset(
+    [
+        "cf-challenge",  # Cloudflare challenge page meta tag
+        "cf_chl_opt",  # Cloudflare JS challenge var
+        "ray id",  # Cloudflare Ray ID footer
+        "ddos-guard",  # DDoS-Guard service
+        "please enable javascript",
+        "enable cookies",
+        "checking your browser",  # Cloudflare "Checking your browser..."
+        "just a moment",  # Cloudflare interstitial title
+        "security check",
+        "access denied",
+        "403 forbidden",
+        "are you a human",
+        "prove you are human",
+        "recaptcha",
+        "hcaptcha",
+    ]
+)
+
 
 @dataclass
 class QualityScore:
@@ -32,6 +53,7 @@ class QualityScore:
     duplicate_heavy: bool
     noisy: bool
     acceptable: bool
+    bot_challenge: bool = False
 
 
 def _check_duplicates(text: str) -> bool:
@@ -97,6 +119,16 @@ def _compute_noise(text_lower: str) -> bool:
     return noise_count > THRESHOLD_NOISE
 
 
+def is_bot_challenge(content: str) -> bool:
+    """Return True if content looks like a bot-detection interstitial.
+
+    Checks a representative sample of the content (first 2000 chars)
+    to avoid scanning megabyte-sized pages.
+    """
+    sample = content[:2000].lower()
+    return any(signal in sample for signal in _BOT_CHALLENGE_SIGNALS)
+
+
 def _compute_penalties(
     score: float,
     too_short: bool,
@@ -144,11 +176,12 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     jargon_heavy = _check_jargon(text_lower)
     has_frontmatter = _check_frontmatter(text)
     has_anchors = _check_anchors(text)
+    bot_challenge = is_bot_challenge(text)
 
     score = _compute_penalties(1.0, too_short, missing_links, duplicate_heavy, noisy, jargon_heavy)
     score = _compute_bonuses(score, has_frontmatter, has_anchors)
     score = max(0.0, min(1.0, score))
-    acceptable = score >= ACCEPTABLE_THRESHOLD and not too_short
+    acceptable = score >= ACCEPTABLE_THRESHOLD and not too_short and not bot_challenge
 
     return QualityScore(
         score=score,
@@ -157,4 +190,5 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
         duplicate_heavy=duplicate_heavy,
         noisy=noisy or jargon_heavy,
         acceptable=acceptable,
+        bot_challenge=bot_challenge,
     )

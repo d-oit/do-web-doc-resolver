@@ -24,8 +24,19 @@ def fetch_url_content(
         session = get_session()
         response = _safe_request("GET", url, session=session, timeout=timeout, verify=True)
         if response.status_code >= 400:
+            # Check for bot challenge even on error status codes (e.g., 403 Forbidden)
+            from scripts.quality import is_bot_challenge
+
+            if is_bot_challenge(response.text):
+                raise ValueError(f"Bot challenge detected (HTTP {response.status_code})")
             return None
         raw_html = response.text
+
+        from scripts.quality import is_bot_challenge
+
+        if is_bot_challenge(raw_html):
+            raise ValueError("Bot challenge detected")
+
         is_html = "text/html" in response.headers.get("Content-Type", "")
 
         if is_html and CLEAN_CONTENT:
@@ -49,7 +60,14 @@ def fetch_url_content(
                 "raw_length": len(raw_html),
             },
         )
-    except Exception:
+    except Exception as e:
+        # Surface bot challenges to the cascade
+        from scripts.models import ErrorType
+        from scripts.utils import _detect_error_type
+
+        if _detect_error_type(e) == ErrorType.BOT_CHALLENGE:
+            raise
+
         logger.debug("Direct fetch failed: %s", url, exc_info=True)
         return None
 
