@@ -20,6 +20,7 @@ class ErrorType(Enum):
     INVALID_RESPONSE = "invalid_response"
     SSRF_BLOCKED = "ssrf_blocked"
     CONTENT_TOO_LARGE = "content_too_large"
+    BOT_CHALLENGE = "bot_challenge"
     UNKNOWN = "unknown"
 
 

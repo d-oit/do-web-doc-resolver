@@ -100,7 +100,11 @@ def cascade_stream(
                         res = task_done.result()
                     except Exception as e:
                         err_type = _detect_error_type(e)
-                        if err_type not in (ErrorType.AUTH_ERROR, ErrorType.SSRF_BLOCKED):
+                        if err_type not in (
+                            ErrorType.AUTH_ERROR,
+                            ErrorType.SSRF_BLOCKED,
+                            ErrorType.BOT_CHALLENGE,
+                        ):
                             circuit_breakers.record_failure(p_name_done)
                         metrics.record_provider(pt_done, latency, False)
                         continue

@@ -116,6 +116,18 @@ def _detect_error_type(error: Exception):
         return ErrorType.NOT_FOUND
     if any(code in error_msg for code in ["ssrf", "blocked", "private ip", "localhost"]):
         return ErrorType.SSRF_BLOCKED
+    if any(
+        code in error_msg
+        for code in [
+            "bot_challenge",
+            "bot challenge",
+            "cloudflare",
+            "cf-ray",
+            "checking your browser",
+            "just a moment",
+        ]
+    ):
+        return ErrorType.BOT_CHALLENGE
     if any(code in error_msg for code in ["too large", "content size", "exceeds"]):
         return ErrorType.CONTENT_TOO_LARGE
     return ErrorType.UNKNOWN
