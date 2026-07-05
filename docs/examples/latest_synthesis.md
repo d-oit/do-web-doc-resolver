@@ -1,21 +1,21 @@
 ---
 relevance_score: 1.00
 intent_category: Technical
-token_estimate: 385
-last_updated: 2026-06-28
+token_estimate: 352
+last_updated: 2026-07-05
 ---
 
-# LLM-Ready Synthesis: Rust Concurrency Performance (June 2026)
+# LLM-Ready Synthesis: Rust Concurrency Performance (July 2026)
 
 [ANCHOR: SUMMARY]
-Rust concurrency utilizes stackless futures and task-based multiplexing to achieve zero-cost abstractions. By avoiding kernel-space transitions and fixed-stack overhead of OS threads, Rust executors (e.g., Tokio) support millions of concurrent tasks with sub-microsecond switching latency [1], [2].
+Rust concurrency utilizes stackless futures and task-based multiplexing for zero-cost abstractions. Avoiding kernel-space transitions and fixed-stack overhead of OS threads, Rust executors (e.g., Tokio) support millions of concurrent tasks with sub-microsecond switching latency [1], [2].
 
 [ANCHOR: TECHNICAL_DETAILS]
-Core performance metrics:
+Performance metrics:
 
-- **Memory Efficiency**: OS threads require static 2MB stacks. Rust async tasks are sized precisely to the future's state machine, minimizing heap footprint [1].
+- **Memory Efficiency**: OS threads require static 2MB stacks. Rust async tasks size precisely to future state machines, minimizing heap footprint [1].
 - **Switching Overhead**: Kernel-mode context switching costs 1-5µs. User-space waker-based task switching is sub-microsecond [2], [3].
-- **Execution Density**: Compilation to machine code removes runtime overhead found in JIT-ed or interpreted concurrency models [1].
+- **Execution Density**: Compilation to machine code removes runtime overhead of JIT-ed or interpreted models [1].
 
 ```rust
 // Million-task spawn efficiency
