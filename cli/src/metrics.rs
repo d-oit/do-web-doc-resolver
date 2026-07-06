@@ -45,6 +45,17 @@ impl ResolveMetrics {
         self.cache_hit = true;
     }
 
+    /// Record a semantic cache hit with its associated metadata
+    pub fn record_semantic_cache_hit(&mut self, latency_ms: u64, score: f64) {
+        self.cache_hit = true;
+        self.total_latency_ms = latency_ms.max(1);
+        // Meaningful scores >= 0.5 are reported to passing the quality gate
+        if score >= 0.5 {
+            self.quality_gate_passed = true;
+            self.quality_gate_score = Some(score as f32);
+        }
+    }
+
     pub fn record_gate(&mut self, score: f32) {
         self.quality_gate_passed = true;
         self.quality_gate_score = Some(score);

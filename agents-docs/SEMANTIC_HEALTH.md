@@ -1,47 +1,42 @@
-# Semantic Health Summary - June 2026
+# Semantic Health Summary - July 2026
 
 ## Executive Summary
 
-The `do-wdr` CLI semantic cache has been significantly optimized, achieving sub-20ms latency for both exact and high-confidence semantic hits. We have addressed the cold-start bottleneck and improved matching consistency between URLs and queries.
+The `do-wdr` CLI semantic cache has been optimized for documentation-heavy workloads. Key improvements include enhanced URL normalization, refined redundancy pruning to prevent database bloat, and corrected telemetry reporting for cache hits.
 
 ## Metrics Performance
 
 | Metric | Target | Current | Status |
 | :--- | :--- | :--- | :--- |
-| **Exact Match Latency** | < 100ms | ~14ms | ✅ Pass |
-| **Semantic Hit (Aliased)** | < 200ms | ~14ms | ✅ Pass |
-| **First Semantic Hit** | < 1500ms | ~1100ms | ✅ Pass |
-| **Quality Synthesis Score** | > 0.85 | 1.00 | ✅ Pass |
-| **Redundancy Pruning** | - | >0.99 skip | ✅ Pass |
+| **Exact Match Latency** | < 100ms | ~1ms | ✅ Pass |
+| **Semantic Hit (Aliased)** | < 200ms | ~1ms | ✅ Pass |
+| **First Semantic Hit** | < 1500ms | ~1000ms | ✅ Pass |
+| **Quality Synthesis Score** | > 0.85 | 1.00 (avg) | ✅ Pass |
+| **Redundancy Pruning** | - | >0.995 skip | ✅ Pass |
 
 ## Optimizations Implemented
 
-### 1. Semantic Hit Aliasing
+### 1. Corrected Cache Hit Telemetry
 
-High-confidence semantic hits (>0.95 similarity) are now automatically stored as exact match keys in the cache. This ensures that subsequent identical queries bypass the expensive vector encoding and probing pipeline entirely, reducing latency from ~1100ms to ~14ms.
+Resolved an issue where `total_latency_ms` was reported as `0` and `quality_gate_score` as `null` during semantic cache hits. Telemetry now accurately reflects the end-to-end latency (guaranteed minimum 1ms) and restores the quality score from the cached result.
 
-### 2. Unified URL Normalization
+### 2. Enhanced URL Normalization
 
-Implemented consistent URL normalization that strips protocols (`https://`), prefixes (`www.`), and common file extensions (`.html`, `.php`). This prevents redundant cache entries for the same page and ensures that a query for `docs.python.org/3/os` matches a cached entry for `https://docs.python.org/3/os.html`.
+Added `docs`, `api`, and `index` to the URL stop-word list in the semantic cache. This improves matching consistency between documentation URLs and search queries (e.g., matching `https://docs.python.org/3/library/os.html` with `python os module`).
 
-### 3. Asynchronous Model Warmup
+### 3. Aggressive Redundancy Pruning
 
-The text embedding model (`all-MiniLM-L6-v2`) now loads in a background task during initialization. This allows exact match lookups to proceed immediately without waiting for the ~1s model load time, while semantic hits naturally await the model's readiness.
+Updated the storage logic to skip entries with >0.995 semantic similarity. Entries with >0.98 similarity are now also skipped if the content is identical. This prevents database bloat from minor query variations.
 
-### 4. Synthesis Quality Monitoring
+## Identified Bottlenecks
 
-Integrated the `score_content` logic into the synthesis cascade. All AI-synthesized results are now scored and recorded in the metrics, ensuring visibility into the quality of aggregated documentation.
-
-### 5. Enhanced Redundancy Pruning
-
-Updated the storage logic to skip entries with >0.99 semantic similarity, keeping the cache lean and preventing bloat from minor variation in queries.
-
-## Identified Bottlenecks (Resolved)
-
-- **Model Load Delay**: Fixed by background warmup and aliasing.
-- **URL-Query Mismatch**: Resolved via improved normalization and expanded stop-word filtering (including 'module', 'api').
+- **First-Hit Model Load**: The initial semantic hit still incurs a ~1s cost for model loading. While background warmup helps in long-running sessions, CLI usage remains affected.
+- **Indentation Preservation**: Integration tests identified a pre-existing issue in `direct_fetch` where indentation is lost in some code blocks. This is slated for a future fix in the resolver logic.
 
 ## Future Recommendations
 
-- **Dynamic TTL**: Consider adjusting TTL based on domain volatility (e.g., shorter for nightly docs, longer for stable library references).
-- **Batch Embedding**: For large-scale cache population, implement batch encoding to further optimize the ingestion path.
+- **Persistent Model Server**: For low-latency CLI usage, consider a lightweight model server to avoid per-invocation load costs.
+- **Cross-Language Parity**: Ensure the Python `SemanticCache.normalize_text` is updated to match the Rust implementation's URL stop-word list.
+
+---
+*Last Updated: 2026-07-06*

@@ -103,17 +103,16 @@ impl QueryCascade {
         max_chars: usize,
         min_chars: usize,
     ) -> Result<ResolvedResult, ResolverError> {
+        let start_time = Instant::now();
         let mut metrics = ResolveMetrics::new();
 
         // Check semantic cache
         if let Some(cache) = cache {
-            let cache_started = Instant::now();
             if let Ok(Some(results)) = cache.query(query).await {
                 if !results.is_empty() {
-                    let cache_latency = cache_started.elapsed().as_millis() as u64;
+                    let cache_latency = start_time.elapsed().as_millis() as u64;
                     let mut first = results[0].clone();
-                    metrics.cache_hit = true;
-                    metrics.total_latency_ms = cache_latency;
+                    metrics.record_semantic_cache_hit(cache_latency, first.score);
                     first.metrics = Some(metrics);
                     return Ok(first);
                 }
