@@ -28,7 +28,7 @@ impl SemanticCache {
             tokens.retain(|w| {
                 let low = w.to_lowercase();
                 ![
-                    "https", "http", "www", "html", "htm", "php", "asp", "aspx", "jsp",
+                    "https", "http", "www", "html", "htm", "php", "asp", "aspx", "jsp", "docs", "api", "index",
                 ]
                 .contains(&low.as_str())
             });
@@ -290,9 +290,9 @@ impl SemanticCache {
         // Redundancy pruning: check if a very similar entry already exists
         if let Ok(hits) = self.framework.probe(query_vector, 5).await {
             for (best_id, best_score) in hits {
-                // If score is extremely high (1.0 after normalization), always skip to avoid bloat
-                // If score is extremely high, always skip to avoid bloat.
-                if best_score > 0.99 {
+                // If score is extremely high (>0.995), always skip to avoid database bloat.
+                // High similarity often indicates near-duplicate normalization results.
+                if best_score > 0.995 {
                     tracing::info!(
                         "Skipping store for query='{}': extremely similar entry already exists (id: {}, score: {:.4})",
                         query,
@@ -303,13 +303,12 @@ impl SemanticCache {
                 }
 
                 if best_score > 0.98 {
-                    // Check if the actual content is also very similar to avoid collisions
+                    // Check if the actual content is identical to avoid redundant storage
                     if let Ok(Some(existing)) = self.framework.get_concept(&best_id).await {
                         if let (Some(existing_results), Some(new_results)) = (
                             existing.metadata.get("results"),
                             serde_json::to_value(results).ok(),
                         ) {
-                            // If results are identical, definitely skip
                             if existing_results == &new_results {
                                 tracing::info!(
                                     "Skipping store for query='{}': identical result already exists (id: {}, score: {:.4})",
