@@ -112,15 +112,7 @@ impl QueryCascade {
                 if !results.is_empty() {
                     let cache_latency = start_time.elapsed().as_millis() as u64;
                     let mut first = results[0].clone();
-                    metrics.cache_hit = true;
-                    metrics.total_latency_ms = cache_latency.max(1);
-
-                    // Restore quality score for metrics if available
-                    if first.score > 0.0 {
-                        metrics.quality_gate_passed = true;
-                        metrics.quality_gate_score = Some(first.score as f32);
-                    }
-
+                    metrics.record_semantic_cache_hit(cache_latency, first.score);
                     first.metrics = Some(metrics);
                     return Ok(first);
                 }

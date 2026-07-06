@@ -303,8 +303,8 @@ impl SemanticCache {
                     return Ok(());
                 }
 
+                // If similarity is very high (>0.98), check if content is identical
                 if best_score > 0.98 {
-                    // Check if the actual content is identical to avoid redundant storage
                     if let Ok(Some(existing)) = self.framework.get_concept(&best_id).await {
                         if let (Some(existing_results), Some(new_results)) = (
                             existing.metadata.get("results"),
