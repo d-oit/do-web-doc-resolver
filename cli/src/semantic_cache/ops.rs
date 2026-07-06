@@ -28,7 +28,8 @@ impl SemanticCache {
             tokens.retain(|w| {
                 let low = w.to_lowercase();
                 ![
-                    "https", "http", "www", "html", "htm", "php", "asp", "aspx", "jsp", "docs", "api", "index",
+                    "https", "http", "www", "html", "htm", "php", "asp", "aspx", "jsp", "docs",
+                    "api", "index",
                 ]
                 .contains(&low.as_str())
             });
