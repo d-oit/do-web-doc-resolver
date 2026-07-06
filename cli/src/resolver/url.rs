@@ -143,6 +143,7 @@ impl UrlCascade {
         max_chars: usize,
         min_chars: usize,
     ) -> Result<ResolvedResult, ResolverError> {
+        let start_time = Instant::now();
         let mut metrics = ResolveMetrics::new();
 
         if !is_safe_url(url) {
@@ -156,12 +157,18 @@ impl UrlCascade {
 
         // Check semantic cache
         if let Some(cache) = cache {
-            let cache_started = Instant::now();
             if let Ok(Some(res)) = cache.query_url(url).await {
-                let cache_latency = cache_started.elapsed().as_millis() as u64;
+                let cache_latency = start_time.elapsed().as_millis() as u64;
                 let mut res = res;
                 metrics.cache_hit = true;
-                metrics.total_latency_ms = cache_latency;
+                metrics.total_latency_ms = cache_latency.max(1);
+
+                // Restore quality score for metrics if available
+                if res.score > 0.0 {
+                    metrics.quality_gate_passed = true;
+                    metrics.quality_gate_score = Some(res.score as f32);
+                }
+
                 res.metrics = Some(metrics);
                 return Ok(res);
             }
