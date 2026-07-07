@@ -487,11 +487,24 @@ fn strip_html(html: &str) -> String {
     // Clean up whitespace
     let mut final_result = String::new();
     let mut last_was_empty = false;
+    let mut in_code_block = false;
 
     for line in decoded.lines() {
-        let trimmed = line.trim();
+        let is_code_fence = line.trim_start().starts_with("```");
+        let trimmed = if is_code_fence {
+            in_code_block = !in_code_block;
+            line.trim()
+        } else if in_code_block {
+            line.trim_end()
+        } else {
+            line.trim()
+        };
+
         if trimmed.is_empty() {
-            if !last_was_empty && !final_result.is_empty() {
+            if in_code_block {
+                final_result.push('\n');
+                last_was_empty = false;
+            } else if !last_was_empty && !final_result.is_empty() {
                 final_result.push_str("\n\n");
                 last_was_empty = true;
             }
