@@ -43,13 +43,14 @@
     "eslint-plugin-playwright": "^2.10.4",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.7.0",
-    "postcss": "^8.5.10",
+    "postcss": "^8.5.16",
     "tailwindcss": "^4.0.0",
     "typescript": "6.0.3",
     "vitest": "^4.1.9",
     "wait-on": "^9.0.10"
   },
   "overrides": {
-    "@ungap/structured-clone": "1.3.1"
+    "@ungap/structured-clone": "1.3.1",
+    "postcss": "^8.5.16"
   }
 }

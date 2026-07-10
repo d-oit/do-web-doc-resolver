@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent, useId } from "react";
 
 interface Option {
   id: string;
@@ -9,17 +9,21 @@ interface Option {
 }
 
 interface ProfileComboboxProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   options: Option[];
 }
 
-export default function ProfileCombobox({ value, onChange, options }: ProfileComboboxProps) {
+export default function ProfileCombobox({ id: providedId, value, onChange, options }: ProfileComboboxProps) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listboxRef = useRef<HTMLDivElement>(null);
+  const generatedId = useId();
+  const id = providedId || generatedId;
+  const listboxId = `listbox-${id}`;
 
   const selectedOption = options.find((o) => o.id === value);
 
@@ -110,12 +114,14 @@ export default function ProfileCombobox({ value, onChange, options }: ProfileCom
   return (
     <div className="relative" ref={containerRef}>
       <button
+        id={id}
         ref={triggerRef}
         onClick={() => (open ? handleClose() : handleOpen())}
         onKeyDown={handleKeyDown}
         className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus:border-accent"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
         aria-label="Change search profile"
         title="Change search profile"
       >
@@ -125,15 +131,16 @@ export default function ProfileCombobox({ value, onChange, options }: ProfileCom
 
       {open && (
         <div
+          id={listboxId}
           ref={listboxRef}
           className="absolute z-10 w-full mt-1 bg-[#141414] border-2 border-border-muted shadow-xl"
           role="listbox"
-          aria-activedescendant={activeIndex >= 0 && options[activeIndex] ? `option-${options[activeIndex].id}` : undefined}
+          aria-label="Search profiles"
         >
           {options.map((option, index) => (
             <button
               key={option.id}
-              id={`option-${option.id}`}
+              id={`${listboxId}-option-${option.id}`}
               onClick={() => handleSelect(option.id)}
               onKeyDown={handleKeyDown}
               className={`w-full px-3 py-2 text-left hover:bg-accent hover:text-background transition-colors flex flex-col focus:outline-none focus:bg-accent focus:text-background ${

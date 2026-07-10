@@ -111,7 +111,7 @@ export default function History({ onLoad }: HistoryProps) {
         aria-controls="history-panel"
       >
         <span className="uppercase tracking-[0.1em]">History ({entries.length})</span>
-        <span>{isOpen ? "▼" : "▶"}</span>
+        <span aria-hidden="true">{isOpen ? "▼" : "▶"}</span>
       </button>
 
       {isOpen && (
