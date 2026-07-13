@@ -390,9 +390,11 @@ export default function Home() {
     <main className="min-h-screen bg-background text-foreground font-mono flex flex-col lg:flex-row" data-testid="app-loaded">
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/80 z-40 lg:hidden"
+        <button
+          type="button"
+          className="fixed inset-0 bg-black/80 z-40 lg:hidden w-full h-full cursor-default"
           onClick={() => setMobileMenuOpen(false)}
+          aria-label="Close menu"
         />
       )}
 

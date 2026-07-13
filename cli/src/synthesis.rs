@@ -231,7 +231,7 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
         )
     } else {
         let mut body = String::new();
-        let mut seen_lines = std::collections::HashSet::with_capacity(128);
+        let mut seen_lines = std::collections::HashSet::new();
 
         for (i, res) in results.iter().enumerate() {
             let idx = i + 1;
@@ -241,11 +241,10 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
                 let mut unique_content = String::new();
                 for line in content.lines() {
                     let trimmed = line.trim();
-                    if trimmed.is_empty() {
-                        unique_content.push('\n');
-                    } else if !seen_lines.contains(trimmed) {
-                        seen_lines.insert(trimmed.to_string());
+                    if !trimmed.is_empty() && seen_lines.insert(trimmed.to_string()) {
                         unique_content.push_str(line);
+                        unique_content.push('\n');
+                    } else if trimmed.is_empty() {
                         unique_content.push('\n');
                     }
                 }

@@ -99,8 +99,9 @@ export default function Sidebar({
         <div className="p-4 flex flex-col gap-8 overflow-y-auto max-h-[calc(100vh-44px)]">
           {/* Profile */}
           <div className="flex flex-col gap-2">
-            <label className="text-[11px] text-text-muted">Profile</label>
+            <label htmlFor="profile-select" className="text-[11px] text-text-muted">Profile</label>
             <ProfileCombobox
+              id="profile-select"
               value={profile}
               onChange={(p) => {
                 setProfile(p as ProfileId);
@@ -117,10 +118,11 @@ export default function Sidebar({
             </span>
             <div className="flex flex-col gap-1 mt-1">
               <div className="flex items-center justify-between">
-                <label className="text-[9px] text-text-muted">Max chars</label>
-                <span className="text-[9px] text-accent">{(maxChars / 1000).toFixed(0)}k</span>
+                <label htmlFor="max-chars-slider" className="text-[9px] text-text-muted">Max chars</label>
+                <span className="text-[9px] text-accent" aria-hidden="true">{(maxChars / 1000).toFixed(0)}k</span>
               </div>
               <input
+                id="max-chars-slider"
                 type="range"
                 min="1000"
                 max="32000"
@@ -169,10 +171,11 @@ export default function Sidebar({
                         handleProviderToggle(provider.id);
                       }}
                       aria-describedby={showHint ? tooltipId : undefined}
+                      aria-pressed={isActive}
                       className={buttonClasses}
                     >
                       <span className="flex items-center gap-1">
-                        {isActive && <span className="text-[12px] leading-none">●</span>}
+                        {isActive && <span className="text-[12px] leading-none" aria-hidden="true">●</span>}
                         {provider.label}
                       </span>
                       {needsKey && <span className="ml-1 text-[9px] text-text-muted">(needs key)</span>}
@@ -206,27 +209,13 @@ export default function Sidebar({
               aria-controls="api-keys-panel"
               className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2"
             >
-              {apiKeysOpen ? "▼" : "▶"} API Keys
+              <span aria-hidden="true">{apiKeysOpen ? "▼" : "▶"}</span> API Keys
             </button>
             {apiKeysOpen && (
               <div id="api-keys-panel" className="flex flex-col gap-3 pl-2">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] text-text-muted">Max chars</label>
-                    <span className="text-[9px] text-accent">{(maxChars / 1000).toFixed(0)}k</span>
-                  </div>
+                <label htmlFor="skip-cache-checkbox" className="flex items-center gap-3 text-[11px] text-text-muted min-h-[44px] py-2 cursor-pointer">
                   <input
-                    type="range"
-                    min="1000"
-                    max="32000"
-                    step="1000"
-                    value={maxChars}
-                    onChange={(e) => setMaxChars(parseInt(e.target.value))}
-                    className="w-full h-1 bg-border-muted accent-accent appearance-none cursor-pointer"
-                  />
-                </div>
-                <label className="flex items-center gap-3 text-[11px] text-text-muted min-h-[44px] py-2">
-                  <input
+                    id="skip-cache-checkbox"
                     type="checkbox"
                     checked={skipCache}
                     onChange={(e) => setSkipCache(e.target.checked)}
@@ -234,8 +223,9 @@ export default function Sidebar({
                   />
                   Skip cache
                 </label>
-                <label className="flex items-center gap-3 text-[11px] text-text-muted min-h-[44px] py-2">
+                <label htmlFor="deep-research-checkbox" className="flex items-center gap-3 text-[11px] text-text-muted min-h-[44px] py-2 cursor-pointer">
                   <input
+                    id="deep-research-checkbox"
                     type="checkbox"
                     checked={deepResearch}
                     onChange={(e) => setDeepResearch(e.target.checked)}
