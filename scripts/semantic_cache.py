@@ -54,11 +54,29 @@ class SemanticCache:
     def normalize_text(text: str, filter_stop_words: bool = False) -> str:
         import re
 
-        tokens = [
-            re.sub(r"[^a-zA-Z0-9]", "", w) for w in text.split() if re.sub(r"[^a-zA-Z0-9]", "", w)
-        ]
+        # Split on non-alphanumeric characters to handle URLs and punctuation correctly
+        tokens = [w for w in re.split(r"[^a-zA-Z0-9]", text) if w]
 
-        if filter_stop_words and not (text.startswith("http://") or text.startswith("https://")):
+        is_url = text.startswith("http://") or text.startswith("https://")
+
+        if is_url:
+            url_stop_words = {
+                "https",
+                "http",
+                "www",
+                "html",
+                "htm",
+                "php",
+                "asp",
+                "aspx",
+                "jsp",
+                "docs",
+                "api",
+                "index",
+            }
+            tokens = [w for w in tokens if w.lower() not in url_stop_words]
+
+        if filter_stop_words and not is_url:
             stop_words = {
                 "docs",
                 "documentation",
@@ -78,6 +96,8 @@ class SemanticCache:
                 "and",
                 "programming",
                 "language",
+                "module",
+                "api",
             }
             tokens = [w for w in tokens if w.lower() not in stop_words]
 
@@ -329,6 +349,44 @@ class SemanticCache:
             normalized = self.normalize_text(query_str, False)
             embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(embedding)
+
+            # Aggressive redundancy pruning
+            with self._conn_lock:
+                cursor = self._conn.execute(
+                    """
+                    SELECT ce.id, ce.result_json, vc.distance
+                    FROM vec_cache vc
+                    JOIN cache_entries ce ON ce.id = vc.rowid
+                    WHERE embedding MATCH ?
+                    AND k = 5
+                """,
+                    (embedding_blob,),
+                )
+
+                for row in cursor.fetchall():
+                    distance = row["distance"]
+                    if distance is None:
+                        distance = 2.0
+                    similarity = 1.0 - (distance * distance / 2.0)
+
+                    # Similarity > 0.995: always skip
+                    if similarity > 0.995:
+                        logger.info(
+                            "Skipping store for query='%s': extremely similar entry already exists (score: %.4f)",
+                            query_str,
+                            similarity,
+                        )
+                        return True
+
+                    # Similarity > 0.98: skip if content is identical
+                    if similarity > 0.98:
+                        if row["result_json"] == json.dumps(result):
+                            logger.info(
+                                "Skipping store for query='%s': identical result already exists (score: %.4f)",
+                                query_str,
+                                similarity,
+                            )
+                            return True
 
             with self._conn_lock:
                 cursor = self._conn.execute(
