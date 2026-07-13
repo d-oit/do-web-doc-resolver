@@ -1,0 +1,157 @@
+{
+  "total_latency_ms": 0,
+  "provider_metrics": [],
+  "cascade_depth": 0,
+  "paid_usage": false,
+  "cache_hit": false,
+  "budget_elapsed_ms": 0,
+  "synthesis_cache_hit": false,
+  "quality_gate_passed": false,
+  "quality_gate_score": null
+}
+---
+relevance_score: 1.00
+intent_category: Informational
+token_estimate: 2055
+last_updated: 2026-07-13
+---
+
+[ANCHOR: SUMMARY]
+Deterministic extraction from jina [1].
+
+[ANCHOR: TECHNICAL_DETAILS]
+Title: http package - net/http - Go Packages
+
+URL Source: https://pkg.go.dev/net/http
+
+Markdown Content:
+Package http provides HTTP client and server implementations.
+
+[Get](https://pkg.go.dev/net/http#Get), [Head](https://pkg.go.dev/net/http#Head), [Post](https://pkg.go.dev/net/http#Post), and [PostForm](https://pkg.go.dev/net/http#PostForm) make HTTP (or HTTPS) requests:
+
+resp, err := http.Get("http://example.com/")
+resp, err := http.Post("http://example.com/upload", "image/jpeg", &buf)
+resp, err := http.PostForm("http://example.com/form",
+url.Values{"key": {"Value"}, "id": {"123"}})
+
+The caller must close the response body when finished with it:
+
+if err != nil {
+// handle error
+defer resp.Body.Close()
+body, err := io.ReadAll(resp.Body)
+
+#### Clients and Transports [¶](https://pkg.go.dev/net/http#hdr-Clients_and_Transports "Go to Clients and Transports")
+
+For control over HTTP client headers, redirect policy, and other settings, create a [Client](https://pkg.go.dev/net/http#Client):
+
+client := &http.Client{
+CheckRedirect: redirectPolicyFunc,
+
+resp, err := client.Get("http://example.com")
+
+req, err := http.NewRequest("GET", "http://example.com", nil)
+req.Header.Add("If-None-Match", `W/"wyzzy"`)
+resp, err := client.Do(req)
+
+For control over proxies, TLS configuration, keep-alives, compression, and other settings, create a [Transport](https://pkg.go.dev/net/http#Transport):
+
+tr := &http.Transport{
+MaxIdleConns:       10,
+IdleConnTimeout:    30 * time.Second,
+DisableCompression: true,
+client := &http.Client{Transport: tr}
+resp, err := client.Get("https://example.com")
+
+Clients and Transports are safe for concurrent use by multiple goroutines and for efficiency should only be created once and re-used.
+
+#### Servers [¶](https://pkg.go.dev/net/http#hdr-Servers "Go to Servers")
+
+ListenAndServe starts an HTTP server with a given address and handler. The handler is usually nil, which means to use [DefaultServeMux](https://pkg.go.dev/net/http#DefaultServeMux). [Handle](https://pkg.go.dev/net/http#Handle) and [HandleFunc](https://pkg.go.dev/net/http#HandleFunc) add handlers to [DefaultServeMux](https://pkg.go.dev/net/http#DefaultServeMux):
+
+http.Handle("/foo", fooHandler)
+
+http.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
+fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+
+log.Fatal(http.ListenAndServe(":8080", nil))
+
+More control over the server's behavior is available by creating a custom Server:
+
+s := &http.Server{
+Addr:           ":8080",
+Handler:        myHandler,
+ReadTimeout:    10 * time.Second,
+WriteTimeout:   10 * time.Second,
+MaxHeaderBytes: 1 << 20,
+log.Fatal(s.ListenAndServe())
+
+#### HTTP/2 [¶](https://pkg.go.dev/net/http#hdr-HTTP_2 "Go to HTTP/2")
+
+The http package has transparent support for the HTTP/2 protocol.
+
+[Server](https://pkg.go.dev/net/http#Server) and [DefaultTransport](https://pkg.go.dev/net/http#DefaultTransport) automatically enable HTTP/2 support when using HTTPS. [Transport](https://pkg.go.dev/net/http#Transport) does not enable HTTP/2 by default.
+
+To enable or disable support for HTTP/1, HTTP/2, and/or unencrypted HTTP/2, see the [Server.Protocols](https://pkg.go.dev/net/http#Server.Protocols) and [Transport.Protocols](https://pkg.go.dev/net/http#Transport.Protocols) configuration fields.
+
+To configure advanced HTTP/2 features, see the [Server.HTTP2](https://pkg.go.dev/net/http#Server.HTTP2) and [Transport.HTTP2](https://pkg.go.dev/net/http#Transport.HTTP2) configuration fields.
+
+Alternatively, the following GODEBUG settings are currently supported:
+
+GODEBUG=http2client=0  # disable HTTP/2 client support
+GODEBUG=http2server=0  # disable HTTP/2 server support
+GODEBUG=http2debug=1   # enable verbose HTTP/2 debug logs
+GODEBUG=http2debug=2   # ... even more verbose, with frame dumps
+
+The "omithttp2" build tag may be used to disable the HTTP/2 implementation contained in the http package.
+
+*   [Constants](https://pkg.go.dev/net/http#pkg-constants)
+*   [Variables](https://pkg.go.dev/net/http#pkg-variables)
+*   [func CanonicalHeaderKey(s string) string](https://pkg.go.dev/net/http#CanonicalHeaderKey)
+*   [func DetectContentType(data []byte) string](https://pkg.go.dev/net/http#DetectContentType)
+*   [func Error(w ResponseWriter, error string, code int)](https://pkg.go.dev/net/http#Error)
+*   [func Handle(pattern string, handler Handler)](https://pkg.go.dev/net/http#Handle)
+*   [func HandleFunc(pattern string, handler func(ResponseWriter, *Request))](https://pkg.go.dev/net/http#HandleFunc)
+*   [func ListenAndServe(addr string, handler Handler) error](https://pkg.go.dev/net/http#ListenAndServe)
+*   [func ListenAndServeTLS(addr, certFile, keyFile string, handler Handler) error](https://pkg.go.dev/net/http#ListenAndServeTLS)
+*   [func MaxBytesReader(w ResponseWriter, r io.ReadCloser, n int64) io.ReadCloser](https://pkg.go.dev/net/http#MaxBytesReader)
+*   [func NotFound(w ResponseWriter, r *Request)](https://pkg.go.dev/net/http#NotFound)
+*   [func ParseHTTPVersion(vers string) (major, minor int, ok bool)](https://pkg.go.dev/net/http#ParseHTTPVersion)
+*   [func ParseTime(text string) (t time.Time, err error)](https://pkg.go.dev/net/http#ParseTime)
+*   [func ProxyFromEnvironment(req *Request) (*url.URL, error)](https://pkg.go.dev/net/http#ProxyFromEnvironment)
+*   [func ProxyURL(fixedURL *url.URL) func(*Request) (*url.URL, error)](https://pkg.go.dev/net/http#ProxyURL)
+*   [func Redirect(w ResponseWriter, r *Request, url string, code int)](https://pkg.go.dev/net/http#Redirect)
+*   [func Serve(l net.Listener, handler Handler) error](https://pkg.go.dev/net/http#Serve)
+*   [func ServeContent(w ResponseWriter, req *Request, name string, modtime time.Time, ...)](https://pkg.go.dev/net/http#ServeContent)
+*   [func ServeFile(w ResponseWriter, r *Request, name string)](https://pkg.go.dev/net/http#ServeFile)
+*   [func ServeFileFS(w ResponseWriter, r *Request, fsys fs.FS, name string)](https://pkg.go.dev/net/http#ServeFileFS)
+*   [func ServeTLS(l net.Listener, handler Handler, certFile, keyFile string) error](https://pkg.go.dev/net/http#ServeTLS)
+*   [func SetCookie(w ResponseWriter, cookie *Cookie)](https://pkg.go.dev/net/http#SetCookie)
+*   [func StatusText(code int) string](https://pkg.go.dev/net/http#StatusText)
+*   [type Client](https://pkg.go.dev/net/http#Client)
+*       *   [func (c *Client) CloseIdleConnections()](https://pkg.go.dev/net/http#Client.CloseIdleConnections)
+*   [func (c *Client) Do(req *Request) (*Response, error)](https://pkg.go.dev/net/http#Client.Do)
+*   [func (c *Client) Get(url string) (resp *Response, err error)](https://pkg.go.dev/net/http#Client.Get)
+*   [func (c *Client) Head(url string) (resp *Response, err error)](https://pkg.go.dev/net/http#Client.Head)
+*   [func (c *Client) Post(url, contentType string, body io.Reader) (resp *Response, err error)](https://pkg.go.dev/net/http#Client.Post)
+*   [func (c *Client) PostForm(url string, data url.Values) (resp *Response, err error)](https://pkg.go.dev/net/http#Client.PostForm)
+
+*   [type ClientConn](https://pkg.go.dev/net/http#ClientConn)
+*       *   [func (cc *ClientConn) Available() int](https://pkg.go.dev/net/http#ClientConn.Available)
+*   [func (cc *ClientConn) Close() error](https://pkg.go.dev/net/http#ClientConn.Close)
+*   [func (cc *ClientConn) Err() error](https://pkg.go.dev/net/http#ClientConn.Err)
+*   [func (cc *ClientConn) InFlight() int](https://pkg.go.dev/net/http#ClientConn.InFlight)
+*   [func (cc *ClientConn) Release()](https://pkg.go.dev/net/http#ClientConn.Release)
+*   [func (cc *ClientConn) Reserve() error](https://pkg.go.dev/net/http#ClientConn.Reserve)
+*   [func (cc *ClientConn) RoundTrip(req *Request) (*Response, error)](https://pkg.go.dev/net/http#ClientConn.RoundTrip)
+*   [func (cc *ClientConn) SetStateHook(f func(*ClientConn))](https://pkg.go.dev/net/http#ClientConn.SetStateHook)
+
+*   [type CloseNotifier](https://pkg.go.dev/net/http#CloseNotifier)deprecated
+*   [type ConnState](https://pkg.go.dev/net/http#ConnState)
+*       *
+
+[ANCHOR: COMPARISON]
+Comparison not applicable for single source extraction.
+
+[ANCHOR: CITATIONS]
+[1] https://pkg.go.dev/net/http

@@ -135,18 +135,18 @@ impl Resolver {
 
     /// Resolve and aggregate multiple results
     pub async fn resolve_aggregated(&self, input: &str) -> Result<ResolvedResult, ResolverError> {
+        let start_time = Instant::now();
         let mut metrics = ResolveMetrics::new();
         let query = input; // For now assume query
 
         // Check semantic cache for aggregated/synthesized result
         if let Some(cache) = self.cache.as_ref() {
-            let cache_started = Instant::now();
             let cache_key = format!("aggregated:{}", input);
             if let Ok(Some(res)) = cache.query(&cache_key).await {
-                if let Some(mut res) = res.into_iter().next() {
-                    let cache_latency = cache_started.elapsed().as_millis() as u64;
-                    metrics.cache_hit = true;
-                    metrics.total_latency_ms = cache_latency;
+                if let Some(res) = res.into_iter().next() {
+                    let cache_latency = start_time.elapsed().as_millis() as u64;
+                    let mut res = res;
+                    metrics.record_semantic_cache_hit(cache_latency, res.score);
                     res.metrics = Some(metrics);
                     return Ok(res);
                 }
@@ -207,6 +207,7 @@ impl Resolver {
         if let Some(api_key) = self.config.api_key("mistral") {
             let model = std::env::var("DO_WDR_SYNTHESIS_MODEL")
                 .unwrap_or_else(|_| "mistral-small-latest".to_string());
+            let synthesis_start = Instant::now();
             let synthesized = synthesize_results(
                 query,
                 &results,
@@ -217,6 +218,7 @@ impl Resolver {
                 &mut metrics,
             )
             .await?;
+            let synthesis_latency = synthesis_start.elapsed().as_millis() as u64;
 
             let links = extract_links(&synthesized);
             let threshold = self.config.quality_threshold.unwrap_or(0.85);
@@ -229,7 +231,8 @@ impl Resolver {
                 "synthesis",
                 quality.score as f64,
             );
-            metrics.record_provider(ProviderType::MistralWebSearch, 0, true);
+            metrics.record_provider(ProviderType::MistralWebSearch, synthesis_latency, true);
+            metrics.total_latency_ms = start_time.elapsed().as_millis() as u64;
             res.metrics = Some(metrics);
 
             // Store in semantic cache
@@ -247,9 +250,18 @@ impl Resolver {
 
         // Fallback to deterministic merge for 2026 standards compliance
         let content = deterministic_merge(&results);
+        let links = extract_links(&content);
+        let threshold = self.config.quality_threshold.unwrap_or(0.70);
+        let quality = score_content(&content, &links, threshold);
+        metrics.record_gate(quality.score);
+        metrics.total_latency_ms = start_time.elapsed().as_millis() as u64;
 
-        let mut final_res =
-            ResolvedResult::new(results[0].url.clone(), Some(content), "aggregated", 1.0);
+        let mut final_res = ResolvedResult::new(
+            results[0].url.clone(),
+            Some(content),
+            "aggregated",
+            quality.score as f64,
+        );
         final_res.metrics = Some(metrics);
         Ok(final_res)
     }

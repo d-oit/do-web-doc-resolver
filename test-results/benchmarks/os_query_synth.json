@@ -1,0 +1,109 @@
+{
+  "total_latency_ms": 0,
+  "provider_metrics": [],
+  "cascade_depth": 0,
+  "paid_usage": false,
+  "cache_hit": false,
+  "budget_elapsed_ms": 0,
+  "synthesis_cache_hit": false,
+  "quality_gate_passed": false,
+  "quality_gate_score": null
+}
+---
+relevance_score: 1.00
+intent_category: Informational
+token_estimate: 2120
+last_updated: 2026-07-13
+---
+
+[ANCHOR: SUMMARY]
+Deterministic merge of 8 sources.
+
+[ANCHOR: TECHNICAL_DETAILS]
+### Source 1: exa_mcp [1]
+This module provides a portable way of using operating system dependent functionality. If you just want to read or write a file see open().
+
+---
+
+### Source 2: exa_mcp [2]
+os — Miscellaneous operating system interfaces — Python 3.11.15 documentation ... # os — Miscellaneous operating system interfaces¶ ... This module provides a portable way of using operating system dependent functionality. If you just want to read or write a file see open(), if you want to manipulate paths, see the os.path module, and if you want to read all the lines in all the files on the command line see the fileinput module. For creating temporary files and directories see the tempfile module, and for high-level file and directory handling see the shutil module. ... The design of all built-in operating system dependent modules of Python is such that as long as the same functionality is available, it uses the same interface; for example, the function`os.stat(path)` returns stat information about path in the same format (which happens to have originated with the POSIX interface). ... os.name¶ ... ## File Names, Command Line Arguments, and Environment Variables¶ ... ## Process Parameters¶ ... os.environ¶ ... environb¶ ... os.chdir(path) os.fchdir(fd) os.getcwd() ... os.fsencode(filename)¶ ... os.fspath(path)¶ ... os.getenv(key, default=None)¶ ... _path(env ... getlogin()¶ ... os.putenv(key ... value, /)¶ ... os.setegid(egid, /)¶ ... os.setgroups( ... , /)¶ ... os.getsid(pid, /)¶ ... os.uname()¶ ... os.unsetenv(key, /)¶ ... ## File Object Creation¶ ... os.fdopen(fd, *args, **kwargs)¶ ... os.close(fd)¶ ... os.copy ... offset_src ... os.device_encoding(fd)¶ ... os.fchmod(fd, mode)¶ ... fchown ... os.fpathconf(fd, name, /)¶ ... os.fstat(fd)¶ ... os.fsync(fd)¶ ... os.get_blocking(fd, /)¶ ... os.lock ... login_tty(fd, /)¶ ... os.lseek(fd, pos, whence, /)¶ ... os.open(path, flags, mode=0o777, *, dir_fd=None)¶ ... os.openpty()¶ ... os.pipe()¶ ... os.pipe2(flags, /)¶ ... os.pread(fd, n, offset, /)¶ ... os.preadv(fd, buffers, offset, flags=0, /)¶ ... os.pwrite(fd, str, offset, /)¶ ... 0, /)¶ ... os.read(fd, n, /)¶ ... os.sendfile(out_fd, in_fd, offset, count)¶ os.sendfile(out_fd, in_fd, offset, count, headers=(), trailers=(), flags=0) ... os.set_blocking(fd, blocking, /)¶ ... os.readv(fd, buffers, /)¶ ...
+
+---
+
+### Source 3: exa_mcp [3]
+The Python os module provides tools for using operating system-dependent functionality, like reading or writing to the file system.
+
+---
+
+### Source 4: exa_mcp [4]
+os — Miscellaneous operating system interfaces — Python 3.10.20 documentation ... # os — Miscellaneous operating system interfaces¶ ... This module provides a portable way of using operating system dependent functionality. If you just want to read or write a file see open(), if you want to manipulate paths, see the os.path module, and if you want to read all the lines in all the files on the command line see the fileinput module. For creating temporary files and directories see the tempfile module, and for high-level file and directory handling see the shutil module. ... The design of all built-in operating system dependent modules of Python is such that as long as the same functionality is available, it uses the same interface; for example, the function`os.stat(path)` ... stat information about path in the same format (which happens to have originated with the POSIX interface). ... `os.``name`¶ ... ## Process Parameters¶ ... `os.``fsencode`(filename)¶ ... `os.``fspath`(path)¶ ... `os.``getenv`(key, default=None)¶ ... os.`` ... `os.`` ... _exec_path`(env ... `os.`` ... `os.``supports_ ... `os.``uname`()¶ ... `os.``unsetenv`(key)¶ ... ## File Object Creation¶ ... `os.``fdopen`(fd, *args, **kwargs)¶ ... ``close`(fd ... `os.``device_encoding`(fd)¶ ... ``fchmod`(fd, mode)¶ ... fpathconf ... `os.``fstat`(fd)¶ ... `os.``open`(path, flags, mode=0o777, *, dir_fd=None)¶ ... `os.``openpty`()¶ ... `os.``pipe`()¶ ... `os.``pread`(fd, n, offset)¶ ... `os.``preadv`(fd, buffers, offset, ... `os.``pwrite`(fd, str, offset)¶ ... `(fd, buffers ... `os.``read`(fd, n)¶ ... `os.``sendfile`(out_fd, in_fd, offset, count)¶`os.``sendfile`(out_fd, in_fd, offset, count, headers=(), trailers=(), flags=0) ... `os.``set_blocking`(fd, blocking)¶ ... splice`(src ... dst, count, offset ... `os.``readv`(fd, buffers)¶ ... `os.``write`(fd, str)¶ ... `os.``writev`(fd, buffers)¶ ... ## Files and Directories¶ ... `os.``access`(path, mode, *, dir_fd=None, effective_ids=False, follow_symlinks=True)¶ ... `os.``chdir`(path)¶ ... `os.``chflags`(path, flags, *, follow_symlinks=True)¶ ... `os.``chmod`(path, mode, *, dir_fd=None, follow_symlinks=True)¶ ... `os.``chown`(path, uid, gid, *, dir_fd=None, follow_symlinks=True)¶ ... `os.``chroot`(path)¶ ... `os.``fchdir`(fd)¶ ... `os.``getcwd`()¶ ... `os.``lchflags`(path, flags)¶ ... `os.``lchmod`(path, mode)¶ ...
+
+---
+
+### Source 5: exa_mcp [5]
+OS module provides functions for interacting with the operating system. OS comes under Python's standard utility modules.
+
+---
+
+### Source 6: tavily [6]
+# OS Module in Python with Examples. OS module provides functions for interacting with the operating system. The Current Working Directory (CWD) is the folder where Python is currently operating. When files are opened without specifying a full path, Python searches for them in this directory. This directory may be different from the location where the Python script is stored. ****Getting Current Working Directory:**** To get the location of the current working directory, the os.getcwd() function from the os module is used. The following code prints the current working directory (CWD). print("Current working directory:", cwd). Current working directory: /home/nikhil/Desktop/gfg. ****Changing Current Working Directory:**** It can be changed using os.chdir(path), which switches Python’s context to the specified directory. ****Using os.mkdir():**** os.mkdir() is used to create a directory at the specified path and can optionally set a permission mode. The following code demonstrates creating directories with and without a specified mode. print("Files and directories in '", path, "' :").
+
+---
+
+### Source 7: tavily [7]
+Python Tutorial: OS Module - Use Underlying Operating System Functionality
+Corey Schafer
+1540000 subscribers
+19870 likes
+1035682 views
+6 Apr 2016
+In this Python Tutorial, we will be going over the 'os' module. The os module allows us to access functionality of the underlying operating system. So we can perform tasks such as: navigate the file system, obtain file information, rename files, search directory trees, fetch environment variables, and many other operations. We will cover a lot of what the os module has to offer in this tutorial, so let's get started.
+
+
+✅ Support My Channel Through Patreon:
+https://www.patreon.com/coreyms
+
+✅ Become a Channel Member:
+https://www.youtube.com/channel/UCCezIgC97PvUuR4_gbFUs5g/join
+
+✅ One-Time Contribution Through PayPal:
+https://goo.gl/649HFY
+
+✅ Cryptocurrency Donations:
+Bitcoin Wallet - 3MPH8oY2EAgbLVy7RBMinwcBntggi7qeG3
+Ethereum Wallet - 0x151649418616068fB46C3598083817101d3bCD33
+Litecoin Wallet - MPvEBY5fxGkmPQgocfJbxP6EmTo5UUXMot
+
+✅ Corey's Public Amazon Wishlist
+http://a.co/inIyro1
+
+✅ Equipment I Use and Books I Recommend:
+https://www.amazon.com/shop/coreyschafer
+
+▶️ You Can Find Me On:
+My Website - http://coreyms.com/
+My Second Channel - https://www.youtube.com/c/coreymschafer
+Facebook - https://www.facebook.com/CoreyMSchafer
+Twitter - https://twitter.com/CoreyMSchafer
+Instagram - https://www.instagram.com/coreymschafer/
+
+#Python
+657 comments
+
+---
+
+### Source 8: tavily [8]
+The os module allows you to interact with your operating system, for example, access files, get the file path, etc.
+
+[ANCHOR: COMPARISON]
+Comparison not available in deterministic merge mode.
+
+[ANCHOR: CITATIONS]
+[1] https://docs.python.org/3/library/os.html
+[2] https://docs.python.org/3.11/library/os.html
+[3] https://realpython.com/ref/stdlib/os/
+[4] https://docs.python.org/3.10/library/os.html
+[5] https://www.geeksforgeeks.org/python/os-module-python-examples/
+[6] https://www.geeksforgeeks.org/python/os-module-python-examples
+[7] https://www.youtube.com/watch?v=tJxcKyFMTGo
+[8] https://www.reddit.com/r/learnpython/comments/wj4y4x/what_is_os_module
