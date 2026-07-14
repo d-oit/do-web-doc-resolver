@@ -420,16 +420,62 @@ fn strip_html(html: &str) -> String {
     let mut state = StripperState::new();
     let mut in_tag = false;
     let mut current_tag = String::new();
+    let mut quote_char: Option<char> = None;
 
     let mut chars = html.chars().peekable();
     while let Some(ch) = chars.next() {
-        if ch == '<' {
-            in_tag = true;
-            current_tag.clear();
+        if in_tag {
+            if let Some(q) = quote_char {
+                if ch == q {
+                    quote_char = None;
+                }
+                current_tag.push(ch);
+            } else if ch == '"' || ch == '\'' {
+                quote_char = Some(ch);
+                current_tag.push(ch);
+            } else if ch == '>' {
+                in_tag = false;
+                state.handle_tag(&current_tag);
 
+                // If we just entered a script or style tag, look for the closing tag
+                // to avoid getting tripped up by '<' or '>' inside the content
+                let tag_lower = current_tag.to_lowercase();
+                let tag_name = tag_lower.split_whitespace().next().unwrap_or("");
+                if matches!(tag_name, "script" | "style") && !tag_lower.starts_with('/') {
+                    // Optimized skip: look for </script or </style efficiently
+                    let close_tag_start = format!("</{}", tag_name);
+                    let mut buffer = String::with_capacity(tag_name.len() + 2);
+                    for c in chars.by_ref() {
+                        if c == '<' {
+                            buffer.clear();
+                            buffer.push('<');
+                        } else if !buffer.is_empty() {
+                            buffer.push(c);
+                            if buffer.to_lowercase() == close_tag_start {
+                                // Found it, now eat until >
+                                for next_c in chars.by_ref() {
+                                    if next_c == '>' {
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                            if buffer.len() > close_tag_start.len() {
+                                buffer.clear();
+                            }
+                        }
+                    }
+                    // We've skipped the content and the closing tag
+                    state.skip_content_depth = state.skip_content_depth.saturating_sub(1);
+                }
+            } else {
+                current_tag.push(ch);
+            }
+        } else if ch == '<' {
             // Special handling for comments
             let next_3: String = chars.clone().take(3).collect();
             if next_3 == "!--" {
+                current_tag.clear();
                 // Skip comment
                 for c in chars.by_ref() {
                     if c == '>' && current_tag.ends_with("--") {
@@ -437,46 +483,11 @@ fn strip_html(html: &str) -> String {
                     }
                     current_tag.push(c);
                 }
-                in_tag = false;
                 continue;
             }
-        } else if ch == '>' {
-            in_tag = false;
-            state.handle_tag(&current_tag);
-
-            // If we just entered a script or style tag, look for the closing tag
-            // to avoid getting tripped up by '<' or '>' inside the content
-            let tag_lower = current_tag.to_lowercase();
-            let tag_name = tag_lower.split_whitespace().next().unwrap_or("");
-            if matches!(tag_name, "script" | "style") && !tag_lower.starts_with('/') {
-                // Optimized skip: look for </script or </style efficiently
-                let close_tag_start = format!("</{}", tag_name);
-                let mut buffer = String::with_capacity(tag_name.len() + 2);
-                for c in chars.by_ref() {
-                    if c == '<' {
-                        buffer.clear();
-                        buffer.push('<');
-                    } else if !buffer.is_empty() {
-                        buffer.push(c);
-                        if buffer.to_lowercase() == close_tag_start {
-                            // Found it, now eat until >
-                            for next_c in chars.by_ref() {
-                                if next_c == '>' {
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                        if buffer.len() > close_tag_start.len() {
-                            buffer.clear();
-                        }
-                    }
-                }
-                // We've skipped the content and the closing tag
-                state.skip_content_depth = state.skip_content_depth.saturating_sub(1);
-            }
-        } else if in_tag {
-            current_tag.push(ch);
+            in_tag = true;
+            current_tag.clear();
+            quote_char = None;
         } else if state.skip_content_depth == 0 {
             state.result.push(ch);
         }
@@ -591,5 +602,19 @@ mod tests {
         let html = "<p>Copyright &copy; 2026 &mdash; All rights &reg; reserved &trade;.</p>";
         let result = strip_html(html);
         assert!(result.contains("Copyright © 2026 — All rights ® reserved ™."));
+    }
+
+    #[test]
+    fn test_strip_html_quotes_in_tags() {
+        let html = r#"<div data-json='{"foo": ">"}'>leaked content</div>"#;
+        let result = strip_html(html);
+        assert_eq!(result, "leaked content");
+    }
+
+    #[test]
+    fn test_strip_html_script_with_gt() {
+        let html = r#"<script>if (1 > 0) console.log("greater");</script>Keep this"#;
+        let result = strip_html(html);
+        assert_eq!(result, "Keep this");
     }
 }
