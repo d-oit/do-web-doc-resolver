@@ -49,6 +49,36 @@ pub fn compact_content(content: &str, max_chars: usize) -> String {
 }
 
 fn is_boilerplate(line: &str) -> bool {
+    // If the line is short, it cannot match any of the boilerplate patterns (all >= 10 chars).
+    if line.len() < 10 {
+        if !line.is_empty() && line.chars().all(|c| !c.is_alphanumeric()) {
+            let protected_set = PROTECTED_SET.get_or_init(|| {
+                RegexSet::new([
+                    r"```",
+                    r"\$\$",
+                    r"---",
+                    r"###",
+                    r"\|",
+                    r">",
+                    r"\{\\displaystyle",
+                    r"\\textstyle",
+                    r"\\begin\{aligned\}",
+                    r"\\end\{aligned\}",
+                    r"<pre",
+                    r"<code",
+                ])
+                .expect("Invalid protected marker regex patterns")
+            });
+            // Only perform regex matching if a protected formatting character is present
+            let has_protected_char = line.contains(['`', '$', '-', '#', '|', '>', '\\', '{', '<']);
+            if has_protected_char && protected_set.is_match(line) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
     let boilerplate_set = BOILERPLATE_SET.get_or_init(|| {
         RegexSet::new([
             "(?i)cookie policy",
@@ -85,11 +115,14 @@ fn is_boilerplate(line: &str) -> bool {
         .expect("Invalid protected marker regex patterns")
     });
 
-    if protected_set.is_match(line) {
+    // Only perform regex matching if a protected formatting character is present
+    let has_protected_char = line.contains(['`', '$', '-', '#', '|', '>', '\\', '{', '<']);
+    if has_protected_char && protected_set.is_match(line) {
         return false;
     }
 
-    line.len() < 10 && !line.is_empty() && line.chars().all(|c| !c.is_alphanumeric())
+    // Since line.len() >= 10, it cannot be < 10
+    false
 }
 
 #[cfg(test)]

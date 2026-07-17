@@ -1,8 +1,5 @@
 """
 Semantic Cache implementation using sqlite-vec + sentence-transformers.
-
-Provides semantic caching for resolved queries and URLs using local embeddings.
-The all-MiniLM-L6-v2 model is used (small, ~80MB, fast) and runs entirely locally.
 """
 
 import json
@@ -25,22 +22,17 @@ from scripts.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Default configuration
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
 
 
 @dataclass
 class SemanticCacheEntry:
-    """A single semantic cache entry."""
-
     query: str
     result: dict[str, Any]
     timestamp: float = field(default_factory=time.time)
     similarity: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert entry to dictionary."""
         return {
             "query": self.query,
             "result": self.result,
@@ -54,13 +46,10 @@ class SemanticCache:
     def normalize_text(text: str, filter_stop_words: bool = False) -> str:
         import re
 
-        # Split on non-alphanumeric characters to handle URLs and punctuation correctly
         tokens = [w for w in re.split(r"[^a-zA-Z0-9]", text) if w]
-
         is_url = text.startswith("http://") or text.startswith("https://")
-
         if is_url:
-            url_stop_words = {
+            url_stop = {
                 "https",
                 "http",
                 "www",
@@ -74,10 +63,9 @@ class SemanticCache:
                 "api",
                 "index",
             }
-            tokens = [w for w in tokens if w.lower() not in url_stop_words]
-
-        if filter_stop_words and not is_url:
-            stop_words = {
+            tokens = [w for w in tokens if w.lower() not in url_stop]
+        elif filter_stop_words:
+            stop = {
                 "docs",
                 "documentation",
                 "guide",
@@ -99,13 +87,10 @@ class SemanticCache:
                 "module",
                 "api",
             }
-            tokens = [w for w in tokens if w.lower() not in stop_words]
-
+            tokens = [w for w in tokens if w.lower() not in stop]
         if not tokens:
             return " ".join(text.lower().split())
-
-        lowered = sorted(w.lower() for w in tokens)
-        return " ".join(lowered)
+        return " ".join(sorted(w.lower() for w in tokens))
 
     def __init__(
         self,
@@ -121,7 +106,6 @@ class SemanticCache:
         self.max_entries = max_entries
         self._embedding_dimension: int | None = None
 
-        # Set up cache directory
         if cache_dir is None:
             cache_dir = os.path.expanduser(
                 os.getenv(
@@ -130,11 +114,9 @@ class SemanticCache:
             )
         self.cache_dir = cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
-
         self.db_path = os.path.join(self.cache_dir, "semantic_cache.db")
         self._conn_lock = threading.RLock()
 
-        # Try to initialize - failures disable the cache gracefully
         try:
             self._init_db()
             self._init_model()
@@ -147,7 +129,6 @@ class SemanticCache:
     def _init_db(self) -> None:
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-
         vec_loaded = False
         try:
             import sqlite_vec
@@ -157,22 +138,19 @@ class SemanticCache:
             self._conn.enable_load_extension(False)
             vec_loaded = True
             logger.debug("sqlite-vec extension loaded successfully")
-        except ImportError:
-            logger.warning("sqlite-vec not installed, trying dynamic loading")
-        except Exception as e:
-            logger.warning("Failed to load sqlite-vec via Python API: %s", e)
+        except Exception:
+            pass
 
         if not vec_loaded:
             try:
                 self._conn.enable_load_extension(True)
-                lib_paths = [
+                for lib in [
                     "libsqlite_vec.so",
                     "libsqlite_vec.dylib",
                     "sqlite_vec.so",
                     "sqlite_vec.dylib",
                     "libsqlite_vec",
-                ]
-                for lib in lib_paths:
+                ]:
                     try:
                         self._conn.execute(f"SELECT load_extension('{lib}')")
                         vec_loaded = True
@@ -197,7 +175,6 @@ class SemanticCache:
                 last_accessed REAL NOT NULL
             )
         """)
-
         self._conn.commit()
 
     def _init_model(self) -> None:
@@ -205,7 +182,6 @@ class SemanticCache:
         self._model_loading = False
 
     def _load_model(self) -> Any:
-        """Load the embedding model if not already loaded."""
         if self._model is None and not self._model_loading:
             self._model_loading = True
             try:
@@ -215,8 +191,6 @@ class SemanticCache:
                 self._model = SentenceTransformer(self._model_name)
                 self._embedding_dimension = self._model.get_embedding_dimension()
                 logger.info("Model loaded. Embedding dimension: %s", self._embedding_dimension)
-
-                # Create vector table now that we know the dimension
                 self._create_vector_table()
             except Exception as e:
                 logger.error("Failed to load embedding model: %s", e)
@@ -226,10 +200,8 @@ class SemanticCache:
         return self._model
 
     def _create_vector_table(self) -> None:
-        """Create the virtual vector table for similarity search."""
         if self._embedding_dimension is None:
             return
-
         with self._conn_lock:
             self._conn.execute(f"""
                 CREATE VIRTUAL TABLE IF NOT EXISTS vec_cache USING vec0(
@@ -239,25 +211,12 @@ class SemanticCache:
             self._conn.commit()
 
     def _embedding_to_blob(self, embedding: list[float]) -> bytes:
-        """Convert list of floats to binary blob for sqlite-vec."""
-        # Pack as little-endian float32 (4 bytes per float)
         return struct.pack(f"<{len(embedding)}f", *embedding)
 
     def _compute_embedding(self, text: str) -> list[float]:
-        """
-        Compute embedding for text using sentence-transformers.
-
-        Args:
-            text: Input text to embed
-
-        Returns:
-            List of float values representing the embedding vector
-        """
         model = self._load_model()
         if model is None:
             raise RuntimeError("Embedding model not available")
-
-        # Normalize text for embedding (using stop-word filtering for embedding only)
         normalized = self.normalize_text(text, True)
         embedding = model.encode(normalized, convert_to_numpy=True, normalize_embeddings=True)
         return cast(list[float], embedding.tolist())
@@ -265,13 +224,9 @@ class SemanticCache:
     def query(self, query_str: str) -> SemanticCacheEntry | None:
         if not self.enabled:
             return None
-
         try:
             normalized = self.normalize_text(query_str, False)
-
             with self._conn_lock:
-                # Check for exact match (using normalized text as direct ID or index)
-                # Matches Rust "Exact Match Short-Circuit" logic
                 cursor = self._conn.execute(
                     "SELECT id, query, result_json, timestamp FROM cache_entries WHERE query = ?",
                     (normalized,),
@@ -304,7 +259,6 @@ class SemanticCache:
                 """,
                     (embedding_blob,),
                 )
-
                 row = cursor.fetchone()
                 if row is None:
                     return None
@@ -312,31 +266,22 @@ class SemanticCache:
                 distance = row["distance"]
                 if distance is None:
                     distance = 2.0
-
                 similarity = 1.0 - (distance * distance / 2.0)
-
                 if similarity < self.threshold:
                     return None
 
                 self._conn.execute(
-                    """
-                    UPDATE cache_entries
-                    SET access_count = access_count + 1, last_accessed = ?
-                    WHERE id = ?
-                """,
+                    "UPDATE cache_entries SET access_count = access_count + 1, last_accessed = ? WHERE id = ?",
                     (time.time(), row["id"]),
                 )
                 self._conn.commit()
 
-            result = json.loads(row["result_json"])
-
             return SemanticCacheEntry(
                 query=row["query"],
-                result=result,
+                result=json.loads(row["result_json"]),
                 timestamp=row["timestamp"],
                 similarity=similarity,
             )
-
         except Exception as e:
             logger.warning("Semantic cache query failed: %s", e)
             return None
@@ -344,13 +289,11 @@ class SemanticCache:
     def store(self, query_str: str, result: dict[str, Any]) -> bool:
         if not self.enabled:
             return False
-
         try:
             normalized = self.normalize_text(query_str, False)
             embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(embedding)
 
-            # Aggressive redundancy pruning
             with self._conn_lock:
                 cursor = self._conn.execute(
                     """
@@ -362,36 +305,23 @@ class SemanticCache:
                 """,
                     (embedding_blob,),
                 )
-
                 for row in cursor.fetchall():
                     distance = row["distance"]
                     if distance is None:
                         distance = 2.0
                     similarity = 1.0 - (distance * distance / 2.0)
-
-                    # Similarity > 0.995: always skip
                     if similarity > 0.995:
+                        logger.info("Skipping store: similarity %.4f", similarity)
+                        return True
+                    if similarity > 0.98 and row["result_json"] == json.dumps(result):
                         logger.info(
-                            "Skipping store for query='%s': extremely similar entry already exists (score: %.4f)",
-                            query_str,
-                            similarity,
+                            "Skipping store: identical result with similarity %.4f", similarity
                         )
                         return True
 
-                    # Similarity > 0.98: skip if content is identical
-                    if similarity > 0.98:
-                        if row["result_json"] == json.dumps(result):
-                            logger.info(
-                                "Skipping store for query='%s': identical result already exists (score: %.4f)",
-                                query_str,
-                                similarity,
-                            )
-                            return True
-
             with self._conn_lock:
                 cursor = self._conn.execute(
-                    "SELECT id FROM cache_entries WHERE query = ?",
-                    (normalized,),
+                    "SELECT id FROM cache_entries WHERE query = ?", (normalized,)
                 )
                 old_row = cursor.fetchone()
                 if old_row:
@@ -400,29 +330,17 @@ class SemanticCache:
                     self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (old_id,))
 
                 cursor = self._conn.execute(
-                    """
-                    INSERT INTO cache_entries
-                    (query, result_json, timestamp, last_accessed)
-                    VALUES (?, ?, ?, ?)
-                """,
+                    "INSERT INTO cache_entries (query, result_json, timestamp, last_accessed) VALUES (?, ?, ?, ?)",
                     (normalized, json.dumps(result), time.time(), time.time()),
                 )
                 entry_id = cursor.lastrowid
-
                 self._conn.execute(
-                    """
-                    INSERT INTO vec_cache (rowid, embedding)
-                    VALUES (?, ?)
-                """,
+                    "INSERT INTO vec_cache (rowid, embedding) VALUES (?, ?)",
                     (entry_id, embedding_blob),
                 )
-
                 self._conn.commit()
-
                 self._maybe_evict()
-
             return True
-
         except Exception as e:
             logger.warning("Failed to store in semantic cache: %s", e)
             return False
@@ -432,26 +350,16 @@ class SemanticCache:
             try:
                 cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
                 count = cursor.fetchone()["count"]
-
                 if count > self.max_entries:
                     to_delete = count - self.max_entries
                     cursor = self._conn.execute(
-                        """
-                        SELECT id FROM cache_entries
-                        ORDER BY last_accessed ASC, access_count ASC
-                        LIMIT ?
-                    """,
+                        "SELECT id FROM cache_entries ORDER BY last_accessed ASC, access_count ASC LIMIT ?",
                         (to_delete,),
                     )
-                    ids_to_delete = [row["id"] for row in cursor.fetchall()]
-
-                    for entry_id in ids_to_delete:
-                        self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (entry_id,))
-                        self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
-
+                    for row in cursor.fetchall():
+                        self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (row["id"],))
+                        self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (row["id"],))
                     self._conn.commit()
-                    logger.info("Evicted %d old semantic cache entries", len(ids_to_delete))
-
             except Exception as e:
                 logger.warning("Cache eviction failed: %s", e)
 
@@ -464,13 +372,11 @@ class SemanticCache:
     def clear(self) -> bool:
         if not self.enabled:
             return False
-
         try:
             with self._conn_lock:
                 self._conn.execute("DELETE FROM vec_cache")
                 self._conn.execute("DELETE FROM cache_entries")
                 self._conn.commit()
-            logger.info("Semantic cache cleared")
             return True
         except Exception as e:
             logger.warning("Failed to clear semantic cache: %s", e)
@@ -479,17 +385,14 @@ class SemanticCache:
     def stats(self) -> dict[str, Any]:
         if not self.enabled:
             return {"enabled": False}
-
         try:
             with self._conn_lock:
                 cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
                 total_entries = cursor.fetchone()["count"]
-
                 cursor = self._conn.execute(
                     "SELECT AVG(access_count) as avg_access FROM cache_entries"
                 )
                 avg_access = cursor.fetchone()["avg_access"] or 0
-
             return {
                 "enabled": True,
                 "total_entries": total_entries,
@@ -501,54 +404,38 @@ class SemanticCache:
                 "db_path": self.db_path,
             }
         except Exception as e:
-            logger.warning("Failed to get cache stats: %s", e)
             return {"enabled": True, "error": str(e)}
 
     def __enter__(self) -> "SemanticCache":
-        """Context manager entry."""
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Context manager exit."""
         self.close()
 
 
-# Global singleton instance
 _semantic_cache_instance: SemanticCache | None = None
 _semantic_cache_lock = threading.Lock()
 
 
 def get_semantic_cache() -> SemanticCache | None:
-    """
-    Get or create the global semantic cache instance.
-
-    Returns:
-        SemanticCache instance if enabled and initialized, None otherwise
-    """
     global _semantic_cache_instance
-
     if _semantic_cache_instance is None:
         with _semantic_cache_lock:
             if _semantic_cache_instance is None:
                 if os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") != "1":
-                    logger.debug("Semantic cache disabled via DO_WDR_SEMANTIC_CACHE=0")
                     return None
-
                 try:
                     _semantic_cache_instance = SemanticCache(
                         threshold=SEMANTIC_CACHE_THRESHOLD, max_entries=SEMANTIC_CACHE_MAX_ENTRIES
                     )
                     if not _semantic_cache_instance.enabled:
                         return None
-                except Exception as e:
-                    logger.warning("Failed to initialize semantic cache: %s", e)
+                except Exception:
                     return None
-
     return _semantic_cache_instance if _semantic_cache_instance.enabled else None
 
 
 def reset_semantic_cache() -> None:
-    """Reset the global semantic cache instance (mainly for testing)."""
     global _semantic_cache_instance
     with _semantic_cache_lock:
         if _semantic_cache_instance:
