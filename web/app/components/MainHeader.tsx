@@ -5,9 +5,10 @@ import Link from "next/link";
 interface MainHeaderProps {
   setMobileMenuOpen(open: boolean): void;
   mobileMenuOpen: boolean;
+  onShowShortcuts: () => void;
 }
 
-export function MainHeader({ setMobileMenuOpen, mobileMenuOpen }: MainHeaderProps) {
+export function MainHeader({ setMobileMenuOpen, mobileMenuOpen, onShowShortcuts }: MainHeaderProps) {
   function handleMenuOpen() {
     setMobileMenuOpen(true);
   }
@@ -29,9 +30,18 @@ export function MainHeader({ setMobileMenuOpen, mobileMenuOpen }: MainHeaderProp
         </button>
         <span className="text-[11px] text-text-muted">do-web-doc-resolver</span>
       </div>
-      <Link href="/help" className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2">
-        Help
-      </Link>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onShowShortcuts}
+          className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus:outline-none focus:text-accent"
+          aria-label="Show keyboard shortcuts"
+        >
+          Shortcuts
+        </button>
+        <Link href="/help" className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus:outline-none focus:text-accent">
+          Help
+        </Link>
+      </div>
     </header>
   );
 }
