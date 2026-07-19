@@ -56,17 +56,19 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
 
-        if (e.shiftKey) {
-          // If shift + tab and we are on the first element, wrap around to the last element
-          if (document.activeElement === firstElement) {
-            lastElement.focus();
-            e.preventDefault();
-          }
-        } else {
-          // If tab and we are on the last element, wrap around to the first element
-          if (document.activeElement === lastElement) {
-            firstElement.focus();
-            e.preventDefault();
+        if (firstElement && lastElement) {
+          if (e.shiftKey) {
+            // If shift + tab and we are on the first element, wrap around to the last element
+            if (document.activeElement === firstElement) {
+              lastElement.focus();
+              e.preventDefault();
+            }
+          } else {
+            // If tab and we are on the last element, wrap around to the first element
+            if (document.activeElement === lastElement) {
+              firstElement.focus();
+              e.preventDefault();
+            }
           }
         }
       }
