@@ -57,9 +57,8 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
 
         if (focusableElements.length === 0) return;
 
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-        if (!firstElement || !lastElement) return;
+        const firstElement = focusableElements[0]!;
+        const lastElement = focusableElements[focusableElements.length - 1]!;
 
         if (e.shiftKey) {
           if (document.activeElement === firstElement) {

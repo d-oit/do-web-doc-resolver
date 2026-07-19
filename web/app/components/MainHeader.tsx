@@ -9,9 +9,8 @@ interface MainHeaderProps {
 }
 
 export function MainHeader(props: MainHeaderProps) {
-  const { setMobileMenuOpen, mobileMenuOpen, onShowShortcuts } = props;
   function handleMenuOpen() {
-    setMobileMenuOpen(true);
+    props.setMobileMenuOpen(true);
   }
 
   return (
@@ -22,7 +21,7 @@ export function MainHeader(props: MainHeaderProps) {
           onClick={handleMenuOpen}
           className="lg:hidden p-2 text-text-muted hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Open menu"
-          aria-expanded={mobileMenuOpen}
+          aria-expanded={props.mobileMenuOpen}
           aria-controls="sidebar-navigation"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,7 +32,7 @@ export function MainHeader(props: MainHeaderProps) {
       </div>
       <div className="flex items-center gap-2">
         <button
-          onClick={onShowShortcuts}
+          onClick={props.onShowShortcuts}
           className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus:outline-none focus:text-accent"
           aria-label="Show keyboard shortcuts"
         >
