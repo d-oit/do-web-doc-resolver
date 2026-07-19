@@ -5,11 +5,12 @@ import Link from "next/link";
 interface MainHeaderProps {
   setMobileMenuOpen(open: boolean): void;
   mobileMenuOpen: boolean;
+  onShowShortcuts: () => void;
 }
 
-export function MainHeader({ setMobileMenuOpen, mobileMenuOpen }: MainHeaderProps) {
+export function MainHeader(props: MainHeaderProps) {
   function handleMenuOpen() {
-    setMobileMenuOpen(true);
+    props.setMobileMenuOpen(true);
   }
 
   return (
@@ -20,7 +21,7 @@ export function MainHeader({ setMobileMenuOpen, mobileMenuOpen }: MainHeaderProp
           onClick={handleMenuOpen}
           className="lg:hidden p-2 text-text-muted hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Open menu"
-          aria-expanded={mobileMenuOpen}
+          aria-expanded={props.mobileMenuOpen}
           aria-controls="sidebar-navigation"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -29,9 +30,18 @@ export function MainHeader({ setMobileMenuOpen, mobileMenuOpen }: MainHeaderProp
         </button>
         <span className="text-[11px] text-text-muted">do-web-doc-resolver</span>
       </div>
-      <Link href="/help" className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2">
-        Help
-      </Link>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={props.onShowShortcuts}
+          className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus:outline-none focus:text-accent"
+          aria-label="Show keyboard shortcuts"
+        >
+          Shortcuts
+        </button>
+        <Link href="/help" className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus:outline-none focus:text-accent">
+          Help
+        </Link>
+      </div>
     </header>
   );
 }

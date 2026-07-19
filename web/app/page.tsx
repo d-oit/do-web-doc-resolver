@@ -456,6 +456,7 @@ export default function Home() {
         handleCardCopy={handleCardCopy}
         copied={copied}
         isUrl={isUrl}
+        onShowShortcuts={() => { setShowShortcuts(true); }}
       />
 
       {showShortcuts && (
