@@ -2,7 +2,7 @@
 relevance_score: 1.00
 intent_category: Technical
 token_estimate: 285
-last_updated: 2026-07-12
+last_updated: 2026-07-19
 ---
 
 # LLM-Ready Synthesis: Python 3.14 Tail-Call Optimization (July 2026)
