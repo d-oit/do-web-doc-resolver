@@ -124,10 +124,27 @@ Detailed reference material in `agents-docs/`:
 
 **Codacy MUST be up to standards before merge.** If Codacy shows `ACTION_REQUIRED`:
 
-1. Run `codacy pull-request gh <org> <repo> <prN> --output json` to get issues
-2. For false positives: `codacy pull-request gh <org> <repo> <prN> --ignore-issue <resultDataId> --ignore-reason FalsePositive`
-3. For real issues: fix the code, commit, push
-4. Re-run: `codacy pull-request gh <org> <repo> <prN> --reanalyze-and-wait`
+#### Codacy Issue Resolution Protocol
+
+**NEVER skip, suppress, or ignore Codacy issues without following this protocol:**
+
+1. **Analyze**: Run `codacy pull-request gh <org> <repo> <prN> --output json` to get all issues
+2. **Research**: For each issue, web-research the pattern against official docs and best practices:
+   - Check the rule's official documentation (ESLint, Biome, Semgrep, etc.)
+   - Determine if it's a genuine code quality concern or a false positive
+   - Document findings in the PR description or comments
+3. **Fix**: If the issue is genuine, fix the code. Commit, push, re-verify.
+4. **Verify**: Confirm the fix resolves the issue without introducing regressions
+5. **Ignore (last resort only)**: If and only if the issue is a verified false positive:
+   - Document WHY it's a false positive (with links to docs/best practices)
+   - Use `codacy pull-request gh <org> <repo> <prN> --ignore-issue <resultDataId> --ignore-reason FalsePositive`
+   - Add an inline comment explaining the rationale
+
+**Key principles:**
+- Fix first, ignore never (unless verified false positive)
+- Always document the reasoning behind any decision
+- Never assume an issue is a false positive without verification
+- Web research against official docs is mandatory before dismissing any issue
 
 **Never merge with:**
 

@@ -19,17 +19,26 @@ npm i -g @codacy/analysis-cli @codacy/codacy-cloud-cli
 export CODACY_API_TOKEN=<your-api-token>
 ```
 
-## PR Triage Workflow
+## PR Triage Workflow (NEVER SKIP ISSUES)
+
+**CRITICAL RULE: Never skip, suppress, or ignore Codacy issues without following this protocol.**
 
 1. **Get PR analysis**:
    `codacy pull-request gh <org> <repo> <prNumber> --output json > /tmp/codacy-pr.json`
-2. **Categorize issues**:
-   - False positives → Suppress via Cloud CLI.
-   - Real issues → Fix in code.
-3. **Suppress false positives**:
-   `codacy pull-request gh <org> <repo> <prNumber> --ignore-issue <numeric-resultDataId> --ignore-reason FalsePositive`
-   *Note: Use numeric `resultDataId`, NOT hash IDs.*
-4. **Fix issues**: Batch fix patterns and verify with local lint/tests (e.g., `./scripts/quality_gate.sh`).
+2. **For EACH issue, perform web research**:
+   - Search for the pattern ID against official documentation (ESLint, Biome, Semgrep, etc.)
+   - Check the rule's purpose, severity, and whether it's enforced by coding standards
+   - Determine if it's a genuine code quality concern or a false positive
+   - Document findings with links to official docs
+3. **Fix FIRST** (always preferred):
+   - If the issue is genuine, fix the code
+   - Commit, push, re-verify with `codacy pull-request --reanalyze-and-wait`
+4. **Ignore ONLY as last resort** (verified false positive):
+   - Only after web research confirms it's a false positive
+   - Document WHY with links to official docs/best practices
+   - Use `codacy pull-request gh <org> <repo> <prNumber> --ignore-issue <numeric-resultDataId> --ignore-reason FalsePositive`
+   - Add inline comment explaining the rationale
+5. **Verify**: Confirm the fix or ignore resolves the issue without regressions
 
 ## Local Analysis
 
@@ -60,6 +69,9 @@ Always cross-reference with Cloud CLI for full PR data.
 - [ ] Relying solely on local `codacy-analysis` for Python/Rust projects.
 - [ ] Attempting to suppress issues without a valid `--ignore-reason`.
 - [ ] Ignoring the `resultDataId` field in JSON output in favor of hashes.
+- [ ] **NEVER** skip Codacy issues without web research against official docs.
+- [ ] **NEVER** assume an issue is false positive without verification.
+- [ ] **NEVER** ignore issues as a first response - always fix first.
 
 ## References
 
