@@ -8,7 +8,6 @@ interface MainHeaderProps {
   onShowShortcuts: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/unbound-method -- destructured callback props
 export function MainHeader({ setMobileMenuOpen, mobileMenuOpen, onShowShortcuts }: MainHeaderProps) {
   function handleMenuOpen() {
     setMobileMenuOpen(true);
