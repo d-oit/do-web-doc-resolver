@@ -56,17 +56,17 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
 
         if (focusableElements.length === 0) return;
 
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
 
         if (e.shiftKey) {
           if (document.activeElement === firstElement) {
-            lastElement.focus();
+            lastElement?.focus();
             e.preventDefault();
           }
         } else {
           if (document.activeElement === lastElement) {
-            firstElement.focus();
+            firstElement?.focus();
             e.preventDefault();
           }
         }
