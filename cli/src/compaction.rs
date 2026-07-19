@@ -10,6 +10,26 @@ static PROTECTED_SET: OnceLock<RegexSet> = OnceLock::new();
 
 const INITIAL_LINE_CAPACITY: usize = 128;
 
+fn get_protected_set() -> &'static RegexSet {
+    PROTECTED_SET.get_or_init(|| {
+        RegexSet::new([
+            r"```",
+            r"\$\$",
+            r"---",
+            r"###",
+            r"\|",
+            r">",
+            r"\{\\displaystyle",
+            r"\\textstyle",
+            r"\\begin\{aligned\}",
+            r"\\end\{aligned\}",
+            r"<pre",
+            r"<code",
+        ])
+        .expect("Invalid protected marker regex patterns")
+    })
+}
+
 /// Compact content by removing boilerplate and redundant information
 pub fn compact_content(content: &str, max_chars: usize) -> String {
     let lines = content.lines();
@@ -49,6 +69,20 @@ pub fn compact_content(content: &str, max_chars: usize) -> String {
 }
 
 fn is_boilerplate(line: &str) -> bool {
+    // If the line is short, it cannot match any of the boilerplate patterns (all >= 10 chars).
+    if line.len() < 10 {
+        if !line.is_empty() && line.chars().all(|c| !c.is_alphanumeric()) {
+            let protected_set = get_protected_set();
+            // Only perform regex matching if a protected formatting character is present
+            let has_protected_char = line.contains(['`', '$', '-', '#', '|', '>', '\\', '{', '<']);
+            if has_protected_char && protected_set.is_match(line) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
     let boilerplate_set = BOILERPLATE_SET.get_or_init(|| {
         RegexSet::new([
             "(?i)cookie policy",
@@ -66,30 +100,14 @@ fn is_boilerplate(line: &str) -> bool {
         return true;
     }
 
-    // Protect Markdown structural elements and LaTeX markers from being treated as boilerplate
-    let protected_set = PROTECTED_SET.get_or_init(|| {
-        RegexSet::new([
-            r"```",
-            r"\$\$",
-            r"---",
-            r"###",
-            r"\|",
-            r">",
-            r"\{\\displaystyle",
-            r"\\textstyle",
-            r"\\begin\{aligned\}",
-            r"\\end\{aligned\}",
-            r"<pre",
-            r"<code",
-        ])
-        .expect("Invalid protected marker regex patterns")
-    });
-
-    if protected_set.is_match(line) {
+    let protected_set = get_protected_set();
+    // Only perform regex matching if a protected formatting character is present
+    let has_protected_char = line.contains(['`', '$', '-', '#', '|', '>', '\\', '{', '<']);
+    if has_protected_char && protected_set.is_match(line) {
         return false;
     }
 
-    line.len() < 10 && !line.is_empty() && line.chars().all(|c| !c.is_alphanumeric())
+    false
 }
 
 #[cfg(test)]
@@ -105,6 +123,17 @@ mod tests {
         assert!(!is_boilerplate("```rust"));
         assert!(!is_boilerplate("$$ E=mc^2 $$"));
         assert!(!is_boilerplate("### Heading"));
+
+        // Short symbol lines / boilerplate checks (both protected and symbol-only boilerplate)
+        assert!(!is_boilerplate("---")); // Protected marker, not boilerplate
+        assert!(!is_boilerplate("###")); // Protected marker, not boilerplate
+        assert!(!is_boilerplate("|")); // Protected marker, not boilerplate
+        assert!(!is_boilerplate(">")); // Protected marker, not boilerplate
+        assert!(!is_boilerplate("$$")); // Protected marker, not boilerplate
+        assert!(is_boilerplate("!!!")); // Not protected, symbol only: is boilerplate
+        assert!(is_boilerplate("@@@")); // Not protected, symbol only: is boilerplate
+        assert!(!is_boilerplate("")); // Empty line, not boilerplate
+        assert!(!is_boilerplate("a")); // Short alphanumeric, not boilerplate
     }
 
     #[test]
