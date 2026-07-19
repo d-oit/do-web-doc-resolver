@@ -36,6 +36,7 @@ interface MainContentProps {
   handleCardCopy(value: string): void;
   copied: boolean;
   isUrl: boolean;
+  onShowShortcuts: () => void;
 }
 
 export function MainContent(props: MainContentProps) {
@@ -69,6 +70,7 @@ export function MainContent(props: MainContentProps) {
     handleCardCopy,
     copied,
     isUrl,
+    onShowShortcuts,
   } = props;
 
   function handleClear() {
@@ -86,7 +88,7 @@ export function MainContent(props: MainContentProps) {
 
   return (
     <div id="main-content" className="flex-1 flex flex-col min-h-0" tabIndex={-1}>
-      <MainHeader setMobileMenuOpen={setMobileMenuOpen} mobileMenuOpen={mobileMenuOpen} />
+      <MainHeader setMobileMenuOpen={setMobileMenuOpen} mobileMenuOpen={mobileMenuOpen} onShowShortcuts={onShowShortcuts} />
 
       <SearchSection
         query={query}
