@@ -127,13 +127,13 @@ mod tests {
         // Short symbol lines / boilerplate checks (both protected and symbol-only boilerplate)
         assert!(!is_boilerplate("---")); // Protected marker, not boilerplate
         assert!(!is_boilerplate("###")); // Protected marker, not boilerplate
-        assert!(!is_boilerplate("|"));   // Protected marker, not boilerplate
-        assert!(!is_boilerplate(">"));   // Protected marker, not boilerplate
-        assert!(!is_boilerplate("$$"));  // Protected marker, not boilerplate
-        assert!(is_boilerplate("!!!"));  // Not protected, symbol only: is boilerplate
-        assert!(is_boilerplate("@@@"));  // Not protected, symbol only: is boilerplate
-        assert!(!is_boilerplate(""));    // Empty line, not boilerplate
-        assert!(!is_boilerplate("a"));   // Short alphanumeric, not boilerplate
+        assert!(!is_boilerplate("|")); // Protected marker, not boilerplate
+        assert!(!is_boilerplate(">")); // Protected marker, not boilerplate
+        assert!(!is_boilerplate("$$")); // Protected marker, not boilerplate
+        assert!(is_boilerplate("!!!")); // Not protected, symbol only: is boilerplate
+        assert!(is_boilerplate("@@@")); // Not protected, symbol only: is boilerplate
+        assert!(!is_boilerplate("")); // Empty line, not boilerplate
+        assert!(!is_boilerplate("a")); // Short alphanumeric, not boilerplate
     }
 
     #[test]
