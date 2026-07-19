@@ -39,7 +39,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
 
   // Trap focus inside the modal and handle Escape key
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
@@ -56,8 +56,12 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
 
         if (focusableElements.length === 0) return;
 
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+        // Use .item() to avoid noUncheckedIndexedAccess issues
+        // Convert to array and use .at() which is always possibly-undefined
+        // per typescript-eslint docs, satisfying both type safety and Codacy
+        const elements = Array.from(focusableElements);
+        const firstElement = elements.at(0);
+        const lastElement = elements.at(-1);
 
         if (e.shiftKey) {
           if (document.activeElement === firstElement) {
