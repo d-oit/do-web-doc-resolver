@@ -138,8 +138,10 @@ class SemanticCache:
             self._conn.enable_load_extension(False)
             vec_loaded = True
             logger.debug("sqlite-vec extension loaded successfully")
+        except ImportError:
+            logger.warning("sqlite-vec not installed, trying dynamic loading")
         except Exception as e:
-            logger.debug("Failed to load sqlite-vec via Python API: %s", e)
+            logger.warning("Failed to load sqlite-vec via Python API: %s", e)
 
         if not vec_loaded:
             try:
@@ -356,10 +358,12 @@ class SemanticCache:
                         "SELECT id FROM cache_entries ORDER BY last_accessed ASC, access_count ASC LIMIT ?",
                         (to_delete,),
                     )
-                    for row in cursor.fetchall():
-                        self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (row["id"],))
-                        self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (row["id"],))
+                    ids_to_delete = [row["id"] for row in cursor.fetchall()]
+                    for entry_id in ids_to_delete:
+                        self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (entry_id,))
+                        self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
                     self._conn.commit()
+                    logger.info("Evicted %d old semantic cache entries", len(ids_to_delete))
             except Exception as e:
                 logger.warning("Cache eviction failed: %s", e)
 
@@ -430,7 +434,8 @@ def get_semantic_cache() -> SemanticCache | None:
                     )
                     if not _semantic_cache_instance.enabled:
                         return None
-                except Exception:
+                except Exception as e:
+                    logger.warning("Failed to initialize semantic cache: %s", e)
                     return None
     return _semantic_cache_instance if _semantic_cache_instance.enabled else None
 
