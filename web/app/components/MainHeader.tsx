@@ -8,7 +8,8 @@ interface MainHeaderProps {
   onShowShortcuts: () => void;
 }
 
-export function MainHeader({ setMobileMenuOpen, mobileMenuOpen, onShowShortcuts }: MainHeaderProps) {
+export function MainHeader(props: MainHeaderProps) {
+  const { setMobileMenuOpen, mobileMenuOpen, onShowShortcuts } = props;
   function handleMenuOpen() {
     setMobileMenuOpen(true);
   }
