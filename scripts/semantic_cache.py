@@ -138,8 +138,8 @@ class SemanticCache:
             self._conn.enable_load_extension(False)
             vec_loaded = True
             logger.debug("sqlite-vec extension loaded successfully")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Failed to load sqlite-vec via Python API: %s", e)
 
         if not vec_loaded:
             try:
