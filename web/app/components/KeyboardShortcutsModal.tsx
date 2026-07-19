@@ -22,10 +22,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
   useEffect(() => {
     // Record the element that had focus before the modal opened
     if (typeof document !== "undefined") {
-      const active = document.activeElement;
-      if (active instanceof HTMLElement) {
-        previouslyFocusedElementRef.current = active;
-      }
+      previouslyFocusedElementRef.current = document.activeElement as HTMLElement;
     }
 
     // Move focus inside the modal (to the close button)
@@ -39,7 +36,6 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
 
   // Trap focus inside the modal and handle Escape key
   useEffect(() => {
-    // biome-ignore lint/correctness/useQwikValidLexicalScope: Not a Qwik project
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -57,18 +53,22 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
 
         if (focusableElements.length === 0) return;
 
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
 
-        if (e.shiftKey) {
-          if (document.activeElement === firstElement) {
-            lastElement.focus();
-            e.preventDefault();
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            firstElement.focus();
-            e.preventDefault();
+        if (firstElement && lastElement) {
+          if (e.shiftKey) {
+            // If shift + tab and we are on the first element, wrap around to the last element
+            if (document.activeElement === firstElement) {
+              lastElement.focus();
+              e.preventDefault();
+            }
+          } else {
+            // If tab and we are on the last element, wrap around to the first element
+            if (document.activeElement === lastElement) {
+              firstElement.focus();
+              e.preventDefault();
+            }
           }
         }
       }
