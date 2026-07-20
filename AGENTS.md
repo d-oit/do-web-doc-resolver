@@ -141,6 +141,7 @@ Detailed reference material in `agents-docs/`:
    - Add an inline comment explaining the rationale
 
 **Key principles:**
+
 - Fix first, ignore never (unless verified false positive)
 - Always document the reasoning behind any decision
 - Never assume an issue is a false positive without verification
