@@ -5,6 +5,7 @@
 The `do-wdr` CLI semantic cache and Python-Rust bridge integration are exceptionally healthy. Rigorous testing against standard documentation-heavy workloads (Python, Rust, MDN, Go, React) has verified that the semantic cache operates flawlessly.
 
 All performance and quality targets are fully satisfied:
+
 - **Cache Hit Latency**: ~1ms - 15ms (Target: < 200ms)
 - **Quality Synthesis Score**: 0.95 (Target: > 0.85)
 - **Semantic Hit Rate**: 100% on standard aliased documentation URLs due to advanced token-sorting, URL normalization, and stop-word filtering.
