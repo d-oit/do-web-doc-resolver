@@ -675,7 +675,7 @@ class TestSerperErrorLogging:
     """Test Serper HTTP error logging."""
 
     @patch.dict(os.environ, {"SERPER_API_KEY": "test_key"})
-    @patch("scripts.utils.get_session")
+    @patch("scripts.providers.serper.get_session")
     def test_429_logs_warning_and_cooldown(self, mock_session, caplog):
         from scripts.providers_impl import _is_rate_limited, resolve_with_serper
         from scripts.resolve import _rate_limits
@@ -694,7 +694,7 @@ class TestSerperErrorLogging:
         _rate_limits.clear()
 
     @patch.dict(os.environ, {"SERPER_API_KEY": "test_key"})
-    @patch("scripts.utils.get_session")
+    @patch("scripts.providers.serper.get_session")
     def test_401_logs_warning(self, mock_session, caplog):
         from scripts.providers_impl import resolve_with_serper
 
@@ -709,7 +709,7 @@ class TestSerperErrorLogging:
         assert "auth error" in caplog.text.lower()
 
     @patch.dict(os.environ, {"SERPER_API_KEY": "test_key"})
-    @patch("scripts.utils.get_session")
+    @patch("scripts.providers.serper.get_session")
     def test_500_logs_warning(self, mock_session, caplog):
         from scripts.providers_impl import resolve_with_serper
 
@@ -724,7 +724,7 @@ class TestSerperErrorLogging:
         assert "HTTP 500" in caplog.text
 
     @patch.dict(os.environ, {"SERPER_API_KEY": "test_key"})
-    @patch("scripts.utils.get_session")
+    @patch("scripts.providers.serper.get_session")
     def test_network_error_logs_type_and_message(self, mock_session, caplog):
         from scripts.providers_impl import resolve_with_serper
 
@@ -752,7 +752,7 @@ class TestSerperErrorLogging:
 class TestJinaErrorLogging:
     """Test Jina HTTP error logging."""
 
-    @patch("scripts.utils.get_session")
+    @patch("scripts.providers.jina.get_session")
     def test_429_logs_warning_and_cooldown(self, mock_session, caplog):
         from scripts.providers_impl import _is_rate_limited, resolve_with_jina
         from scripts.resolve import _rate_limits
@@ -770,7 +770,7 @@ class TestJinaErrorLogging:
         assert _is_rate_limited("jina")
         _rate_limits.clear()
 
-    @patch("scripts.utils.get_session")
+    @patch("scripts.providers.jina.get_session")
     def test_403_logs_warning(self, mock_session, caplog):
         from scripts.providers_impl import resolve_with_jina
 
@@ -784,7 +784,7 @@ class TestJinaErrorLogging:
         assert result is None
         assert "auth error" in caplog.text.lower()
 
-    @patch("scripts.utils.get_session")
+    @patch("scripts.providers.jina.get_session")
     def test_500_logs_warning(self, mock_session, caplog):
         from scripts.providers_impl import resolve_with_jina
 
@@ -798,7 +798,7 @@ class TestJinaErrorLogging:
         assert result is None
         assert "HTTP 500" in caplog.text
 
-    @patch("scripts.utils.get_session")
+    @patch("scripts.providers.jina.get_session")
     def test_network_error_logs_type_and_message(self, mock_session, caplog):
         from scripts.providers_impl import resolve_with_jina
 
