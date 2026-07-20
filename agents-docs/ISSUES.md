@@ -28,3 +28,10 @@
 - **Issue**: The read operation timed out
 - **Action Taken**: Deprioritized firecrawl in the routing logic.
 - **Status**: Monitoring for stability.
+
+## Provider Alert: serper unstable
+
+- **Date**: 2026-07-20
+- **Issue**: Status code 403: {"message":"Unauthorized.","statusCode":403}
+- **Action Taken**: Deprioritized serper in the routing logic.
+- **Status**: Monitoring for stability.
