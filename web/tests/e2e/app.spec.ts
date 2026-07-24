@@ -1,3 +1,4 @@
+/* eslint-disable playwright/no-conditional-in-test, playwright/no-conditional-expect, playwright/no-skipped-test */
 import { test, expect } from "@playwright/test";
 
 // Helper to mock UI state and key-status APIs for consistent test state
@@ -511,7 +512,6 @@ test.describe("Network Interception", () => {
 test.describe("Security Headers", () => {
   test("response has X-Content-Type-Options", async ({ page }) => {
     // Security headers are only set by Vercel in production
-    // eslint-disable-next-line playwright/no-skipped-test
     test.skip(!!process.env.BASE_URL?.includes("localhost"), "Security headers only apply to production");
 
     const response = await page.goto("/");
@@ -521,7 +521,6 @@ test.describe("Security Headers", () => {
 
   test("response has X-Frame-Options", async ({ page }) => {
     // Security headers are only set by Vercel in production
-    // eslint-disable-next-line playwright/no-skipped-test
     test.skip(!!process.env.BASE_URL?.includes("localhost"), "Security headers only apply to production");
 
     const response = await page.goto("/");
@@ -556,12 +555,19 @@ test.describe("Collapsible Sidebar", () => {
   test("sidebar is visible by default", async ({ page }) => {
     await waitForApp(page);
     await ensureSidebarOpen(page);
-    await expect(page.getByTestId("sidebar-toggle")).toBeVisible();
-    await expect(page.locator("text=Configuration")).toBeVisible();
+    const isMobile = (page.viewportSize()?.width || 0) < 1024;
+    if (!isMobile) {
+      await expect(page.getByTestId("sidebar-toggle")).toBeVisible();
+    }
+    await expect(page.locator("text=Configuration").filter({ visible: true })).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
   });
 
   test("sidebar collapses when clicking Configuration header", async ({ page }) => {
+    const isMobile = (page.viewportSize()?.width || 0) < 1024;
+    if (isMobile) {
+      test.skip(true, "Collapsing sidebar is desktop-only");
+    }
     await waitForApp(page);
     await ensureSidebarOpen(page);
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
@@ -570,6 +576,10 @@ test.describe("Collapsible Sidebar", () => {
   });
 
   test("sidebar expands when clicking Configuration header again", async ({ page }) => {
+    const isMobile = (page.viewportSize()?.width || 0) < 1024;
+    if (isMobile) {
+      test.skip(true, "Expanding sidebar is desktop-only");
+    }
     await waitForApp(page);
     await ensureSidebarOpen(page);
     await page.getByTestId("sidebar-toggle").click();
@@ -579,6 +589,10 @@ test.describe("Collapsible Sidebar", () => {
   });
 
   test("toggle label shows correct text", async ({ page }) => {
+    const isMobile = (page.viewportSize()?.width || 0) < 1024;
+    if (isMobile) {
+      test.skip(true, "Collapsible labels are desktop-only");
+    }
     await waitForApp(page);
     await ensureSidebarOpen(page);
     await expect(page.getByTestId("sidebar-toggle").locator("text=Hide")).toBeVisible();
@@ -589,7 +603,7 @@ test.describe("Collapsible Sidebar", () => {
   test("Keys link is visible in sidebar header", async ({ page }) => {
     await waitForApp(page);
     await ensureSidebarOpen(page);
-    const keysLink = page.locator('a[href="/settings"]');
+    const keysLink = page.locator('a[href="/settings"]').filter({ visible: true });
     await expect(keysLink).toBeVisible();
     await expect(keysLink).toContainText("Keys");
   });
@@ -597,8 +611,27 @@ test.describe("Collapsible Sidebar", () => {
   test("Keys link navigates to settings", async ({ page }) => {
     await waitForApp(page);
     await ensureSidebarOpen(page);
-    await page.locator('a[href="/settings"]').click();
+    await page.locator('a[href="/settings"]').filter({ visible: true }).click();
     await expect(page).toHaveURL(/\/settings/);
+  });
+
+  test("mobile close button closes sidebar on mobile", async ({ page }) => {
+    const isMobile = (page.viewportSize()?.width || 0) < 1024;
+    if (!isMobile) {
+      test.skip(true, "Mobile close button test only runs on mobile/tablet viewports");
+    }
+    await waitForApp(page);
+    await ensureSidebarOpen(page);
+
+    // Sidebar should be open and its close button should be visible
+    const closeBtn = page.getByRole("button", { name: "Close configuration" });
+    await expect(closeBtn).toBeVisible();
+
+    // Clicking close button should close the menu
+    await closeBtn.click();
+
+    // The configuration options should now be hidden
+    await expect(page.locator("#sidebar-navigation")).toHaveClass(/.*-translate-x-full.*/);
   });
 });
 
