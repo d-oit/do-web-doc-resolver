@@ -106,7 +106,7 @@ export default function Sidebar({
             Keys
           </Link>
           <button
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={() => { setMobileMenuOpen(false); }}
             className="text-[11.5px] text-text-muted hover:text-[#ff4444] focus:text-[#ff4444] font-bold min-h-[30px] px-2 flex items-center focus:outline-none"
             aria-label="Close configuration"
           >
