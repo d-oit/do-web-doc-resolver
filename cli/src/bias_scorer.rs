@@ -1,6 +1,22 @@
 //! Source bias and quality scoring.
 
+use regex::Regex;
+use std::sync::OnceLock;
 use url::Url;
+
+static SPAM_PATTERNS: OnceLock<[Regex; 5]> = OnceLock::new();
+
+fn get_spam_patterns() -> &'static [Regex; 5] {
+    SPAM_PATTERNS.get_or_init(|| {
+        [
+            Regex::new("(?i)buy now").expect("Invalid regex for buy now"),
+            Regex::new("(?i)cheap").expect("Invalid regex for cheap"),
+            Regex::new("(?i)discount").expect("Invalid regex for discount"),
+            Regex::new("(?i)free trial").expect("Invalid regex for free trial"),
+            Regex::new("(?i)best price").expect("Invalid regex for best price"),
+        ]
+    })
+}
 
 /// Score a result based on domain trust and content quality
 pub fn score_result(url: &str, content: &str) -> f64 {
@@ -54,10 +70,9 @@ pub fn score_result(url: &str, content: &str) -> f64 {
     }
 
     // SEO spam detection
-    let spam_terms = ["buy now", "cheap", "discount", "free trial", "best price"];
-    let lower_content = content.to_lowercase();
-    for term in spam_terms {
-        if lower_content.contains(term) {
+    let spam_patterns = get_spam_patterns();
+    for re in spam_patterns {
+        if re.is_match(content) {
             score -= 0.1;
         }
     }

@@ -27,7 +27,7 @@ pub fn is_safe_url(url_str: &str) -> bool {
         Err(_) => return false,
     };
 
-    let scheme = parsed.scheme().to_lowercase();
+    let scheme = parsed.scheme();
     if scheme != "http" && scheme != "https" {
         return false;
     }
@@ -39,11 +39,10 @@ pub fn is_safe_url(url_str: &str) -> bool {
 
     match host {
         url::Host::Domain(domain) => {
-            let lowered = domain.to_lowercase();
-            if lowered == "localhost"
-                || lowered == "localhost.localdomain"
-                || lowered.ends_with(".local")
-                || lowered.ends_with(".internal")
+            if domain == "localhost"
+                || domain == "localhost.localdomain"
+                || domain.ends_with(".local")
+                || domain.ends_with(".internal")
             {
                 return false;
             }
@@ -131,6 +130,7 @@ mod tests {
     #[test]
     fn test_is_safe_url() {
         assert!(is_safe_url("https://example.com"));
+        assert!(is_safe_url("HTTPS://EXAMPLE.COM"));
         assert!(is_safe_url("http://example.com/path"));
         assert!(!is_safe_url("http://localhost"));
         assert!(!is_safe_url("http://127.0.0.1"));
