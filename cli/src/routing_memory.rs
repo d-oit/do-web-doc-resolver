@@ -103,7 +103,7 @@ impl RoutingMemory {
             })
             .collect();
 
-        domains.sort_by_key(|b| std::cmp::Reverse(b.1));
+        domains.sort_unstable_by_key(|b| std::cmp::Reverse(b.1));
         domains.into_iter().take(n).map(|(d, _)| d).collect()
     }
 }

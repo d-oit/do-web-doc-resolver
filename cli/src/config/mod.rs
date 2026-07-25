@@ -95,8 +95,6 @@ pub struct PrewarmConfig {
     pub enabled: bool,
     #[serde(default = "default_prewarm_top_n_domains")]
     pub top_n_domains: usize,
-    #[serde(default = "default_prewarm_profile")]
-    pub profile: String,
     #[serde(default = "default_prewarm_max_concurrency")]
     pub max_concurrency: usize,
 }
@@ -106,7 +104,6 @@ impl Default for PrewarmConfig {
         Self {
             enabled: default_prewarm_enabled(),
             top_n_domains: default_prewarm_top_n_domains(),
-            profile: default_prewarm_profile(),
             max_concurrency: default_prewarm_max_concurrency(),
         }
     }
@@ -342,10 +339,6 @@ impl Config {
             &mut self.routing.prewarm.top_n_domains,
             other.routing.prewarm.top_n_domains,
             default_prewarm_top_n_domains(),
-        );
-        merge_string(
-            &mut self.routing.prewarm.profile,
-            other.routing.prewarm.profile,
         );
         merge_value(
             &mut self.routing.prewarm.max_concurrency,

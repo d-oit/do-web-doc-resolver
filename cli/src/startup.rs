@@ -2,8 +2,12 @@ use crate::config::Config;
 use crate::resolver::Resolver;
 use anyhow::Result;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
+
+const PER_TASK_TIMEOUT: Duration = Duration::from_secs(30);
+const OVERALL_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub async fn prewarm_cache(resolver: Arc<Resolver>, config: &Config) -> Result<()> {
     if !config.routing.prewarm.enabled {
@@ -12,7 +16,7 @@ pub async fn prewarm_cache(resolver: Arc<Resolver>, config: &Config) -> Result<(
     }
 
     let top_n = config.routing.prewarm.top_n_domains;
-    let max_concurrency = config.routing.prewarm.max_concurrency;
+    let max_concurrency = config.routing.prewarm.max_concurrency.max(1);
 
     let domains = {
         let routing_memory = resolver.routing_memory();
@@ -38,27 +42,43 @@ pub async fn prewarm_cache(resolver: Arc<Resolver>, config: &Config) -> Result<(
         let url = format!("https://{}", domain);
         let resolver = resolver.clone();
 
-        let permit = semaphore.clone().acquire_owned().await?;
+        let permit = Arc::clone(&semaphore).acquire_owned().await?;
 
         join_set.spawn(async move {
             tracing::debug!("Pre-warming domain: {}", domain);
 
-            let result = resolver.resolve_url(&url).await;
+            let result = tokio::time::timeout(PER_TASK_TIMEOUT, resolver.resolve_url(&url)).await;
             match result {
-                Ok(_) => {
+                Ok(Ok(_)) => {
                     tracing::debug!("Pre-warm succeeded for domain: {}", domain);
                 }
-                Err(e) => {
-                    tracing::debug!("Pre-warm failed for domain {}: {}", domain, e);
+                Ok(Err(e)) => {
+                    tracing::warn!("Pre-warm failed for domain {}: {}", domain, e);
+                }
+                Err(_) => {
+                    tracing::warn!("Pre-warm timed out for domain: {}", domain);
                 }
             }
             drop(permit);
         });
     }
 
-    while let Some(result) = join_set.join_next().await {
-        if let Err(e) = result {
-            tracing::warn!("Pre-warm task panicked: {}", e);
+    let deadline = tokio::time::sleep(OVERALL_TIMEOUT);
+    tokio::pin!(deadline);
+
+    loop {
+        tokio::select! {
+            Some(result) = join_set.join_next() => {
+                if let Err(e) = result {
+                    tracing::warn!("Pre-warm task panicked: {}", e);
+                }
+            }
+            _ = &mut deadline => {
+                tracing::warn!("Pre-warming timed out after {}s, abandoning remaining tasks", OVERALL_TIMEOUT.as_secs());
+                join_set.abort_all();
+                break;
+            }
+            else => break,
         }
     }
 

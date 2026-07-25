@@ -108,10 +108,6 @@ pub(crate) fn default_prewarm_top_n_domains() -> usize {
     20
 }
 
-pub(crate) fn default_prewarm_profile() -> String {
-    "balanced".to_string()
-}
-
 pub(crate) fn default_prewarm_max_concurrency() -> usize {
     4
 }
