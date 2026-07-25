@@ -143,6 +143,45 @@ export function maxSize(): number {
 }
 
 /**
+ * Get the top N most frequently used domains from history entries.
+ * Reads from the /api/history endpoint, ranks by frequency, and returns unique hostnames.
+ */
+export async function getTopDomains(n: number): Promise<string[]> {
+  try {
+    const res = await fetch("/api/history?limit=100");
+    if (!res.ok) return [];
+    const data = await res.json();
+    const entries: { query?: string; url?: string | null }[] = data.entries || [];
+
+    const freq = new Map<string, number>();
+    for (const entry of entries) {
+      const sources = [
+        entry.url,
+        entry.query,
+      ].filter(Boolean) as string[];
+
+      for (const src of sources) {
+        try {
+          const hostname = new URL(src).hostname.toLowerCase();
+          if (hostname) {
+            freq.set(hostname, (freq.get(hostname) || 0) + 1);
+          }
+        } catch {
+          // Not a valid URL — skip
+        }
+      }
+    }
+
+    return Array.from(freq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([domain]) => domain);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Get analytics statistics about the records store
  */
 export function getAnalytics(): {

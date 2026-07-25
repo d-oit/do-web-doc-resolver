@@ -92,4 +92,18 @@ impl RoutingMemory {
 
         scores.into_iter().map(|(p, _)| p.clone()).collect()
     }
+
+    pub fn top_domains(&self, n: usize) -> Vec<String> {
+        let mut domains: Vec<(String, usize)> = self
+            .domain_stats
+            .iter()
+            .map(|(domain, providers)| {
+                let total_attempts: usize = providers.values().map(|s| s.success + s.failure).sum();
+                (domain.clone(), total_attempts)
+            })
+            .collect();
+
+        domains.sort_unstable_by_key(|b| std::cmp::Reverse(b.1));
+        domains.into_iter().take(n).map(|(d, _)| d).collect()
+    }
 }

@@ -1,3 +1,51 @@
+## [Unreleased]
+
+### Added
+
+- **Cascade**: FetchTier enum and stealth escalation layer for provider tier mapping (#509, #488)
+- **Resolver**: ReadonlyResolverProtocol for typed provider callables (#508)
+- **Resolver**: visual_clip provider wired into URL resolution cascade
+- **Resolver**: trafilatura/readability content-clean mode for improved extraction (#505)
+- **Providers**: bot-challenge detection and auto-escalation signal in direct_fetch (#512)
+- **UX**: close button to mobile sidebar (#535)
+- **UX**: navigation accessibility with proper ARIA states (#506, #510)
+- **UX**: accessibility and micro-UX improvements to web interface (#434)
+- **Security**: comprehensive security-scan workflow (ShellCheck, Trivy, CodeQL, dependency audit)
+- **Security**: cloud metadata endpoints hardened in BLOCKED_NETWORKS (#503)
+- **CI**: yaml-lint, markdown-lint, and commitlint workflows
+- **Agents**: do-wdr-visual-resolver skill scaffold
+- **Agents**: Codacy issue resolution protocol in AGENTS.md and codacy skill
+
+### Changed
+
+- **Resolver**: align synthesis logic with 2026 LLM-ready standards (#511)
+- **CLI**: optimize semantic cache metrics and redundancy pruning
+- **CLI**: optimize deterministic merge reducing line allocations
+- **CLI**: optimize content compaction and quality scoring
+- **CLI**: optimize quality scoring with regex early-exit (#507)
+- **Web**: ProfileCombobox keyboard accessibility and focus management (#471)
+- build(deps): bump the npm-deps group across multiple updates (#502, #522)
+- build(deps): bump regex from 1.12.4 to 1.13.0 in /cli
+- build(deps): bump mockall from 0.14.0 to 0.15.0 in /cli
+- ci(deps): bump EmbarkStudios/cargo-deny-action
+- ci(deps): bump the github-actions group with multiple updates
+
+### Fixed
+
+- **Security**: resolve npm audit vulnerabilities and fix pre-existing CI failures (#502)
+- **Security**: add CVE-2026-41305 to Trivy ignore for postcss
+- **Resolver**: improve HTML stripping with quote-aware tag parsing
+- **Resolver**: preserve indentation in direct_fetch code blocks
+- **Resolver**: optimize semantic cache telemetry and sync logic
+- **Test**: fix unawaited coroutine warning in mock_thread_func
+- **CI**: resolve DeepSource Python warnings in skills snapshot (#504)
+- **CI**: resolve pre-existing markdownlint and cargo deny failures
+- **CI**: set cargo-deny manifest-path to ./cli/Cargo.toml
+- **CI**: update cargo-deny-action to v2.0.20 for CVSS 4.0 support
+- **CI**: bump Rust toolchain to 1.89 for cargo-audit compatibility
+- **CI**: exclude Bandit checks in test files
+- **CI**: fix action versions in lint workflows
+
 ## [0.3.9] - 2026-06-20
 
 ### Added

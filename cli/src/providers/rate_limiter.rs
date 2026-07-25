@@ -51,7 +51,6 @@ impl TokenBucket {
     }
 
     /// Try to acquire a token without waiting
-    #[allow(dead_code)]
     pub async fn try_acquire(&self) -> bool {
         let mut state = self.state.lock().await;
 

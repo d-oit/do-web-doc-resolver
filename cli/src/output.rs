@@ -28,7 +28,6 @@ impl<'a> JsonOutput<'a> {
     }
 
     /// Create error output
-    #[allow(dead_code)]
     pub fn error(_msg: &'a str) -> Self {
         Self {
             source: "none",

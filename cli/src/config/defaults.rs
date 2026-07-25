@@ -100,6 +100,18 @@ pub(crate) fn default_circuit_breaker_cooldown() -> u64 {
     300
 }
 
+pub(crate) fn default_prewarm_enabled() -> bool {
+    true
+}
+
+pub(crate) fn default_prewarm_top_n_domains() -> usize {
+    20
+}
+
+pub(crate) fn default_prewarm_max_concurrency() -> usize {
+    4
+}
+
 pub(crate) fn default_max_links() -> usize {
     10
 }

@@ -38,7 +38,6 @@ pub struct RoutingDecision {
 
 impl ResolvedResult {
     /// Create a new resolved result
-    #[allow(dead_code)]
     pub fn new(
         url: impl Into<String>,
         content: Option<String>,

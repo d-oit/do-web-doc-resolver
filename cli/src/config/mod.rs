@@ -85,6 +85,28 @@ pub struct RateLimitConfig {
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct RoutingConfig {
     pub min_free_quality_to_skip_paid: Option<f32>,
+    #[serde(default)]
+    pub prewarm: PrewarmConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PrewarmConfig {
+    #[serde(default = "default_prewarm_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_prewarm_top_n_domains")]
+    pub top_n_domains: usize,
+    #[serde(default = "default_prewarm_max_concurrency")]
+    pub max_concurrency: usize,
+}
+
+impl Default for PrewarmConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_prewarm_enabled(),
+            top_n_domains: default_prewarm_top_n_domains(),
+            max_concurrency: default_prewarm_max_concurrency(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -309,6 +331,20 @@ impl Config {
             &mut self.routing.min_free_quality_to_skip_paid,
             other.routing.min_free_quality_to_skip_paid,
         );
+        merge_bool(
+            &mut self.routing.prewarm.enabled,
+            other.routing.prewarm.enabled,
+        );
+        merge_value(
+            &mut self.routing.prewarm.top_n_domains,
+            other.routing.prewarm.top_n_domains,
+            default_prewarm_top_n_domains(),
+        );
+        merge_value(
+            &mut self.routing.prewarm.max_concurrency,
+            other.routing.prewarm.max_concurrency,
+            default_prewarm_max_concurrency(),
+        );
         merge_option(&mut self.max_provider_attempts, other.max_provider_attempts);
         merge_option(&mut self.max_paid_attempts, other.max_paid_attempts);
         merge_option(&mut self.max_total_latency_ms, other.max_total_latency_ms);
@@ -325,7 +361,6 @@ impl Config {
         config
     }
 
-    #[allow(dead_code)]
     pub fn api_key(&self, provider: &str) -> Option<String> {
         let key_name = match provider {
             "exa" | "exa_mcp" => "EXA_API_KEY",

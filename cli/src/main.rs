@@ -5,6 +5,7 @@
 
 use anyhow::Result;
 use std::process::ExitCode;
+use std::sync::Arc;
 use tracing_subscriber::{EnvFilter, fmt};
 
 use do_wdr_lib::{
@@ -123,7 +124,11 @@ async fn handle_resolve(
     if skip_cache {
         config.semantic_cache.enabled = false;
     }
-    let resolver = Resolver::with_config(config).await;
+    let resolver = Arc::new(Resolver::with_config(config.clone()).await);
+
+    if let Err(e) = do_wdr_lib::startup::prewarm_cache(resolver.clone(), &config).await {
+        tracing::warn!("Cache pre-warming failed: {}", e);
+    }
 
     let result = if synthesize {
         resolver.resolve_aggregated(input).await
