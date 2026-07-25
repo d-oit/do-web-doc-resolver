@@ -3,6 +3,7 @@
 .claude/**
 .blackbox/**
 .blackboxcli/**
+.mimocode/**
 CHANGELOG.md
 cli/ui/node_modules/**
 cli/target/**

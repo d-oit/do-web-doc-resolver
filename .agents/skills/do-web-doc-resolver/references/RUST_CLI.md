@@ -44,7 +44,7 @@ cli/
     ├── resolver/         # Cascade orchestrator
     │   ├── mod.rs
     │   ├── cascade.rs    # Provider cascade logic
-    │   ├── query.rs      # Query resolution
+    │   ├── query/        # Query resolution module
     │   └── url.rs        # URL resolution
     ├── quality.rs        # Content quality scoring
     ├── compaction.rs     # Content compaction

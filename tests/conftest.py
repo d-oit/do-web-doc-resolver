@@ -10,6 +10,7 @@ import scripts.routing_memory
 import scripts.state
 import scripts.synthesis
 import scripts.utils
+import scripts.utils.cache
 
 
 class MemoryCache:
@@ -35,9 +36,11 @@ def setup_test_env():
     scripts.utils._cache = cache
     if hasattr(scripts.resolve, "_cache"):
         scripts.resolve._cache = cache
+    # Also reset the module-level _cache in cache.py
+    scripts.utils.cache._cache = cache
 
     # Mock get_cache to return our memory cache
-    with patch("scripts.utils.get_cache", return_value=cache):
+    with patch("scripts.utils.cache.get_cache", return_value=cache):
         # Reset shared state via state.py singletons
         scripts.state.routing_memory.clear()
         scripts.state.circuit_breakers.clear()

@@ -14,7 +14,7 @@ Zero-config by default: works out of the box with no API keys.
 [![License: MIT](https://img.shields.io/badge/license-MIT-06b6d4.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[**Live Demo**](https://web-eight-ivory-29.vercel.app) · [**Documentation**](docs/) · [**Report Bug**](../../issues) · [**Request Feature**](../../issues)
+[**Live Demo**](https://web-eight-ivory-29.vercel.app) · [**Documentation**](docs/) · [**Report Bug**](https://github.com/d-oit/do-web-doc-resolver/issues) · [**Request Feature**](https://github.com/d-oit/do-web-doc-resolver/issues)
 
 </div>
 
@@ -70,20 +70,12 @@ Or try the **[live demo →](https://web-eight-ivory-29.vercel.app)**
 
 ### Resolution Cascade
 
-```text
-Input (URL or query)
-  │
-  ▼
-┌────────────────────────────────────────────────┐
-│ 1. Semantic Cache             (free, instant)  │
-├────────────────────────────────────────────────┤
-│ 2. Free Providers             (no key needed)  │
-├────────────────────────────────────────────────┤
-│ 3. Paid Providers             (API key req.)   │
-├────────────────────────────────────────────────┤
-│ N. Fallback                   (free)           │
-└────────────────────────────────────────────────┘
-```
+The resolver uses a cascade pattern, trying providers in order until one succeeds:
+
+1. **Semantic Cache** (free, instant) — Cached results from previous queries
+2. **Free Providers** (no key needed) — Exa MCP, Exa SDK, Tavily, DuckDuckGo
+3. **Paid Providers** (API key required) — Serper, Mistral
+4. **Fallback** (free) — Jina Reader, Firecrawl, Direct HTTP
 
 Query providers: Semantic Cache → Exa MCP → Exa SDK → Tavily → Serper → DuckDuckGo → Mistral
 URL providers: Semantic Cache → llms.txt → Jina Reader → Firecrawl → Direct HTTP → Mistral Browser → DuckDuckGo
@@ -323,7 +315,6 @@ cd web && npx playwright test --project=desktop
 ## Repository Structure
 
 ```text
-do-web-doc-resolver/
 ├── scripts/                 # Python resolver core
 │   ├── resolve.py           # Main entry point
 │   ├── _cascade.py          # Cascade routing engine
