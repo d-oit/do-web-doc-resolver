@@ -30,7 +30,6 @@ mod tests_impl {
     use crate::Config;
     use crate::types::ResolvedResult;
 
-    #[allow(dead_code)]
     fn test_config(path: &str) -> Config {
         Config {
             semantic_cache: SemanticCacheConfig {

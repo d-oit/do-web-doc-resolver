@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource } from "@/lib/keys";
 import { loadUIState, saveUIState, type UIState } from "@/lib/ui-state";
+import { getTopDomains } from "@/lib/records";
 import { HistoryEntry } from "@/app/components/History";
 import { parseProviderResults, extractNormalizedUrls, type ProviderResult } from "@/lib/results";
 import { PROVIDERS, PROFILES, ProfileId, UiProvider, toApiProviderId } from "@/app/constants";
@@ -164,6 +165,46 @@ export default function Home() {
     };
     localStorage.setItem(SEARCH_STORAGE_KEY, JSON.stringify(searchState));
   }, [loaded, query, result, error, resolveTime, sourceProvider, qualityScore, helpfulIds]);
+
+  // Cache pre-warming: fires once on mount, throttled to once per hour
+  useEffect(() => {
+    const PREWARM_STORAGE_KEY = "wdr-prewarm-last-run";
+    const PREWARM_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+    async function prewarmCache() {
+      try {
+        const lastRun = localStorage.getItem(PREWARM_STORAGE_KEY);
+        if (lastRun) {
+          const elapsed = performance.timeOrigin + performance.now() - parseInt(lastRun, 10);
+          if (elapsed < PREWARM_INTERVAL_MS) return;
+        }
+
+        const domains = await getTopDomains(5);
+        if (domains.length === 0) return;
+
+        for (const domain of domains) {
+          try {
+            await fetch("/api/resolve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query: `https://${domain}`, skipCache: false }),
+            });
+          } catch {
+            // Individual domain failure is non-fatal
+          }
+          // Throttle: 100ms between requests
+          await new Promise((r) => setTimeout(r, 100));
+        }
+
+        localStorage.setItem(PREWARM_STORAGE_KEY, String(performance.timeOrigin + performance.now()));
+      } catch (err) {
+        // Pre-warming failure is non-fatal — log for observability
+        console.debug("Cache pre-warm skipped:", err);
+      }
+    }
+
+    void prewarmCache();
+  }, []);
 
   const handleProviderToggle = (providerId: string) => {
     setProfile("custom");

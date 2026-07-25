@@ -17,7 +17,6 @@ static GLOBAL_ENCODER: OnceLock<TextEncoder> = OnceLock::new();
 
 impl SemanticCache {
     /// Internal normalization for cache keys and semantic comparison
-    #[allow(dead_code)]
     pub(crate) fn normalize_text(text: &str, filter_stop_words: bool) -> String {
         let mut tokens: Vec<&str> = text
             .split(|c: char| !c.is_alphanumeric())
