@@ -10,7 +10,7 @@ module.exports = {
     'scope-enum': [
       2,
       'always',
-      ['resolver', 'cli', 'web', 'ci', 'docs', 'deps', 'security', 'release', 'agents', 'test'],
+      ['resolver', 'cli', 'web', 'ci', 'docs', 'deps', 'security', 'release', 'agents', 'test', 'ux'],
     ],
     'body-max-length': [0],
     'body-max-line-length': [2, 'always', 100],

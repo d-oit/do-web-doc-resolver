@@ -70,10 +70,11 @@ export default function Sidebar({
         ${sidebarOpen ? "lg:w-72" : "lg:w-16"}
       `}
     >
+      {/* Desktop Sidebar Toggle (hidden on mobile) */}
       <button
         data-testid="sidebar-toggle"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
+        className="hidden lg:flex w-full p-4 items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
         aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         aria-expanded={sidebarOpen}
         aria-controls="sidebar-navigation"
@@ -95,7 +96,26 @@ export default function Sidebar({
         )}
       </button>
 
-      {sidebarOpen && (
+      {/* Mobile Sidebar Header with Close Button (hidden on desktop) */}
+      <div className="flex lg:hidden w-full p-4 items-center justify-between border-b-2 border-border-muted min-h-[44px]">
+        <span className="text-[11px] uppercase tracking-[0.1em] text-text-muted">
+          Configuration
+        </span>
+        <div className="flex items-center gap-3">
+          <Link href="/settings" className="text-[11px] text-text-muted hover:text-accent">
+            Keys
+          </Link>
+          <button
+            onClick={() => { setMobileMenuOpen(false); }}
+            className="text-[11.5px] text-text-muted hover:text-[#ff4444] focus:text-[#ff4444] font-bold min-h-[30px] px-2 flex items-center focus:outline-none"
+            aria-label="Close configuration"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+
+      {(sidebarOpen || mobileMenuOpen) && (
         <div className="p-4 flex flex-col gap-8 overflow-y-auto max-h-[calc(100vh-44px)]">
           {/* Profile */}
           <div className="flex flex-col gap-2">

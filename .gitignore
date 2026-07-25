@@ -234,3 +234,5 @@ videos/
 
 
 .mimocode/
+.cache/
+cli/target/package/

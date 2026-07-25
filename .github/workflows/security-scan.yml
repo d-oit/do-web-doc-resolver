@@ -221,7 +221,7 @@ jobs:
 
       - name: Run cargo audit
         run: |
-          cargo install cargo-audit --version 0.22.1
+          cargo install cargo-audit --version 0.22.1 --locked
           cd cli && cargo audit
 
   # ============================================================================

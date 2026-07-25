@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 interface KeyboardShortcutsModalProps {
   onClose: () => void;
 }
@@ -12,30 +14,99 @@ const SHORTCUTS = [
 ];
 
 export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+  const modalContainerRef = useRef<HTMLDivElement>(null);
+
+  // Focus preservation and restoration
+  useEffect(() => {
+    // Record the element that had focus before the modal opened
+    if (typeof document !== "undefined") {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        previouslyFocusedElementRef.current = active;
+      }
+    }
+
+    // Move focus inside the modal (to the close button)
+    closeButtonRef.current?.focus();
+
+    return () => {
+      // Restore focus to the previous element when closing
+      previouslyFocusedElementRef.current?.focus();
+    };
+  }, []);
+
+  // Trap focus inside the modal and handle Escape key
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (e.key === "Tab") {
+        if (!modalContainerRef.current) return;
+
+        // Get all focusable elements inside the modal container
+        const focusableElements = modalContainerRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+
+        if (focusableElements.length === 0) return;
+
+        // Use .item() to avoid noUncheckedIndexedAccess issues
+        // Convert to array and use .at() which is always possibly-undefined
+        // per typescript-eslint docs, satisfying both type safety and Codacy
+        const elements = Array.from(focusableElements);
+        const firstElement = elements.at(0);
+        const lastElement = elements.at(-1);
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement?.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement?.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
-      role="button"
-      tabIndex={0}
       onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          onClose();
-        }
-      }}
     >
       <div
+        ref={modalContainerRef}
         className="bg-background border-2 border-border-muted p-6 max-w-md w-full mx-4"
         onClick={(e) => {
           e.stopPropagation();
         }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shortcuts-modal-title"
       >
         <div className="flex justify-between mb-4">
-          <h2 className="text-[13px] font-bold text-foreground">Keyboard Shortcuts</h2>
+          <h2 id="shortcuts-modal-title" className="text-[13px] font-bold text-foreground">
+            Keyboard Shortcuts
+          </h2>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="text-text-muted hover:text-foreground text-[18px] leading-none"
+            className="text-text-muted hover:text-foreground text-[18px] leading-none focus:outline-none focus:text-accent focus:ring-2 focus:ring-accent"
             aria-label="Close shortcuts"
           >
             ×
