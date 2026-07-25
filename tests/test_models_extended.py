@@ -208,9 +208,6 @@ class TestErrorType:
         actual = {e.value for e in ErrorType}
         assert actual == expected
 
-    def test_error_type_count(self):
-        assert len(ErrorType) == 12
-
 
 # ─── ResolveMetrics ──────────────────────────────────────────────────────────
 

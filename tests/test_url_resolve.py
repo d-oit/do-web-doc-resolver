@@ -1,10 +1,6 @@
 """Comprehensive tests for URL resolution (resolve_url and resolve_url_stream)."""
 
-import os
-import sys
 from unittest.mock import Mock, patch
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts._url_resolve import (
     _check_semantic_cache,
@@ -141,7 +137,10 @@ class TestResolveUrlStream:
             [{"source": "jina", "content": "fresh content", "url": "https://example.com"}]
         )
         results = list(resolve_url_stream("https://example.com"))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "https://example.com"
+        assert call_kwargs["target_key"] == "url"
         assert len(results) == 1
         assert results[0]["source"] == "jina"
 
@@ -182,9 +181,10 @@ class TestResolveUrlStream:
         """skip_providers should be passed to the cascade."""
         mock_cascade.return_value = iter([])
         list(resolve_url_stream("https://example.com", skip_providers={"jina", "firecrawl"}))
-        # skip_providers is not a direct kwarg; it filters eligible via routing
-        # The key assertion is that it doesn't crash
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args
+        assert call_kwargs.kwargs["target"] == "https://example.com"
+        assert call_kwargs.kwargs["target_key"] == "url"
 
     @patch("scripts._url_resolve._store_in_semantic_cache", return_value=False)
     @patch("scripts._url_resolve._check_semantic_cache", return_value=None)
@@ -338,8 +338,10 @@ class TestResolveUrlTimeout:
         """Fast profile should have lower budget than balanced."""
         mock_cascade.return_value = iter([{"source": "none", "url": "u", "content": "Failed"}])
         list(resolve_url_stream("https://example.com", profile=Profile.FAST))
-        # Budget is constructed internally; verify cascade was called
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "https://example.com"
+        assert call_kwargs["budget"].max_provider_attempts <= 3
 
 
 class TestResolveUrlCircuitBreaker:
@@ -363,7 +365,10 @@ class TestResolveUrlCircuitBreaker:
         """Cascade should record circuit breaker failures for failed providers."""
         mock_cascade.return_value = iter([{"source": "none", "url": "u", "content": "Failed"}])
         list(resolve_url_stream("https://example.com"))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "https://example.com"
+        assert call_kwargs["circuit_breakers"] is not None
 
 
 class TestResolveUrlProviderSelection:
@@ -391,8 +396,11 @@ class TestResolveUrlProviderSelection:
             [{"source": "direct_fetch", "content": "content", "url": "u"}]
         )
         list(resolve_url_stream("https://example.com"))
-        # cascade_stream handles ordering internally; we verify it's called
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "https://example.com"
+        assert call_kwargs["target_key"] == "url"
+        assert len(call_kwargs["eligible"]) > 0
 
 
 class TestResolveUrlEdgeCases:
@@ -414,7 +422,10 @@ class TestResolveUrlEdgeCases:
         """max_chars parameter should be forwarded."""
         mock_cascade.return_value = iter([])
         list(resolve_url_stream("https://example.com", max_chars=4000))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "https://example.com"
+        assert call_kwargs["target_key"] == "url"
 
     @patch("scripts._url_resolve._store_in_semantic_cache", return_value=False)
     @patch("scripts._url_resolve._check_semantic_cache", return_value=None)
@@ -425,7 +436,10 @@ class TestResolveUrlEdgeCases:
             [{"source": "visual_clip", "content": "visual", "url": "u"}]
         )
         list(resolve_url_stream("https://example.com", query="what is this about"))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "https://example.com"
+        assert call_kwargs["target_key"] == "url"
 
     @patch("scripts._url_resolve._store_in_semantic_cache", return_value=False)
     @patch("scripts._url_resolve._check_semantic_cache", return_value=None)

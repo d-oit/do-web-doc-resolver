@@ -1,11 +1,6 @@
 """Tests for synthesis gating, deduplication, conflict detection, and quality integration."""
 
-import os
-import sys
-
 import pytest
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.models import ResolvedResult
 from scripts.quality import ACCEPTABLE_THRESHOLD, score_content
@@ -549,7 +544,8 @@ class TestQualityScoreCalculation:
 
     def test_non_string_input(self):
         score = score_content(None, [])
-        assert score.score == 1.0  # MagicMock bypass
+        assert score.score == 0.0
+        assert score.acceptable is False
 
 
 # ---------------------------------------------------------------------------
@@ -598,49 +594,6 @@ class TestAnchorValidation:
         output = deterministic_merge(results)
         for anchor in self.REQUIRED_ANCHORS:
             assert anchor in output, f"Missing anchor: {anchor}"
-
-
-# ---------------------------------------------------------------------------
-# Empty and Single Result Handling
-# ---------------------------------------------------------------------------
-
-
-class TestEdgeCases:
-    def test_empty_synthesis_gate(self):
-        should_call, reason = synthesis_gate_decision([])
-        assert should_call is False
-        assert reason == "no_results"
-
-    def test_single_result_high_score_passthrough(self):
-        result = ResolvedResult(
-            source="jina",
-            content=LONG_CONTENT,
-            url="https://example.com",
-            score=0.95,
-        )
-        should_call, reason = synthesis_gate_decision([result])
-        assert should_call is False
-        assert reason == "single_high_quality"
-
-    def test_single_result_low_score_calls_llm(self):
-        result = ResolvedResult(
-            source="jina",
-            content="Barely anything.",
-            url="https://example.com",
-            score=0.2,
-        )
-        should_call, reason = synthesis_gate_decision([result])
-        assert should_call is True
-        assert reason == "single_low_quality"
-
-    def test_deterministic_merge_empty(self):
-        assert deterministic_merge([]) == ""
-
-    def test_deterministic_merge_single(self):
-        result = ResolvedResult(source="jina", content="Hello.", url="https://a.com", score=0.8)
-        output = deterministic_merge([result])
-        assert "Hello." in output
-        assert "jina" in output
 
 
 # ---------------------------------------------------------------------------

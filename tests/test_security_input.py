@@ -6,14 +6,9 @@ Unicode/IDN homograph attacks, path traversal, and header injection.
 All tests are deterministic — no live network calls.
 """
 
-import os
-import sys
-
 import httpx
 import pytest
 import respx
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.providers import (
     _clear_rate_limits,
@@ -201,7 +196,7 @@ class TestUnicodeHomograph:
         # urlparse doesn't normalize IDN, so is_url should still parse it
         result = is_url(url)
         # The URL has a valid structure — it passes URL format check
-        assert isinstance(result, bool)
+        assert result is True
 
     def test_unicode_in_path(self):
         url = "https://example.com/\u4e2d\u6587\u8def\u5f84"
@@ -215,7 +210,7 @@ class TestUnicodeHomograph:
         """Domain mixing Latin and Cyrillic scripts."""
         url = "https://gооgle.com"  # Cyrillic о
         result = is_url(url)
-        assert isinstance(result, bool)
+        assert result is True
 
     def test_punycode_domain(self):
         url = "https://xn--e1afmapc.xn--p1ai"
@@ -225,7 +220,7 @@ class TestUnicodeHomograph:
         """Zero-width characters in URL should not cause crashes."""
         url = "https://exam\u200bp\u200ble.com"
         result = is_url(url)
-        assert isinstance(result, bool)
+        assert result is True
 
 
 # ---------------------------------------------------------------------------

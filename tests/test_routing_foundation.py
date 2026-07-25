@@ -86,8 +86,8 @@ class TestQualityScoring:
     def test_non_string_input(self):
         # Should handle gracefully via internal check
         res = self._score_content(None)
-        assert res.score == 1.0
-        assert res.acceptable is True
+        assert res.score == 0.0
+        assert res.acceptable is False
 
     def test_score_range(self):
         assert 0.0 <= self._score_content("abc").score <= 1.0

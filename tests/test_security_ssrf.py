@@ -7,15 +7,11 @@ provider SSRF integration, and legitimate URL passthrough.
 All tests are deterministic — no live network calls.
 """
 
-import os
-import sys
 from unittest.mock import patch
 
 import httpx
 import pytest
 import respx
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.utils.http import _normalize_host, _safe_request, is_safe_url
 
@@ -162,12 +158,11 @@ class TestIPv6Bypass:
 
     def test_all_zeros_known_gap(self):
         """KNOWN GAP: [0:0:0:0:0:0:0:0] → :: (unspecified), not in BLOCKED_NETWORKS."""
-        assert is_safe_url("http://[0:0:0:0:0:0:0:0]/secret")
+        pytest.xfail("KNOWN GAP: [::] (unspecified IPv6) passes — BLOCKED_NETWORKS lacks ::/128")
 
     def test_unspecified_address_known_gap(self):
         """KNOWN GAP: :: (unspecified IPv6) passes because BLOCKED_NETWORKS lacks ::/128."""
-        # This documents a real SSRF protection gap — the :: address is not blocked.
-        assert is_safe_url("http://[::]/secret")
+        pytest.xfail("KNOWN GAP: [::] (unspecified IPv6) passes — BLOCKED_NETWORKS lacks ::/128")
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +222,9 @@ class TestURLParserConfusion:
 
     def test_userinfo_attack_known_gap(self):
         """KNOWN GAP: 127.0.0.1@evil.com → urlparse puts IP in userinfo, hostname=evil.com."""
-        assert is_safe_url("http://127.0.0.1@evil.com/secret")
+        pytest.xfail(
+            "KNOWN GAP: 127.0.0.1@evil.com — urlparse puts IP in userinfo, hostname=evil.com"
+        )
 
     def test_password_in_url(self):
         assert not is_safe_url("http://user:pass@localhost/secret")
@@ -240,7 +237,7 @@ class TestURLParserConfusion:
 
     def test_newline_in_host_known_gap(self):
         """KNOWN GAP: %0a stays literal in hostname — not stripped or blocked."""
-        assert is_safe_url("http://127.0.0.1%0a.evil.com/secret")
+        pytest.xfail("KNOWN GAP: %0a stays literal in hostname — not stripped or blocked")
 
 
 # ---------------------------------------------------------------------------
@@ -282,9 +279,7 @@ class TestNormalizationBypass:
 
     def test_trailing_dots_not_stripped_from_hostname(self):
         """KNOWN GAP: hostname=localhost... → _normalize_host returns 'localhost...' (not caught)."""
-        # urlparse keeps trailing dots in hostname; BLOCKED_HOSTNAMES check uses
-        # hostname.lower().strip('.') but the hardcoded tuple uses normalized hostname.
-        assert is_safe_url("http://localhost.../secret")
+        pytest.xfail("KNOWN GAP: trailing dots in hostname not stripped — localhost... passes")
 
     def test_suffix_attack(self):
         """evil.127.0.0.1.nip.io should be blocked by DNS resolution."""

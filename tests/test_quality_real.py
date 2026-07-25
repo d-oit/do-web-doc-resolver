@@ -41,6 +41,7 @@ def test_score_content_duplicate() -> None:
 
 
 def test_score_content_non_string() -> None:
-    """Test that non-string input is handled gracefully (defaults to acceptable but empty)."""
+    """Test that non-string input is handled gracefully with zero score."""
     result = score_content(None)  # type: ignore
-    assert result.acceptable is True
+    assert result.acceptable is False
+    assert result.score == 0.0

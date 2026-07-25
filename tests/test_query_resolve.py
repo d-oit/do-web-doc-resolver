@@ -1,10 +1,6 @@
 """Comprehensive tests for query resolution (resolve_query and resolve_query_stream)."""
 
-import os
-import sys
 from unittest.mock import Mock, patch
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts._query_resolve import (
     _check_semantic_cache,
@@ -133,7 +129,10 @@ class TestResolveQueryStream:
             [{"source": "exa", "content": "fresh answer", "query": "python async"}]
         )
         results = list(resolve_query_stream("python async"))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "python async"
+        assert call_kwargs["routing_key"] == "python async"
         assert len(results) == 1
         assert results[0]["source"] == "exa"
 
@@ -226,8 +225,10 @@ class TestResolveQueryProfileBudget:
             [{"source": "duckduckgo", "content": "free result", "query": "q"}]
         )
         results = list(resolve_query_stream("python async", profile=Profile.FREE))
-        assert mock_cascade.called
-        # Budget config is internal; verify it ran without error
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "python async"
+        assert call_kwargs["budget"].allow_paid is False
         assert len(results) == 1
 
     @patch("scripts._query_resolve._store_in_semantic_cache", return_value=False)
@@ -239,7 +240,10 @@ class TestResolveQueryProfileBudget:
             [{"source": "exa", "content": "quality result", "query": "q"}]
         )
         results = list(resolve_query_stream("python async", profile=Profile.QUALITY))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "python async"
+        assert call_kwargs["budget"].max_provider_attempts >= 5
         assert len(results) == 1
 
     @patch("scripts._query_resolve._store_in_semantic_cache", return_value=False)
@@ -249,7 +253,10 @@ class TestResolveQueryProfileBudget:
         """FAST profile should have fewer provider attempts."""
         mock_cascade.return_value = iter([{"source": "none", "query": "q", "content": "Failed"}])
         list(resolve_query_stream("python async", profile=Profile.FAST))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "python async"
+        assert call_kwargs["budget"].max_provider_attempts <= 3
 
     @patch("scripts._query_resolve._store_in_semantic_cache", return_value=False)
     @patch("scripts._query_resolve._check_semantic_cache", return_value=None)
@@ -260,7 +267,9 @@ class TestResolveQueryProfileBudget:
             [{"source": "duckduckgo", "content": "result", "query": "q"}]
         )
         results = list(resolve_query_stream("python async", skip_providers={"exa", "tavily"}))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "python async"
         assert len(results) == 1
 
 
@@ -387,7 +396,10 @@ class TestResolveQueryEdgeCases:
         """max_chars should be forwarded to cascade."""
         mock_cascade.return_value = iter([])
         list(resolve_query_stream("python async", max_chars=4000))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "python async"
+        assert call_kwargs["routing_key"] == "python async"
 
     @patch("scripts._query_resolve._store_in_semantic_cache", return_value=False)
     @patch("scripts._query_resolve._check_semantic_cache", return_value=None)
@@ -396,7 +408,9 @@ class TestResolveQueryEdgeCases:
         """None skip_providers should work like empty set."""
         mock_cascade.return_value = iter([{"source": "exa", "content": "answer", "query": "q"}])
         results = list(resolve_query_stream("python async", skip_providers=None))
-        assert mock_cascade.called
+        mock_cascade.assert_called_once()
+        call_kwargs = mock_cascade.call_args.kwargs
+        assert call_kwargs["target"] == "python async"
         assert len(results) == 1
 
     @patch("scripts._query_resolve._store_in_semantic_cache", return_value=False)

@@ -470,11 +470,8 @@ class TestL1CacheEdgeCases:
     def test_expired_entry_returns_none(self):
         from scripts.utils.cache import _l1_get, _l1_set
 
-        _l1_set("key1", "value", ttl=0)
-        # TTL=0 means expires immediately (expire_time = now + 0)
-        import time
-
-        time.sleep(0.01)
+        _l1_set("key1", "value", ttl=-1)
+        # Negative TTL sets expire_time in the past — already expired on get
         assert _l1_get("key1") is None
 
     def test_clear_empties_cache(self):
