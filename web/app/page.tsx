@@ -175,7 +175,8 @@ export default function Home() {
       try {
         const lastRun = localStorage.getItem(PREWARM_STORAGE_KEY);
         if (lastRun) {
-          const elapsed = performance.timeOrigin + performance.now() - parseInt(lastRun, 10);
+          // eslint-disable-next-line no-restricted-syntax -- epoch timestamp for localStorage persistence
+          const elapsed = Date.now() - parseInt(lastRun, 10);
           if (elapsed < PREWARM_INTERVAL_MS) return;
         }
 
@@ -196,7 +197,8 @@ export default function Home() {
           await new Promise((r) => setTimeout(r, 100));
         }
 
-        localStorage.setItem(PREWARM_STORAGE_KEY, String(performance.timeOrigin + performance.now()));
+        // eslint-disable-next-line no-restricted-syntax -- epoch timestamp for localStorage persistence
+        localStorage.setItem(PREWARM_STORAGE_KEY, String(Date.now()));
       } catch (err) {
         // Pre-warming failure is non-fatal — log for observability
         console.debug("Cache pre-warm skipped:", err);
