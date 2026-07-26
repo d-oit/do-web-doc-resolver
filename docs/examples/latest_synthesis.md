@@ -2,10 +2,10 @@
 relevance_score: 1.00
 intent_category: Technical
 token_estimate: 285
-last_updated: 2026-07-19
+last_updated: 2026-08-01
 ---
 
-# LLM-Ready Synthesis: Python 3.14 Tail-Call Optimization (July 2026)
+# LLM-Ready Synthesis: Python 3.14 Tail-Call Optimization (August 2026)
 
 [ANCHOR: SUMMARY]
 Python 3.14 introduces native tail-call optimization (TCO) for recursive functions satisfying specific bytecode patterns. By reusing stack frames for final calls, 3.14 eliminates `RecursionError` and reduces memory overhead by 40-60% in functional paradigms [1], [2].
