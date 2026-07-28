@@ -1,16 +1,68 @@
-from unittest.mock import patch
+import sys
+from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pytest
 
-import scripts.providers_impl
-import scripts.quality
-import scripts.resolve
-import scripts.routing
-import scripts.routing_memory
-import scripts.state
-import scripts.synthesis
-import scripts.utils
-import scripts.utils.cache
+
+class MockSentenceTransformer:
+    def __init__(self, model_name=None):
+        self.model_name = model_name
+
+    def get_embedding_dimension(self):
+        return 384
+
+    def encode(self, sentences, convert_to_numpy=True, normalize_embeddings=True, **kwargs):
+        if isinstance(sentences, str):
+            single = True
+            sentences_list = [sentences]
+        elif isinstance(sentences, (list, tuple)):
+            single = False
+            sentences_list = list(sentences)
+        else:
+            single = True
+            sentences_list = [str(sentences)]
+
+        embeddings = []
+        for text in sentences_list:
+            vec = np.zeros(384, dtype=np.float32)
+            words = text.lower().split()
+            stop = {"how", "to", "do", "i", "a", "in", "the", "an", "and", "of", "for", "is", "are"}
+            words = [w for w in words if w not in stop]
+            for word in words:
+                stem = word[:4]
+                h1 = hash(stem) % 384
+                h2 = hash(word) % 384
+                vec[h1] += 1.0
+                vec[(h1 + 1) % 384] += 0.5
+                vec[(h1 - 1) % 384] += 0.5
+                vec[h2] += 0.5
+                vec[(h2 + 1) % 384] += 0.25
+                vec[(h2 - 1) % 384] += 0.25
+            norm = np.linalg.norm(vec)
+            if norm > 0:
+                vec = vec / norm
+            embeddings.append(vec)
+
+        if single:
+            return embeddings[0]
+        return np.array(embeddings)
+
+
+# Mock sentence_transformers module to avoid HuggingFace model downloads during tests
+mock_st_module = MagicMock()
+mock_st_module.SentenceTransformer = MockSentenceTransformer
+sys.modules["sentence_transformers"] = mock_st_module
+
+import scripts.providers_impl  # noqa: E402
+import scripts.quality  # noqa: E402
+import scripts.resolve  # noqa: E402
+import scripts.routing  # noqa: E402
+import scripts.routing_memory  # noqa: E402
+import scripts.state  # noqa: E402
+import scripts.synthesis  # noqa: E402
+import scripts.utils  # noqa: E402
+import scripts.utils.cache  # noqa: E402
 
 
 class MemoryCache:
