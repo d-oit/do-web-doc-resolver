@@ -54,6 +54,19 @@ impl QueryCascade {
         }
     }
 
+    /// Check if a query provider is available/configured
+    pub fn is_provider_available(&self, provider_type: ProviderType) -> bool {
+        match provider_type {
+            ProviderType::ExaMcp => self.exa_mcp.is_available(),
+            ProviderType::Exa => self.exa_sdk.is_available(),
+            ProviderType::Tavily => self.tavily.is_available(),
+            ProviderType::Serper => self.serper.is_available(),
+            ProviderType::DuckDuckGo => self.duckduckgo.is_available(),
+            ProviderType::MistralWebSearch => self.mistral_ws.is_available(),
+            _ => false,
+        }
+    }
+
     /// Search using a specific provider
     pub async fn search_with_provider(
         &self,
@@ -186,6 +199,14 @@ impl QueryCascade {
                 .name
                 .parse()
                 .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
+
+            if !self.is_provider_available(provider_type) {
+                tracing::debug!(
+                    "Provider {} is not available/configured, skipping",
+                    provider.name
+                );
+                continue;
+            }
 
             // Check negative cache
             {

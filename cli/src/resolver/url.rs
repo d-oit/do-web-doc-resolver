@@ -51,6 +51,20 @@ impl UrlCascade {
         }
     }
 
+    /// Check if a URL provider is available/configured
+    pub fn is_provider_available(&self, provider_type: ProviderType) -> bool {
+        match provider_type {
+            ProviderType::LlmsTxt => self.llms_txt.is_available(),
+            ProviderType::Jina => self.jina.is_available(),
+            ProviderType::Docling => self.docling.is_available(),
+            ProviderType::Ocr => self.ocr.is_available(),
+            ProviderType::Firecrawl => self.firecrawl.is_available(),
+            ProviderType::DirectFetch => self.direct_fetch.is_available(),
+            ProviderType::MistralBrowser => self.mistral_browser.is_available(),
+            _ => false,
+        }
+    }
+
     /// Check for document or image format and return provider type
     pub fn check_format(url: &str) -> Option<ProviderType> {
         if url.ends_with(".pdf") || url.ends_with(".docx") || url.ends_with(".pptx") {
@@ -225,6 +239,14 @@ impl UrlCascade {
                 .name
                 .parse()
                 .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
+
+            if !self.is_provider_available(provider_type) {
+                tracing::debug!(
+                    "Provider {} is not available/configured, skipping",
+                    provider.name
+                );
+                continue;
+            }
 
             // Check negative cache
             {
