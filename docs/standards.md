@@ -29,7 +29,7 @@ Standardized anchors facilitate content partitioning and citation mapping.
 To maximize RAG performance and minimize context window usage, all documents must adhere to extreme density requirements.
 
 - **Zero Filler**: Remove all conversational intros ("Certainly!", "I'd be happy to help"), transition theater ("In conclusion", "It is worth noting that"), and hollow affirmations.
-- **AI-Slop Prohibition**: Aggressively prune marketing jargon and generic AI-generated superlatives.
+- **AI-Slop Prohibition**: Aggressiveness in pruning marketing jargon and generic AI-generated superlatives.
 - **Prohibited Words**:
   - `seamlessly`, `robust`, `powerful`, `comprehensive`, `streamlined`
   - `leverage`, `revolutionize`, `game-changing`, `intuitive`

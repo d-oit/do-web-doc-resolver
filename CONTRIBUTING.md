@@ -5,35 +5,51 @@
 ### Python
 
 ```bash
-# Run tests
+# Run unit and integration tests
 python -m pytest tests/ -v -m "not live"
 
-# Linting and formatting
+# Linting and formatting checks
 python -m ruff check .
-python -m black .
+python -m ruff format --check .
+
+# Auto-format code
+python -m ruff format .
+python -m ruff check --fix .
 ```
 
 ### Rust CLI
 
 ```bash
 cd cli
+
+# Run tests
 cargo test
+
+# Check clippy warnings
 cargo clippy -- -D warnings
-cargo fmt
+
+# Format check
+cargo fmt -- --check
 ```
 
 ### Web UI
 
 ```bash
 cd web
+
+# Run linter
 npm run lint
+
+# Check TypeScript types
 npm run typecheck
+
+# Run Playwright E2E browser tests
 npx playwright test --project=desktop
 ```
 
 ### Quality Gate
 
-Run the full suite before submitting:
+Always execute the local quality gate script to verify all requirements before committing:
 
 ```bash
 ./scripts/quality_gate.sh
@@ -41,21 +57,21 @@ Run the full suite before submitting:
 
 ## Standards
 
-- **Python**: Follow Black formatting and Ruff rules. Use type hints for public functions.
-- **Rust**: Ensure `cargo clippy` and `cargo fmt` pass.
-- **Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/):
+- **Python**: Adhere to Ruff formatting and linting rules. Use explicit type hints for all public functions.
+- **Rust**: Ensure `cargo clippy` and `cargo fmt` pass without warnings.
+- **Commits**: Follow Conventional Commits format (`type(scope): description`):
   - `feat:` new feature
   - `fix:` bug fix
-  - `docs:` documentation
-  - `chore:` maintenance
-  - `refactor:` code restructuring
-  - `test:` test updates
-- **Branching**: Use `feat/`, `fix/`, `chore/`, or `docs/` prefixes.
-- **File Size**: Source files must not exceed 500 lines. Split into sub-modules if they grow larger.
+  - `docs:` documentation updates
+  - `chore:` maintenance and dependency updates
+  - `refactor:` code restructuring without behavior changes
+  - `test:` test additions or modifications
+- **Branching**: Prefix development branches with `feat/`, `fix/`, `chore/`, or `docs/`.
+- **File Size Limit**: Source files must not exceed 500 lines. Refactor and partition into sub-modules if they exceed this limit.
 
 ## Pull Request Process
 
-1. Update documentation for user-facing changes.
-2. Add tests for new features or bug fixes.
-3. Ensure the quality gate passes: `./scripts/quality_gate.sh`.
-4. Update `AGENTS.md` if repository structure or skills change.
+1. Document any user-facing changes in the appropriate docs/ guides.
+2. Add unit or integration tests for new functionality.
+3. Verify that the quality gate script runs successfully: `./scripts/quality_gate.sh`.
+4. Update `AGENTS.md` if repository structure or skill definitions are modified.

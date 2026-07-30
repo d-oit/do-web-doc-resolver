@@ -1,23 +1,23 @@
 # Documentation Overview
 
-Reference for the **do-web-doc-resolver** project.
+Technical reference material for the **do-web-doc-resolver** project.
 
 ## Guides
 
-- **[README](../README.md)**: Overview, installation, and quickstart.
-- **[CONTRIBUTING](../CONTRIBUTING.md)**: Development workflow and standards.
-- **[AGENTS](../AGENTS.md)**: Reference for AI agent integration.
+- **[README](../README.md)**: Product capabilities, installation, usage, cascade routing, and testing.
+- **[CONTRIBUTING](../CONTRIBUTING.md)**: Development workflows, coding standards, and linting guidelines.
+- **[AGENTS](../AGENTS.md)**: AI agent integration protocol and execution constraints.
 
 ## Technical Reference
 
-- **[Architecture](../agents-docs/OVERVIEW.md)**: Component breakdown and data flow.
+- **[Architecture](../agents-docs/OVERVIEW.md)**: Core components and data flow pipelines.
 - **[Cascade Logic](https://github.com/d-oit/do-web-doc-resolver/blob/main/.agents/skills/do-web-doc-resolver/references/CASCADE.md)**: Query and URL resolution decision trees.
-- **[Provider Details](https://github.com/d-oit/do-web-doc-resolver/blob/main/.agents/skills/do-web-doc-resolver/references/PROVIDERS.md)**: Provider capabilities and API details.
-- **[Semantic Health](../agents-docs/SEMANTIC_HEALTH.md)**: Metrics and output quality standards.
-- **[Standards](standards.md)**: LLM-readable document standards (2026).
+- **[Provider Details](https://github.com/d-oit/do-web-doc-resolver/blob/main/.agents/skills/do-web-doc-resolver/references/PROVIDERS.md)**: Scraper capability tables and API specifications.
+- **[Semantic Health](../agents-docs/SEMANTIC_HEALTH.md)**: Quality scoring and output validation.
+- **[Standards](standards.md)**: LLM-readable Markdown document standards.
 
 ## Infrastructure
 
-- **[Configuration](../agents-docs/CONFIG.md)**: Environment variables and config files.
-- **[Deployment](../agents-docs/DEPLOYMENT.md)**: Vercel and CI/CD setup.
-- **[Releases](../agents-docs/RELEASES.md)**: Versioning and release procedures.
+- **[Configuration](../agents-docs/CONFIG.md)**: Routing thresholds, cache settings, and environment variables.
+- **[Deployment](../agents-docs/DEPLOYMENT.md)**: Vercel integration and CI/CD workflow configurations.
+- **[Releases](../agents-docs/RELEASES.md)**: Automated versioning and build procedures.
