@@ -103,3 +103,12 @@ Allowed scopes: `resolver, cli, web, ci, docs, deps, security, release, agents`
 - `.agents/skills/do-wdr-issue-swarm/references/agent-prompt.md` § CRITICAL
 
 **RULE**: Never merge, auto-merge, or admin-merge a PR with ANY failing CI check. No exceptions.
+
+---
+
+## Triage State — 2026-07-31
+
+### Serper Integration Test Failure
+- **Status**: Blocked (Pre-existing on main)
+- **Root Cause**: GHA runner lacks access to `SERPER_API_KEY` on PR head branches, and fallback free DuckDuckGo is blocked/rate-limited by the GHA IP pool.
+- **ADR Link**: [ADR 015: Serper Integration CI Failure Triage](015-serper-integration-ci-failure-adr.md)
