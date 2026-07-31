@@ -118,7 +118,7 @@ export default function ProfileCombobox({ id: providedId, value, onChange, optio
         ref={triggerRef}
         onClick={() => (open ? handleClose() : handleOpen())}
         onKeyDown={handleKeyDown}
-        className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus:border-accent"
+        className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus:border-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}

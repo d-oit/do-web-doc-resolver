@@ -20,7 +20,7 @@ const ResultHeader = ({ id, title, url, normalizedUrl }: { id: string; title: st
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="text-accent text-[15px] hover:underline"
+        className="text-accent text-[15px] hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
       >
         {title}
       </a>
@@ -76,7 +76,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
       <footer className="flex flex-wrap gap-2 text-[11px]">
         <button
           onClick={handleCopy}
-          className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted"
+          className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
           aria-live="polite"
         >
           {copying ? "Copied" : "Copy markdown"}
@@ -86,7 +86,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
             href={result.url}
             target="_blank"
             rel="noreferrer"
-            className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted"
+            className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
           >
             Open
           </a>
@@ -94,7 +94,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
         {onHelpfulToggle && (
           <button
             onClick={() => onHelpfulToggle(result.id)}
-            className={`px-3 py-2 border-2 ${
+            className={`px-3 py-2 border-2 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 ${
               helpful ? "border-accent text-accent" : "border-border-muted text-text-dim"
             }`}
             aria-pressed={helpful}

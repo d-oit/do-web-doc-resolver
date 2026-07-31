@@ -74,7 +74,7 @@ export default function Sidebar({
       <button
         data-testid="sidebar-toggle"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="hidden lg:flex w-full p-4 items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
+        className="hidden lg:flex w-full p-4 items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
         aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         aria-expanded={sidebarOpen}
         aria-controls="sidebar-navigation"
@@ -85,7 +85,7 @@ export default function Sidebar({
               Configuration
             </span>
             <div className="flex items-center gap-2">
-              <Link href="/settings" className="text-[11px] text-text-muted hover:text-accent">
+              <Link href="/settings" className="text-[11px] text-text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2">
                 Keys
               </Link>
               <span className="text-[10px] text-text-dim">Hide</span>
@@ -102,12 +102,12 @@ export default function Sidebar({
           Configuration
         </span>
         <div className="flex items-center gap-3">
-          <Link href="/settings" className="text-[11px] text-text-muted hover:text-accent">
+          <Link href="/settings" className="text-[11px] text-text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2">
             Keys
           </Link>
           <button
             onClick={() => { setMobileMenuOpen(false); }}
-            className="text-[11.5px] text-text-muted hover:text-[#ff4444] focus:text-[#ff4444] font-bold min-h-[30px] px-2 flex items-center focus:outline-none"
+            className="text-[11.5px] text-text-muted hover:text-[#ff4444] focus:text-[#ff4444] font-bold min-h-[30px] px-2 flex items-center focus:outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
             aria-label="Close configuration"
           >
             Close
@@ -149,7 +149,7 @@ export default function Sidebar({
                 step="1000"
                 value={maxChars}
                 onChange={(e) => setMaxChars(parseInt(e.target.value))}
-                className="w-full h-1 bg-border-muted accent-accent appearance-none cursor-pointer"
+                className="w-full h-1 bg-border-muted accent-accent appearance-none cursor-pointer focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
               />
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function Sidebar({
                 const tooltipId = `provider-hint-${provider.id}`;
                 const showHint = needsKey || (provider.id === "duckduckgo" && mistralActive);
 
-                let buttonClasses = "px-2 py-1 text-[10px] border-2 transition-colors min-h-[36px] ";
+                let buttonClasses = "px-2 py-1 text-[10px] border-2 transition-colors min-h-[36px] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 ";
                 if (isActive) {
                   if (isManual) {
                     buttonClasses += "bg-accent text-background border-accent font-bold";
@@ -227,7 +227,7 @@ export default function Sidebar({
               onClick={() => setApiKeysOpen(!apiKeysOpen)}
               aria-expanded={apiKeysOpen}
               aria-controls="api-keys-panel"
-              className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2"
+              className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
             >
               <span aria-hidden="true">{apiKeysOpen ? "▼" : "▶"}</span> API Keys
             </button>
@@ -239,7 +239,7 @@ export default function Sidebar({
                     type="checkbox"
                     checked={skipCache}
                     onChange={(e) => setSkipCache(e.target.checked)}
-                    className="w-5 h-5 bg-[#141414] border-2 border-border-muted accent-accent"
+                    className="w-5 h-5 bg-[#141414] border-2 border-border-muted accent-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
                   />
                   Skip cache
                 </label>
@@ -249,7 +249,7 @@ export default function Sidebar({
                     type="checkbox"
                     checked={deepResearch}
                     onChange={(e) => setDeepResearch(e.target.checked)}
-                    className="w-5 h-5 bg-[#141414] border-2 border-border-muted accent-accent"
+                    className="w-5 h-5 bg-[#141414] border-2 border-border-muted accent-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
                   />
                   Deep research
                 </label>
@@ -267,7 +267,7 @@ export default function Sidebar({
                         value={value}
                         onChange={(e) => handleKeyChange(key, e.target.value)}
                         placeholder={hasServer && !value ? "Using server key" : "sk-..."}
-                        className="bg-[#141414] border-2 border-border-muted px-2 py-2 text-[12px] text-foreground placeholder:text-text-dim focus:border-accent min-h-[44px]"
+                        className="bg-[#141414] border-2 border-border-muted px-2 py-2 text-[12px] text-foreground placeholder:text-text-dim focus:border-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 min-h-[44px]"
                       />
                     </div>
                   );
