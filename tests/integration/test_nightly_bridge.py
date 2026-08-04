@@ -90,3 +90,22 @@ def test_nightly_llm_ready_standards():
     assert "[ANCHOR: TECHNICAL_DETAILS]" in content
     assert "[ANCHOR: COMPARISON]" in content
     assert "[ANCHOR: CITATIONS]" in content
+
+
+@pytest.mark.integration
+def test_nightly_js_heavy_site_parsing():
+    """Verify that JS-heavy sites have their content correctly parsed without unparsed code blocks."""
+    url = "https://react.dev/learn"
+
+    result = subprocess.run(
+        [CLI_PATH, "resolve", url, "--provider", "jina"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    content = result.stdout
+    assert len(content) > 500, "Content too short"
+    assert "React" in content
+    assert "<pre" not in content, "Found unparsed <pre> tag"
+    assert "<code>" not in content, "Found unparsed <code> tag"

@@ -8,6 +8,9 @@ NAV_HEAVY_HTML = """
   <h1>API Reference</h1>
   <p>The <code>resolve_url</code> function accepts a URL and returns resolved content.</p>
   <p>It supports multiple providers including jina, firecrawl, and direct fetch.</p>
+  <p>To ensure high quality, the system filters out boilerplate, parses complex structures,
+  deduplicates headers, preserves nested lists, handles various character encodings, and
+  ensures the output matches 2026 LLM-ready standards with zero slop and maximum density.</p>
 </main>
 <footer>Cookie Policy Privacy Terms</footer>
 </body></html>

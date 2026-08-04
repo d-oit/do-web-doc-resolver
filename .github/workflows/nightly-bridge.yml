@@ -60,6 +60,8 @@ jobs:
           pip install ruff black
 
       - name: Run Integration Tests
+        # Specifically verifies wdr CLI's ability to output robust Markdown
+        # with accurate LaTeX and code blocks on static/JS-heavy sites
         run: PYTHONPATH=. pytest tests/integration/
         env:
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
