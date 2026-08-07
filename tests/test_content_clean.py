@@ -8,7 +8,7 @@ NAV_HEAVY_HTML = """
   <h1>API Reference</h1>
   <p>The <code>resolve_url</code> function accepts a URL and returns resolved content.</p>
   <p>It supports multiple providers including jina, firecrawl, and direct fetch.</p>
-  <p>To use this module, make sure you have the proper API keys set up in your environment. Detailed usage instructions can be found in the main documentation. Web Doc Resolver is designed to be highly extensible and customizable for your specific RAG pipeline needs.</p>
+  <p>This is additional description text designed to make the main content segment much longer than two hundred characters. This is needed so that the content cleaning utility does not fall back to raw HTML tag stripping, which would keep footer items like the secondary notices.</p>
 </main>
 <footer>Cookie Policy Privacy Terms</footer>
 </body></html>
