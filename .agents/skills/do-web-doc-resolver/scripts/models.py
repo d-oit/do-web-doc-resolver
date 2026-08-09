@@ -20,6 +20,7 @@ class ErrorType(Enum):
     INVALID_RESPONSE = "invalid_response"
     SSRF_BLOCKED = "ssrf_blocked"
     CONTENT_TOO_LARGE = "content_too_large"
+    BOT_CHALLENGE = "bot_challenge"
     UNKNOWN = "unknown"
 
 
@@ -50,6 +51,18 @@ class Profile(Enum):
         return 4
 
 
+class FetchTier(int, Enum):
+    """Escalation cost tier for fetch providers.
+    Lower = cheaper, always tried first."""
+
+    FREE_STATIC = 0  # llms_txt: static text file, zero cost
+    FREE_DIRECT = 1  # direct_fetch: plain httpx, zero cost
+    FREE_SEARCH = 2  # duckduckgo: free web search
+    PAID_LITE = 3  # jina, firecrawl: paid but cheap per-call
+    STEALTH = 4  # anti-bot bypass tier
+    PAID_BROWSER = 5  # mistral_browser: paid + JS execution
+
+
 class ProviderType(Enum):
     """Available providers for resolution."""
 
@@ -71,6 +84,7 @@ class ProviderType(Enum):
     # New providers
     DOCLING = "docling"
     OCR = "ocr"
+    VISUAL_CLIP = "visual_clip"
 
     def is_paid(self) -> bool:
         return self in (
@@ -80,6 +94,7 @@ class ProviderType(Enum):
             ProviderType.FIRECRAWL,
             ProviderType.MISTRAL_WEBSEARCH,
             ProviderType.MISTRAL_BROWSER,
+            ProviderType.VISUAL_CLIP,
         )
 
     def is_fast(self) -> bool:
@@ -179,3 +194,15 @@ class ReadonlyResolverProtocol(Protocol):
     """
 
     def __call__(self) -> ResolvedResult | str | None: ...
+
+
+__all__ = [
+    "ErrorType",
+    "Profile",
+    "ProviderType",
+    "ValidationResult",
+    "ProviderMetric",
+    "ResolveMetrics",
+    "ResolvedResult",
+    "ReadonlyResolverProtocol",
+]

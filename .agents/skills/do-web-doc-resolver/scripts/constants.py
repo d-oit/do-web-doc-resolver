@@ -5,7 +5,12 @@ import logging
 import os
 import typing
 
+from scripts.models import FetchTier
+
 logger = logging.getLogger(__name__)
+
+if typing.TYPE_CHECKING:
+    pass
 
 
 def _load_config() -> dict[str, typing.Any]:
@@ -110,3 +115,16 @@ BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
 DNS_CACHE_TTL: int = 60
+
+CLEAN_CONTENT: bool = os.environ.get("WDR_CLEAN_CONTENT", "1") != "0"
+
+PROVIDER_TIERS: dict[str, FetchTier] = {
+    "llms_txt": FetchTier.FREE_STATIC,
+    "direct_fetch": FetchTier.FREE_DIRECT,
+    "duckduckgo": FetchTier.FREE_SEARCH,
+    "jina": FetchTier.PAID_LITE,
+    "firecrawl": FetchTier.PAID_LITE,
+    "visual_clip": FetchTier.PAID_LITE,
+    "stealth": FetchTier.STEALTH,
+    "mistral_browser": FetchTier.PAID_BROWSER,
+}

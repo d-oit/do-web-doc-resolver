@@ -8,6 +8,7 @@ NAV_HEAVY_HTML = """
   <h1>API Reference</h1>
   <p>The <code>resolve_url</code> function accepts a URL and returns resolved content.</p>
   <p>It supports multiple providers including jina, firecrawl, and direct fetch.</p>
+  <p>To ensure high quality documentation is parsed, the text should be sufficiently long and provide detailed technical descriptions of all system capabilities and interface designs.</p>
 </main>
 <footer>Cookie Policy Privacy Terms</footer>
 </body></html>
