@@ -43,7 +43,7 @@
     "eslint-plugin-playwright": "^2.10.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.7.0",
-    "postcss": "8.5.19",
+    "postcss": "8.5.26",
     "tailwindcss": "^4.0.0",
     "typescript": "6.0.3",
     "vitest": "^4.1.10",
@@ -55,7 +55,7 @@
     "brace-expansion": ">=1.1.16",
     "axios": ">=1.18.0",
     "next": {
-      "postcss": "8.5.19"
+      "postcss": "8.5.26"
     }
   }
 }
