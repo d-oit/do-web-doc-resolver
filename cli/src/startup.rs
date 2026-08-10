@@ -16,7 +16,7 @@ pub async fn prewarm_cache(resolver: Arc<Resolver>, config: &Config) -> Result<(
     }
 
     let top_n = config.routing.prewarm.top_n_domains;
-    let max_concurrency = config.routing.prewarm.max_concurrency.max(1);
+    let max_concurrency = config.routing.prewarm.max_concurrency;
 
     let domains = {
         let routing_memory = resolver.routing_memory();
@@ -35,17 +35,14 @@ pub async fn prewarm_cache(resolver: Arc<Resolver>, config: &Config) -> Result<(
         max_concurrency
     );
 
-    let resolve = {
+    let resolve = move |url: String| {
         let resolver = resolver.clone();
-        move |url: String| {
-            let resolver = resolver.clone();
-            async move {
-                resolver
-                    .resolve_url(&url)
-                    .await
-                    .map(|_| ())
-                    .map_err(anyhow::Error::from)
-            }
+        async move {
+            resolver
+                .resolve_url(&url)
+                .await
+                .map(|_| ())
+                .map_err(anyhow::Error::from)
         }
     };
 
@@ -65,50 +62,63 @@ where
     F: Fn(String) -> Fut + Clone + Send + Sync + 'static,
     Fut: Future<Output = anyhow::Result<()>> + Send + 'static,
 {
-    let semaphore = Arc::new(Semaphore::new(max_concurrency));
-    let mut join_set = JoinSet::new();
+    // A zero limit would deadlock the spawn loop on the first acquire; treat
+    // it as an explicit serialization request like the CLI-side default.
+    let max_concurrency = max_concurrency.max(1);
 
-    for domain in domains {
-        let url = format!("https://{}", domain);
-        let resolve = resolve.clone();
+    // The overall budget covers spawning AND joining. Without this, tasks that
+    // each burn PER_TASK_TIMEOUT would let the spawn phase run for many minutes
+    // before the join timeout ever started counting.
+    let completed = tokio::time::timeout(OVERALL_TIMEOUT, async {
+        let semaphore = Arc::new(Semaphore::new(max_concurrency));
+        let mut join_set = JoinSet::new();
 
-        let permit = Arc::clone(&semaphore).acquire_owned().await?;
+        for domain in domains {
+            let url = format!("https://{}", domain);
+            let resolve = resolve.clone();
 
-        join_set.spawn(async move {
-            tracing::debug!("Pre-warming domain: {}", domain);
+            let permit = Arc::clone(&semaphore).acquire_owned().await?;
 
-            let result = tokio::time::timeout(PER_TASK_TIMEOUT, resolve(url)).await;
-            match result {
-                Ok(Ok(_)) => {
-                    tracing::debug!("Pre-warm succeeded for domain: {}", domain);
+            join_set.spawn(async move {
+                tracing::debug!("Pre-warming domain: {}", domain);
+
+                let result = tokio::time::timeout(PER_TASK_TIMEOUT, resolve(url)).await;
+                match result {
+                    Ok(Ok(_)) => {
+                        tracing::debug!("Pre-warm succeeded for domain: {}", domain);
+                    }
+                    Ok(Err(e)) => {
+                        tracing::warn!("Pre-warm failed for domain {}: {}", domain, e);
+                    }
+                    Err(_) => {
+                        tracing::warn!("Pre-warm timed out for domain: {}", domain);
+                    }
                 }
-                Ok(Err(e)) => {
-                    tracing::warn!("Pre-warm failed for domain {}: {}", domain, e);
-                }
-                Err(_) => {
-                    tracing::warn!("Pre-warm timed out for domain: {}", domain);
-                }
-            }
-            drop(permit);
-        });
-    }
+                drop(permit);
+            });
+        }
 
-    let joined = tokio::time::timeout(OVERALL_TIMEOUT, async {
         while let Some(result) = join_set.join_next().await {
             if let Err(e) = result {
                 tracing::warn!("Pre-warm task panicked: {}", e);
             }
         }
+
+        Ok::<(), anyhow::Error>(())
     })
     .await;
 
-    if joined.is_err() {
-        tracing::warn!(
-            "Pre-warming timed out after {}s, abandoning remaining tasks",
-            OVERALL_TIMEOUT.as_secs()
-        );
-        join_set.abort_all();
-    }
+    match completed {
+        Ok(result) => result,
+        Err(_) => {
+            // Dropping the timed-out future aborts all in-flight tasks.
+            tracing::warn!(
+                "Pre-warming timed out after {}s, abandoning remaining tasks",
+                OVERALL_TIMEOUT.as_secs()
+            );
+            Ok(())
+        }
+    }?;
 
     tracing::info!("Cache pre-warming completed");
     Ok(())

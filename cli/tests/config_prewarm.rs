@@ -29,3 +29,15 @@ max_concurrency = 2
     assert_eq!(config.routing.prewarm.top_n_domains, 7);
     assert_eq!(config.routing.prewarm.max_concurrency, 2);
 }
+
+#[test]
+fn committed_config_toml_parses_with_prewarm() {
+    // Guard the actual repo file, not just an inline sample: a typo (or wrong
+    // type) in the committed [routing.prewarm] block must fail here, since no
+    // test otherwise reads the repo-root config.toml.
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../config.toml");
+    let config = Config::from_file(path).expect("committed config.toml must parse");
+    assert!(config.routing.prewarm.enabled);
+    assert_eq!(config.routing.prewarm.top_n_domains, 20);
+    assert_eq!(config.routing.prewarm.max_concurrency, 4);
+}

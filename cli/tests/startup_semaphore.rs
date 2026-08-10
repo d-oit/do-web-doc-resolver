@@ -50,9 +50,14 @@ async fn prewarm_without_deadlock_or_timeout() {
     };
 
     // 20 domains, 4-permit semaphore: the acquire loop must drain the queue and
-    // join every task. A deadlocked acquire would hang past the test's timeout.
+    // join every task. A deadlocked acquire would trip this explicit budget
+    // instead of silently hanging the test run.
     let domains: Vec<String> = (0..20).map(|i| format!("{}.example", i)).collect();
-    let result = prewarm_domains(domains, 4, resolve).await;
-
-    assert!(result.is_ok());
+    tokio::time::timeout(
+        Duration::from_secs(10),
+        prewarm_domains(domains, 4, resolve),
+    )
+    .await
+    .expect("prewarm must complete within the 10s budget (no deadlock)")
+    .expect("prewarm must succeed");
 }
