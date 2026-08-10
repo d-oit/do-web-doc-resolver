@@ -111,7 +111,7 @@ impl QueryCascade {
             if let Ok(Some(results)) = cache.query(query).await {
                 if !results.is_empty() {
                     let cache_latency = start_time.elapsed().as_millis() as u64;
-                    let mut first = results[0].clone();
+                    let mut first = Self::combine_cache_results(&results);
                     metrics.record_semantic_cache_hit(cache_latency, first.score);
                     first.metrics = Some(metrics);
                     return Ok(first);
@@ -477,6 +477,22 @@ impl QueryCascade {
             Duration::from_secs(ttl_secs),
             HashMap::new(),
         );
+    }
+
+    /// Combine all cache-hit result chunks into one and re-score it, so the
+    /// hit path assigns a score exactly like the cache-miss path does.
+    fn combine_cache_results(results: &[ResolvedResult]) -> ResolvedResult {
+        let mut first = results[0].clone();
+        if results.len() > 1 {
+            let combined_content = results
+                .iter()
+                .filter_map(|r| r.content.as_deref())
+                .collect::<Vec<_>>()
+                .join("\n\n");
+            first.content = Some(combined_content);
+            first.score = score_result(&first.url, first.content.as_deref().unwrap_or(""));
+        }
+        first
     }
 }
 
