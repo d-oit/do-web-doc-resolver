@@ -55,6 +55,12 @@ llms_txt = 28800    # 8 hours
 synthesis = 43200   # 12 hours
 default = 3600      # fallback for any unlisted provider
 
+# Pre-warms the cache for the top N tracked domains at CLI startup; disabled with `enabled = false`.
+[routing.prewarm]
+enabled = true        # warm cache for top domains on CLI startup
+top_n_domains = 20    # number of top tracked domains to pre-warm
+max_concurrency = 4   # parallel pre-warm requests (respects provider rate limits)
+
 [api_keys]
 tavily = "your-key-here"
 serper = "your-key-here"

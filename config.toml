@@ -8,6 +8,11 @@ tavily_results = 3
 output_limit = 10
 log_level = "info"
 
+[routing.prewarm]
+enabled = true        # warm cache for top domains on CLI startup
+top_n_domains = 20    # number of top tracked domains to pre-warm
+max_concurrency = 4   # parallel pre-warm requests (respects provider rate limits)
+
 [cache.ttl]
 firecrawl = 21600   # 6 hours
 exa = 14400         # 4 hours
