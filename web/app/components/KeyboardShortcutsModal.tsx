@@ -106,7 +106,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="text-text-muted hover:text-foreground text-[18px] leading-none focus:outline-none focus:text-accent focus:ring-2 focus:ring-accent"
+            className="text-text-muted hover:text-foreground text-[18px] leading-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
             aria-label="Close shortcuts"
           >
             ×

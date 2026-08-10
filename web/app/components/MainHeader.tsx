@@ -19,7 +19,7 @@ export function MainHeader(props: MainHeaderProps) {
         {/* Hamburger menu - mobile only */}
         <button
           onClick={handleMenuOpen}
-          className="lg:hidden p-2 text-text-muted hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="lg:hidden p-2 text-text-muted hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
           aria-label="Open menu"
           aria-expanded={props.mobileMenuOpen}
           aria-controls="sidebar-navigation"
@@ -33,12 +33,12 @@ export function MainHeader(props: MainHeaderProps) {
       <div className="flex items-center gap-2">
         <button
           onClick={props.onShowShortcuts}
-          className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus:outline-none focus:text-accent"
+          className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
           aria-label="Show keyboard shortcuts"
         >
           Shortcuts
         </button>
-        <Link href="/help" className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus:outline-none focus:text-accent">
+        <Link href="/help" className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2">
           Help
         </Link>
       </div>

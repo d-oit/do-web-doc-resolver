@@ -118,7 +118,7 @@ export default function ProfileCombobox({ id: providedId, value, onChange, optio
         ref={triggerRef}
         onClick={() => (open ? handleClose() : handleOpen())}
         onKeyDown={handleKeyDown}
-        className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus:border-accent"
+        className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
@@ -143,7 +143,7 @@ export default function ProfileCombobox({ id: providedId, value, onChange, optio
               id={`${listboxId}-option-${option.id}`}
               onClick={() => handleSelect(option.id)}
               onKeyDown={handleKeyDown}
-              className={`w-full px-3 py-2 text-left hover:bg-accent hover:text-background transition-colors flex flex-col focus:outline-none focus:bg-accent focus:text-background ${
+              className={`w-full px-3 py-2 text-left hover:bg-accent hover:text-background transition-colors flex flex-col focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 focus:bg-accent focus:text-background ${
                 option.id === value ? "bg-[#222] text-accent" : "text-foreground"
               } ${index === activeIndex ? "ring-inset ring-2 ring-accent" : ""}`}
               role="option"
