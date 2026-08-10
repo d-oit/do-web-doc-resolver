@@ -154,7 +154,7 @@ Detailed reference material in `agents-docs/`:
 - Merge conflicts
 - Required reviews missing
 
-Dependabot PRs are normalized automatically by the `commitlint.yml` `lint-pr-title` workflow (title de-duped, body replaced with a short summary). Do NOT hand-edit dependabot PR titles/bodies or mark them as exceptions in `commitlint.config.cjs`; if a dependabot PR is blocked on the title/body check, re-run the workflow instead.
+Dependabot PRs are normalized automatically by the `commitlint.yml` `lint-pr-title` workflow (title de-duped, body replaced with a short summary). Do NOT hand-edit dependabot PR titles/bodies or mark them as exceptions in `commitlint.config.cjs`; if a dependabot PR is blocked on the title/body check, re-run the workflow instead. Patch/minor dependabot PRs are auto-merged (`dependabot-auto-merge.yml`, gated on `fetch-metadata`; `--auto` never bypasses branch protection) and their branches are kept up to date with base (`dependabot-branch-autoupdate.yml`, scheduled). Semver-major bumps intentionally route to human review.
 
 ### Test Commands
 

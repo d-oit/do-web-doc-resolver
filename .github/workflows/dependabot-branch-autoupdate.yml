@@ -1,0 +1,36 @@
+---
+name: Dependabot branch autoupdate
+
+on:  # yamllint disable-line rule:truthy
+  schedule:
+    # Every 30 minutes: refresh Dependabot PR branches that fell behind base.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autoupdate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update stale Dependabot PR branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Auto-merge only fires once "require branches up to date before
+          # merging" is satisfied; merging group dependency update PRs advances
+          # main and leaves the other PRs BEHIND. Refresh them so their
+          # previously-enabled auto-merge can complete.
+          gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --author "app/dependabot" \
+            --state open \
+            --json number,mergeStateStatus \
+            --jq '.[] | select(.mergeStateStatus == "BEHIND") | .number' \
+            | while read -r PR_NUMBER; do
+                echo "Updating dependabot PR #$PR_NUMBER (BEHIND)"
+                gh pr update-branch "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+                  || echo "Update failed for #$PR_NUMBER (may have conflicts); leaving for human."
+              done
