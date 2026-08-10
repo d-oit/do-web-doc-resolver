@@ -53,7 +53,7 @@ export function MetadataBar({
       <div className="flex items-center gap-2">
         <button
           onClick={handleCardsClick}
-          className={`px-3 py-1 border border-border-muted ${!viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
+          className={`px-3 py-1 border border-border-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 ${!viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
           aria-pressed={!viewRaw}
           title="View results as individual structured cards"
         >
@@ -61,7 +61,7 @@ export function MetadataBar({
         </button>
         <button
           onClick={handleRawClick}
-          className={`px-3 py-1 border border-border-muted ${viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
+          className={`px-3 py-1 border border-border-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 ${viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
           aria-pressed={viewRaw}
           title="View results as raw markdown text"
         >
@@ -71,7 +71,7 @@ export function MetadataBar({
           onClick={handleCopyResult}
           aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
           aria-live="polite"
-          className="hover:text-foreground transition-colors min-h-[36px] px-2"
+          className="hover:text-foreground transition-colors min-h-[36px] px-2 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
         >
           {copied ? "Copied" : "Copy"}
         </button>

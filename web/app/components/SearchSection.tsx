@@ -38,7 +38,7 @@ const SearchActions = ({
           disabled={loading}
           aria-label={loading ? "Fetching results..." : "Fetch results"}
           title="Fetch results"
-          className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
+          className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
         >
           {loading ? "..." : "Fetch"}
         </button>
@@ -46,7 +46,7 @@ const SearchActions = ({
       <button
         onClick={onClear}
         aria-label="Clear input and results"
-        className="bg-transparent text-text-dim px-4 py-2 text-[13px] border-2 border-border-muted hover:border-accent hover:text-accent min-h-[44px]"
+        className="bg-transparent text-text-dim px-4 py-2 text-[13px] border-2 border-border-muted hover:border-accent hover:text-accent min-h-[44px] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
       >
         Clear
       </button>
@@ -122,13 +122,13 @@ export function SearchSection({
             aria-invalid={Boolean(error)}
             aria-errormessage={error ? "search-error" : undefined}
             enterKeyHint="search"
-            className="w-full bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim tracking-tight pr-10"
+            className="w-full bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim tracking-tight pr-10 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
           />
           {query && (
             <button
               type="button"
               onClick={handleClearQuery}
-              className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-text-dim hover:text-accent transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-text-dim hover:text-accent transition-colors focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
               aria-label="Clear query"
             >
               ×
