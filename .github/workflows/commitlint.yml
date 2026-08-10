@@ -43,7 +43,33 @@ jobs:
     name: Lint PR title (squash-merge subject)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
+      - name: Normalize dependabot PR metadata
+        if: github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Squash-merge uses the PR title+body as the commit message; commitlint
+          # lints that on push to main. Dependabot's auto title has a doubled
+          # scope (prefix "build(deps)" + include "scope") and its body is ~65KB
+          # of release notes, both of which break commitlint. Normalize.
+          # NOTE: body is a fixed multi-line literal (a real blank line separates
+          # the two paragraphs); a literal "\n" would be stored verbatim by the
+          # API and still produce an over-length line on squash merge.
+          NORMALIZED_TITLE=$(printf '%s' "$PR_TITLE" | sed -E 's/^([a-z]+)\(([a-z]+)\)\(([a-z-]+)\):/\1(\2):/')
+          NORMALIZED_BODY="Automated dependency update from dependabot.
+
+          Bumps a grouped set of packages (see commit history for the full list of version changes)."
+          gh pr edit "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$NORMALIZED_TITLE" \
+            --body "$NORMALIZED_BODY"
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
@@ -62,6 +88,7 @@ jobs:
               @commitlint/config-conventional@19
 
       - name: Lint PR title against commitlint
+        if: github.actor != 'dependabot[bot]'
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
@@ -81,6 +108,7 @@ jobs:
           echo "PR title is a valid conventional commit."
 
       - name: Enforce PR body length for squash merge compatibility
+        if: github.actor != 'dependabot[bot]'
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
