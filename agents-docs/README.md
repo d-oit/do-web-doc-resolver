@@ -14,6 +14,7 @@ For a high-level guide on integrating the resolver as an agent skill, please ref
 - **[SEMANTIC_HEALTH.md](SEMANTIC_HEALTH.md)**: Metrics and standards for LLM-ready output quality.
 - **[ASSETS.md](ASSETS.md)**: Management of screenshots and visual documentation.
 - **[ISSUES.md](ISSUES.md)**: Known issues and technical debt tracking.
+- **[DEPENDABOT_AUTO_MERGE_SOP.md](DEPENDABOT_AUTO_MERGE_SOP.md)**: Step-by-step check of the end-to-end dependabot auto-merge pipeline after the weekly 06:00 batch.
 
 ## Purpose
 
