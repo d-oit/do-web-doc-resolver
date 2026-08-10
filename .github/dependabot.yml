@@ -17,7 +17,7 @@ updates:
         patterns:
           - "*"
     commit-message:
-      prefix: "build(deps)"
+      prefix: "build"
       include: "scope"
     ignore:
       - dependency-name: "*"
@@ -40,7 +40,7 @@ updates:
         patterns:
           - "*"
     commit-message:
-      prefix: "build(deps)"
+      prefix: "build"
       include: "scope"
 
   # npm - web UI
@@ -63,7 +63,7 @@ updates:
           - "minor"
           - "patch"
     commit-message:
-      prefix: "build(deps)"
+      prefix: "build"
       include: "scope"
 
   # npm - packages
@@ -86,7 +86,7 @@ updates:
           - "minor"
           - "patch"
     commit-message:
-      prefix: "build(deps)"
+      prefix: "build"
       include: "scope"
 
   # GitHub Actions

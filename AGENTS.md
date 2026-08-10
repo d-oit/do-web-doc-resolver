@@ -154,6 +154,8 @@ Detailed reference material in `agents-docs/`:
 - Merge conflicts
 - Required reviews missing
 
+Dependabot PRs are normalized automatically by the `commitlint.yml` `lint-pr-title` workflow (title de-duped, body replaced with a short summary). Do NOT hand-edit dependabot PR titles/bodies or mark them as exceptions in `commitlint.config.cjs`; if a dependabot PR is blocked on the title/body check, re-run the workflow instead.
+
 ### Test Commands
 
 - **Python**: `pytest -m "not live"`
