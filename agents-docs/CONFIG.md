@@ -43,17 +43,42 @@ The Rust CLI looks for `config.toml` in:
 
 ```toml
 max_chars = 8000
-profile = "balanced"
-skip_providers = ["exa"]
+min_chars = 200
+exa_results = 5
+tavily_results = 3
+output_limit = 10
+log_level = "info"
+
+[routing]
+min_free_quality_to_skip_paid = 0.70
+
+# Pre-warms the cache for the top N tracked domains at CLI startup; disabled with `enabled = false`.
+[routing.prewarm]
+enabled = true        # warm cache for top domains on CLI startup
+top_n_domains = 20    # number of top tracked domains to pre-warm
+max_concurrency = 4   # parallel pre-warm requests (respects provider rate limits)
 
 [cache.ttl]
 firecrawl = 21600   # 6 hours
 exa = 14400        # 4 hours
+tavily = 14400      # 4 hours
+serper = 7200       # 2 hours
 jina = 7200         # 2 hours
+mistral = 28800     # 8 hours
 duckduckgo = 3600   # 1 hour
 llms_txt = 28800    # 8 hours
 synthesis = 43200   # 12 hours
 default = 3600      # fallback for any unlisted provider
+
+[semantic_cache]
+enabled = true
+path = ".do-wdr_cache"
+threshold = 0.85
+max_entries = 10000
+
+[providers.exa_mcp.rate_limit]
+requests_per_second = 10
+burst = 20
 
 [api_keys]
 tavily = "your-key-here"
