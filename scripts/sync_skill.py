@@ -23,7 +23,8 @@ PROJECT_ROOT = Path(__file__).parent.parent
 MAIN_SCRIPTS = PROJECT_ROOT / "scripts"
 SKILL_SCRIPTS = PROJECT_ROOT / ".agents/skills/do-web-doc-resolver/scripts"
 
-# Files to sync (exclude __pycache__, __init__.py is special)
+# Files to sync (exclude __pycache__, __init__.py is special).
+# `utils` is a package (scripts/utils/), so it is synced file-by-file below.
 SYNC_FILES = [
     "cache_negative.py",
     "circuit_breaker.py",
@@ -36,7 +37,20 @@ SYNC_FILES = [
     "routing_memory.py",
     "state.py",
     "synthesis.py",
-    "utils.py",
+]
+
+# Files inside the scripts/utils/ package mirror (kept in lock-step with the
+# canonical package). Added after the flattening refactor (ADR-014), which
+# turned the former utils.py module into a package.
+UTILS_FILES = [
+    "async_http.py",
+    "cache.py",
+    "content_clean.py",
+    "fetch.py",
+    "html.py",
+    "http.py",
+    "thread_pool.py",
+    "urls.py",
 ]
 
 
@@ -59,10 +73,10 @@ def get_diff(file1: Path, file2: Path | None) -> str:
     return "\n".join(diff)
 
 
-def sync_file(filename: str, dry_run: bool = False) -> bool:
+def sync_file(filename: str, dry_run: bool = False, subdir: str | None = None) -> bool:
     """Sync a single file. Returns True if file was synced."""
-    src = MAIN_SCRIPTS / filename
-    dst = SKILL_SCRIPTS / filename
+    src = (MAIN_SCRIPTS / subdir / filename) if subdir else (MAIN_SCRIPTS / filename)
+    dst = (SKILL_SCRIPTS / subdir / filename) if subdir else (SKILL_SCRIPTS / filename)
 
     if not src.exists():
         print(f"  SKIP {filename} (source not found)")
@@ -82,9 +96,35 @@ def sync_file(filename: str, dry_run: bool = False) -> bool:
             print(diff[:500])
         return True
 
+    dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
     print(f"  SYNC {filename}")
     return True
+
+
+def sync_utils_package(dry_run: bool = False) -> int:
+    """Sync scripts/utils/ package files and drop the obsolete flat utils.py."""
+    synced = 0
+    # ADR-014 turned utils.py into a package; the legacy flat file must not linger.
+    legacy = SKILL_SCRIPTS / "utils.py"
+    if legacy.exists():
+        if dry_run:
+            print("  WOULD DELETE utils.py (replaced by utils/ package)")
+            synced += 1
+        else:
+            legacy.unlink()
+            print("  DELETE utils.py (replaced by utils/ package)")
+            synced += 1
+
+    for filename in UTILS_FILES:
+        if sync_file(filename, dry_run, subdir="utils"):
+            synced += 1
+
+    # __init__.py re-exports symbols and defines helpers (e.g. _detect_error_type)
+    # that skill code imports from the package root — empty stubs break imports.
+    if sync_file("__init__.py", dry_run, subdir="utils"):
+        synced += 1
+    return synced
 
 
 def sync_init(dry_run: bool = False) -> None:
@@ -111,6 +151,7 @@ def main():
     for filename in SYNC_FILES:
         if sync_file(filename, dry_run):
             synced += 1
+    synced += sync_utils_package(dry_run)
 
     sync_init(dry_run)
 
@@ -125,9 +166,11 @@ def main():
         print()
         print("=== Verification ===")
         all_ok = True
-        for filename in SYNC_FILES:
-            src = MAIN_SCRIPTS / filename
-            dst = SKILL_SCRIPTS / filename
+        for filename, subdir in [(f, None) for f in SYNC_FILES] + [
+            (f, "utils") for f in UTILS_FILES
+        ]:
+            src = (MAIN_SCRIPTS / subdir / filename) if subdir else (MAIN_SCRIPTS / filename)
+            dst = (SKILL_SCRIPTS / subdir / filename) if subdir else (SKILL_SCRIPTS / filename)
             if src.exists() and dst.exists():
                 if filecmp.cmp(src, dst):
                     print(f"  OK   {filename}")

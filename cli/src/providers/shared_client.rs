@@ -22,7 +22,7 @@ pub static SHARED_CLIENT: Lazy<Client> = Lazy::new(|| {
         .tcp_keepalive(Duration::from_secs(60))
         .user_agent("WDR/1.0 (LLM documentation resolver)")
         .build()
-        .expect("Failed to create shared HTTP client")
+        .unwrap_or_default()
 });
 
 /// Get a reference to the shared HTTP client.

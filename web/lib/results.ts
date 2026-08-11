@@ -9,6 +9,16 @@ export interface ProviderResult {
   raw: string;
 }
 
+export function isSafeExternalUrl(value: string): boolean {
+  if (!value) return false;
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 const SPLIT_REGEX = /\n-{3,}\n+/g;
 const PLACEHOLDER_VALUES = new Set(["n/a", "na", "unknown", "none", "-", "–", ""]);
 
@@ -36,9 +46,10 @@ const canonicalizeUrl = (raw?: string): string | undefined => {
       url.pathname = url.pathname.replace("/docs/llm-digest", "/docs");
     }
     url.hash = "";
-    return url.toString();
+    const normalized = url.toString();
+    return isSafeExternalUrl(normalized) ? normalized : undefined;
   } catch {
-    return normalizedCandidate;
+    return isSafeExternalUrl(normalizedCandidate) ? normalizedCandidate : undefined;
   }
 };
 
@@ -108,7 +119,7 @@ const withOptionalProps = (
   normalizedUrl: string | undefined,
 ): ProviderResult => {
   const { url, author, published } = meta;
-  if (url !== undefined) result.url = url;
+  if (url !== undefined && isSafeExternalUrl(url)) result.url = url;
   if (normalizedUrl !== undefined) result.normalizedUrl = normalizedUrl;
   if (author !== undefined) result.author = author;
   if (published !== undefined) result.published = published;

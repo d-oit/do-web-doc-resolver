@@ -2,11 +2,15 @@
 Budget-aware routing logic for the Web Doc Resolver.
 """
 
+import logging
 import os
+import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from scripts.routing_memory import RoutingMemory
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MIN_FREE_QUALITY = float(os.getenv("DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID", "0.70"))
 
@@ -83,6 +87,7 @@ def extract_domain(url: str) -> str | None:
         hostname = parsed.hostname
         return hostname.lower() if hostname else None
     except Exception:
+        logger.debug("Failed to extract domain from URL: %s", url, exc_info=True)
         return None
 
 
@@ -91,6 +96,7 @@ def detect_doc_platform(url: str) -> str | None:
     try:
         parsed = urlparse(url)
     except Exception:
+        logger.debug("Failed to parse URL for platform detection: %s", url, exc_info=True)
         return None
 
     hostname = (parsed.hostname or "").lower()
@@ -112,8 +118,8 @@ def detect_doc_platform(url: str) -> str | None:
         return "notion"
     if (
         (hostname.endswith(".atlassian.net") and path.startswith("/wiki"))
-        or "confluence" in hostname
-        or "confluence" in path
+        or bool(re.search(r"\bconfluence\b", hostname))
+        or bool(re.search(r"\bconfluence\b", path))
     ):
         return "confluence"
 
@@ -197,13 +203,21 @@ def plan_provider_order(
         strategy = preflight.get("preferred_strategy", "llms_txt")
 
         if platform in ("notion", "confluence") or preflight.get("js_heavy"):
-            base = ["firecrawl", "mistral_browser", "jina", "direct_fetch", "duckduckgo"]
+            base = [
+                "jina",
+                "firecrawl",
+                "visual_clip",
+                "mistral_browser",
+                "direct_fetch",
+                "duckduckgo",
+            ]
         elif strategy == "direct_fetch":
             base = [
                 "direct_fetch",
                 "llms_txt",
                 "jina",
                 "firecrawl",
+                "visual_clip",
                 "mistral_browser",
                 "duckduckgo",
             ]
@@ -212,13 +226,15 @@ def plan_provider_order(
                 "llms_txt",
                 "jina",
                 "firecrawl",
-                "direct_fetch",
+                "visual_clip",
                 "mistral_browser",
+                "direct_fetch",
                 "duckduckgo",
             ]
     else:
         # DuckDuckGo deprioritized due to instability (Alert 2026-04-20)
-        base = ["exa_mcp", "exa", "tavily", "serper", "mistral_websearch", "duckduckgo"]
+        # Serper deprioritized due to instability (Alert 2026-07-20)
+        base = ["exa_mcp", "exa", "tavily", "mistral_websearch", "duckduckgo", "serper"]
 
     skip_providers = skip_providers or set()
 

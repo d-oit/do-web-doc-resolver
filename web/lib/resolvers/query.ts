@@ -18,7 +18,7 @@ async function fetchWithTimeout(
   }
 }
 
-export async function searchViaExaMcp(query: string, log: Logger): Promise<string | null> {
+export async function searchViaExaMcp(query: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   const start = Date.now();
   log.info("attempt", "exa_mcp", { query: query.slice(0, 80) });
   try {
@@ -50,7 +50,7 @@ export async function searchViaExaMcp(query: string, log: Logger): Promise<strin
             const content = data.result.content[0]?.text;
             if (content && content.length > MIN_CHARS) {
               log.info("success", "exa_mcp", { latencyMs: Date.now() - start, chars: content.length });
-              return content.slice(0, MAX_CHARS);
+              return content.slice(0, maxChars);
             }
           }
         } catch { /* ignore */ }
@@ -64,7 +64,7 @@ export async function searchViaExaMcp(query: string, log: Logger): Promise<strin
   }
 }
 
-export async function searchViaExaSdk(query: string, apiKey: string, log: Logger): Promise<string | null> {
+export async function searchViaExaSdk(query: string, apiKey: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   if (!apiKey) return null;
   const start = Date.now();
   log.info("attempt", "exa", { query: query.slice(0, 80) });
@@ -86,7 +86,7 @@ export async function searchViaExaSdk(query: string, apiKey: string, log: Logger
       .join("\n\n---\n\n");
     if (results.length > MIN_CHARS) {
       log.info("success", "exa", { latencyMs: Date.now() - start, chars: results.length });
-      return results.slice(0, MAX_CHARS);
+      return results.slice(0, maxChars);
     }
     return null;
   } catch {
@@ -95,7 +95,7 @@ export async function searchViaExaSdk(query: string, apiKey: string, log: Logger
   }
 }
 
-export async function searchViaSerper(query: string, apiKey: string, log: Logger): Promise<string | null> {
+export async function searchViaSerper(query: string, apiKey: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   if (!apiKey) return null;
   const start = Date.now();
   log.info("attempt", "serper", { query: query.slice(0, 80) });
@@ -118,14 +118,14 @@ export async function searchViaSerper(query: string, apiKey: string, log: Logger
       return null;
     }
     log.info("success", "serper", { latencyMs: Date.now() - start, chars: snippets.length, mode: "snippets" });
-    return `Search results for: ${query}\n\n${snippets.slice(0, MAX_CHARS)}`;
+    return `Search results for: ${query}\n\n${snippets.slice(0, maxChars)}`;
   } catch {
     log.info("failure", "serper", { latencyMs: Date.now() - start });
     return null;
   }
 }
 
-export async function searchViaTavily(query: string, apiKey: string, log: Logger): Promise<string | null> {
+export async function searchViaTavily(query: string, apiKey: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   if (!apiKey) return null;
   const start = Date.now();
   log.info("attempt", "tavily", { query: query.slice(0, 80) });
@@ -147,7 +147,7 @@ export async function searchViaTavily(query: string, apiKey: string, log: Logger
       .join("\n\n---\n\n");
     if (results.length > MIN_CHARS) {
       log.info("success", "tavily", { latencyMs: Date.now() - start, chars: results.length });
-      return results.slice(0, MAX_CHARS);
+      return results.slice(0, maxChars);
     }
     log.info("failure", "tavily", { latencyMs: Date.now() - start, reason: "thin_content" });
     return null;
@@ -157,7 +157,7 @@ export async function searchViaTavily(query: string, apiKey: string, log: Logger
   }
 }
 
-export async function searchViaDuckDuckGoLite(query: string, log: Logger): Promise<string | null> {
+export async function searchViaDuckDuckGoLite(query: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   const start = Date.now();
   log.info("attempt", "duckduckgo", { query: query.slice(0, 80) });
   try {
@@ -177,7 +177,7 @@ export async function searchViaDuckDuckGoLite(query: string, log: Logger): Promi
     const cleaned = lines.join("\n\n").trim();
     if (cleaned.length > MIN_CHARS) {
       log.info("success", "duckduckgo", { latencyMs: Date.now() - start, chars: cleaned.length });
-      return cleaned.slice(0, MAX_CHARS);
+      return cleaned.slice(0, maxChars);
     }
     return null;
   } catch {
@@ -186,7 +186,7 @@ export async function searchViaDuckDuckGoLite(query: string, log: Logger): Promi
   }
 }
 
-export async function searchViaDuckDuckGoFree(query: string, log: Logger): Promise<string | null> {
+export async function searchViaDuckDuckGoFree(query: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   const start = Date.now();
   log.info("attempt", "duckduckgo", { variant: "html", query: query.slice(0, 80) });
   try {
@@ -206,7 +206,7 @@ export async function searchViaDuckDuckGoFree(query: string, log: Logger): Promi
     const cleaned = lines.join("\n\n").trim();
     if (cleaned.length > MIN_CHARS) {
       log.info("success", "duckduckgo", { variant: "html", latencyMs: Date.now() - start, chars: cleaned.length });
-      return cleaned.slice(0, MAX_CHARS);
+      return cleaned.slice(0, maxChars);
     }
     return null;
   } catch {
@@ -215,7 +215,7 @@ export async function searchViaDuckDuckGoFree(query: string, log: Logger): Promi
   }
 }
 
-export async function searchViaMistralWeb(query: string, apiKey: string, log: Logger): Promise<string | null> {
+export async function searchViaMistralWeb(query: string, apiKey: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   if (!apiKey) return null;
   const start = Date.now();
   log.info("attempt", "mistral_websearch", { query: query.slice(0, 80) });
@@ -238,7 +238,7 @@ export async function searchViaMistralWeb(query: string, apiKey: string, log: Lo
     const content = data?.choices?.[0]?.message?.content;
     if (content && content.length > MIN_CHARS) {
       log.info("success", "mistral_websearch", { latencyMs: Date.now() - start, chars: content.length });
-      return content.slice(0, MAX_CHARS);
+      return content.slice(0, maxChars);
     }
     return null;
   } catch {
@@ -247,9 +247,9 @@ export async function searchViaMistralWeb(query: string, apiKey: string, log: Lo
   }
 }
 
-export async function searchViaExaMcpWithMistral(query: string, apiKey: string, log: Logger): Promise<string | null> {
+export async function searchViaExaMcpWithMistral(query: string, apiKey: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   if (!apiKey) return null;
-  const exaContext = await searchViaExaMcp(query, log);
+  const exaContext = await searchViaExaMcp(query, log, maxChars);
   if (!exaContext) return null;
 
   const start = Date.now();
@@ -286,7 +286,7 @@ export async function searchViaExaMcpWithMistral(query: string, apiKey: string, 
     const content = data?.choices?.[0]?.message?.content;
     if (content && content.length > MIN_CHARS) {
       log.info("success", "exa_mcp_mistral", { latencyMs: Date.now() - start, chars: content.length });
-      return content.slice(0, MAX_CHARS);
+      return content.slice(0, maxChars);
     }
     return null;
   } catch {

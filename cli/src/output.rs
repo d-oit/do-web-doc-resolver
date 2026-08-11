@@ -123,6 +123,33 @@ impl ConfigOutput {
             "  semantic_cache.threshold: {}",
             config.semantic_cache.threshold
         );
+        if let Some(q) = config.routing.min_free_quality_to_skip_paid {
+            println!("  routing.min_free_quality_to_skip_paid: {}", q);
+        }
+        println!(
+            "  routing.prewarm.enabled: {}",
+            config.routing.prewarm.enabled
+        );
+        println!(
+            "  routing.prewarm.top_n_domains: {}",
+            config.routing.prewarm.top_n_domains
+        );
+        println!(
+            "  routing.prewarm.max_concurrency: {}",
+            config.routing.prewarm.max_concurrency
+        );
+        let ttl = &config.cache.ttl;
+        println!("  cache.ttl: {:#?}", ttl);
+        let mut providers: Vec<_> = config.providers.iter().collect();
+        providers.sort_by(|a, b| a.0.cmp(b.0));
+        for (name, provider) in providers {
+            if let Some(rl) = &provider.rate_limit {
+                println!(
+                    "  providers.{}.rate_limit: {} rps, burst {}",
+                    name, rl.requests_per_second, rl.burst
+                );
+            }
+        }
     }
 }
 

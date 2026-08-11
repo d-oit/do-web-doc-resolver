@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ProviderResult } from "@/lib/results";
+import { isSafeExternalUrl } from "@/lib/results";
 
 const PLACEHOLDER_REGEX = /^(n\/a|na|unknown|none|-|–)$/iu;
 
@@ -51,6 +52,7 @@ const ResultMeta = ({ author, published }: { author?: string | null; published?:
 
 export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }: ResultCardProps) {
   const [copying, setCopying] = useState(false);
+  const safeUrl = result.url && isSafeExternalUrl(result.url) ? result.url : null;
 
   const handleCopy = async () => {
     setCopying(true);
@@ -65,7 +67,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
         <ResultHeader
           id={result.id ? `result-${result.id}` : ""}
           title={result.title}
-          url={result.url ?? null}
+          url={safeUrl}
           normalizedUrl={result.normalizedUrl ?? null}
         />
         <ResultMeta author={result.author ?? null} published={result.published ?? null} />
@@ -81,9 +83,9 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
         >
           {copying ? "Copied" : "Copy markdown"}
         </button>
-        {result.url && (
+        {safeUrl && (
           <a
-            href={result.url}
+            href={safeUrl}
             target="_blank"
             rel="noreferrer"
             className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"

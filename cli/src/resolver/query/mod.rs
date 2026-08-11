@@ -353,8 +353,9 @@ impl QueryCascade {
                             .as_ref()
                             .is_none_or(|b| quality.score as f64 > b.score);
                         if dominated {
-                            best_free_result = Some(first.clone());
-                            best_free_result.as_mut().unwrap().score = quality.score as f64;
+                            let mut candidate = first.clone();
+                            candidate.score = quality.score as f64;
+                            best_free_result = Some(candidate);
                         }
 
                         let threshold = profile_defaults.min_free_quality_to_skip_paid;

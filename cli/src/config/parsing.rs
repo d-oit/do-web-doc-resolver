@@ -4,14 +4,26 @@ use super::Config;
 
 pub fn apply_env_overrides(config: &mut Config) {
     if let Ok(config_path) = env::var("DO_WDR_CONFIG") {
-        if let Ok(file_config) = Config::from_file(&config_path) {
-            config.merge(file_config);
+        match Config::from_file(&config_path) {
+            Ok(file_config) => config.merge(file_config),
+            Err(e) => eprintln!(
+                "Warning: ignoring invalid config file {}: {}",
+                config_path, e
+            ),
         }
     } else {
         for path in ["./config.toml", "./do-wdr.toml", "./do-wdr.conf"] {
-            if let Ok(file_config) = Config::from_file(path) {
-                config.merge(file_config);
-                break;
+            // Only warn when a file exists but fails to parse; a missing optional
+            // config file is the normal case and must stay silent.
+            if !std::path::Path::new(path).is_file() {
+                continue;
+            }
+            match Config::from_file(path) {
+                Ok(file_config) => {
+                    config.merge(file_config);
+                    break;
+                }
+                Err(e) => eprintln!("Warning: ignoring invalid config file {}: {}", path, e),
             }
         }
     }

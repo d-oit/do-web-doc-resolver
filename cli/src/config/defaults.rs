@@ -112,10 +112,6 @@ pub(crate) fn default_prewarm_max_concurrency() -> usize {
     4
 }
 
-pub(crate) fn default_max_links() -> usize {
-    10
-}
-
 pub(crate) fn default_ttl_firecrawl() -> u64 {
     21600
 }

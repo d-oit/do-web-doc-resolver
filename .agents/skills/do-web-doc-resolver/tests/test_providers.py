@@ -8,13 +8,11 @@ import pytest
 from unittest.mock import patch, MagicMock
 import time
 
+from scripts.constants import DEFAULT_TIMEOUT, MAX_CHARS, MIN_CHARS
 from scripts.providers_impl import (
     is_rate_limited,
     set_rate_limit,
     _rate_limits,
-    MAX_CHARS,
-    MIN_CHARS,
-    DEFAULT_TIMEOUT,
 )
 
 
@@ -129,18 +127,24 @@ class TestResolveWithJina:
         # This test demonstrates the rate limit check behavior
         assert is_rate_limited("jina") is False  # Not rate limited by default
 
-    @patch("scripts.providers_impl._get_from_cache")
-    def test_cache_hit_returns_cached(self, mock_cache):
-        """Cached result should be returned immediately."""
+    @patch("scripts.providers.jina._get_from_cache")
+    @patch("scripts.providers.jina.get_session")
+    def test_cache_hit_returns_cached(self, mock_session, mock_cache):
+        """A cached result is returned immediately without any HTTP call."""
         from scripts.models import ResolvedResult
+        from scripts.providers.jina import resolve_with_jina
 
         mock_cache.return_value = {
             "source": "jina",
             "content": "cached content",
             "url": "https://example.com",
         }
-        # Would need full mock of get_session for actual test
-        # This demonstrates the cache check pattern
+        mock_session.return_value.get.side_effect = AssertionError("should not hit network")
+
+        result = resolve_with_jina("https://example.com")
+        assert isinstance(result, ResolvedResult)
+        assert result.content == "cached content"
+        assert result.source == "jina"
 
 
 class TestResolveWithExaMcp:

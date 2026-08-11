@@ -315,25 +315,6 @@ impl Resolver {
         result
     }
 
-    /// Resolve with custom provider order
-    #[allow(dead_code)]
-    pub async fn resolve_with_order(
-        &self,
-        input: &str,
-        providers: &[ProviderType],
-    ) -> Result<ResolvedResult, ResolverError> {
-        for provider in providers {
-            let result = self.resolve_direct(input, *provider).await;
-            if let Ok(res) = result {
-                if res.is_valid(self.config.min_chars) {
-                    return Ok(res);
-                }
-            }
-        }
-
-        Err(ResolverError::Provider("No provider succeeded".to_string()))
-    }
-
     /// Access to routing memory
     pub fn routing_memory(&self) -> Arc<RwLock<RoutingMemory>> {
         self.routing_memory.clone()

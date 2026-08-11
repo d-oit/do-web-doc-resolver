@@ -36,13 +36,13 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 |---|------|-------|--------|
 | 01 | [Architecture](01-architecture-improvements.md) | PyO3, async mutex, provider trait | All phases PENDING (see plan 21 D1–D3) |
 | 02 | [Providers](02-new-providers.md) | 7 new integrations | All PENDING |
-| 03 | [Performance](03-performance-optimization.md) | Latency, caching, HTTP/2 | 1/10 done (compaction) |
+| 03 | [Performance](03-performance-optimization.md) | Latency, caching, HTTP/2 | ~9/10 done |
 | 04 | [Features](04-new-features.md) | Batch API, streaming, webhooks | All PENDING |
 | 05 | [UI/UX](05-ui-ux-improvements.md) | Stepper, streaming, accessibility | 4 items done |
 | 06 | [Testing](06-testing-improvements.md) | Security, parity, benchmarks | CI fixes done |
 | 07 | [Documentation](07-documentation-improvements.md) | Tutorials, ADRs | 4 doc improvements done |
 | 08 | [Deep Research](08-deep-research.md) | Multi-step research framework | All PENDING |
-| 11 | [Cache Pre-warming](11-cache-prewarming.md) | CLI + web prewarm | PENDING |
+| 11 | [Cache Pre-warming](11-cache-prewarming.md) | CLI + web prewarm | ✅ SHIPPED |
 | 21 | [Codebase Improvement 2026-06](21-codebase-improvement-2026-06.md) | mypy, broad excepts, file-size splits, providers DRY | ✅ Wave A, B1-B2 DONE |
 
 ## Implementation Waves (history)

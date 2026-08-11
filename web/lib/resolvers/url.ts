@@ -68,7 +68,7 @@ async function fetchWithTimeout(
   }
 }
 
-export async function extractViaLlmsTxt(url: string, log: Logger): Promise<string | null> {
+export async function extractViaLlmsTxt(url: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   const start = Date.now();
   log.info("probing llms.txt", "llms_txt", { url });
   try {
@@ -84,7 +84,7 @@ export async function extractViaLlmsTxt(url: string, log: Logger): Promise<strin
     const text = await res.text();
     if (text.length > MIN_CHARS) {
       log.info("success", "llms_txt", { latencyMs: Date.now() - start, chars: text.length });
-      return text.slice(0, MAX_CHARS);
+      return text.slice(0, maxChars);
     }
     log.info("llms.txt too short", "llms_txt", { chars: text.length });
     return null;
@@ -94,7 +94,7 @@ export async function extractViaLlmsTxt(url: string, log: Logger): Promise<strin
   }
 }
 
-export async function extractViaJina(url: string, log: Logger): Promise<string | null> {
+export async function extractViaJina(url: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   const start = Date.now();
   log.info("attempt", "jina", { url });
   try {
@@ -113,7 +113,7 @@ export async function extractViaJina(url: string, log: Logger): Promise<string |
     const text = await res.text();
     if (text.length > MIN_CHARS) {
       log.info("success", "jina", { latencyMs: Date.now() - start, chars: text.length });
-      return text.slice(0, MAX_CHARS);
+      return text.slice(0, maxChars);
     }
     return null;
   } catch {
@@ -210,7 +210,7 @@ function extractTextFromHtml(html: string): string {
   return decodeEntities(cleaned);
 }
 
-export async function extractViaDirectFetch(url: string, log: Logger): Promise<string | null> {
+export async function extractViaDirectFetch(url: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   const start = Date.now();
   log.info("attempt", "direct_fetch", { url });
   try {
@@ -229,7 +229,7 @@ export async function extractViaDirectFetch(url: string, log: Logger): Promise<s
 
     if (text.length > MIN_CHARS) {
       log.info("success", "direct_fetch", { latencyMs: Date.now() - start, chars: text.length });
-      return text.slice(0, MAX_CHARS);
+      return text.slice(0, maxChars);
     }
     return null;
   } catch {
@@ -238,7 +238,7 @@ export async function extractViaDirectFetch(url: string, log: Logger): Promise<s
   }
 }
 
-export async function extractViaFirecrawl(url: string, apiKey: string, log: Logger): Promise<string | null> {
+export async function extractViaFirecrawl(url: string, apiKey: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   if (!apiKey) return null;
   const start = Date.now();
   log.info("attempt", "firecrawl", { url });
@@ -263,7 +263,7 @@ export async function extractViaFirecrawl(url: string, apiKey: string, log: Logg
     const markdown = data?.data?.markdown;
     if (markdown && markdown.length > MIN_CHARS) {
       log.info("success", "firecrawl", { latencyMs: Date.now() - start, chars: markdown.length });
-      return markdown.slice(0, MAX_CHARS);
+      return markdown.slice(0, maxChars);
     }
     return null;
   } catch {
@@ -272,7 +272,7 @@ export async function extractViaFirecrawl(url: string, apiKey: string, log: Logg
   }
 }
 
-export async function extractViaMistralBrowser(url: string, apiKey: string, log: Logger): Promise<string | null> {
+export async function extractViaMistralBrowser(url: string, apiKey: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   if (!apiKey) return null;
   const start = Date.now();
   log.info("attempt", "mistral_browser", { url });
@@ -301,7 +301,7 @@ export async function extractViaMistralBrowser(url: string, apiKey: string, log:
     const content = data?.choices?.[0]?.message?.content;
     if (content && content.length > MIN_CHARS) {
       log.info("success", "mistral_browser", { latencyMs: Date.now() - start, chars: content.length });
-      return content.slice(0, MAX_CHARS);
+      return content.slice(0, maxChars);
     }
     return null;
   } catch {

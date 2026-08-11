@@ -35,7 +35,10 @@ vercel build --prod  # Verify production build
 
 Set in Vercel dashboard:
 
-- `NEXT_PUBLIC_RESOLVER_URL`: Backend resolver URL (default: <http://localhost:8000>)
+- `RECORDS_MAX_SIZE`: Max in-memory records kept (default `100`)
+- `RECORDS_TTL_DAYS`: Records older than this are dropped (default `30`)
+- `WEB_RESOLVER_MAX_CHARS`: Max characters in resolved content (default `8000`)
+- `EXA_API_KEY` / `TAVILY_API_KEY` / `SERPER_API_KEY` / `FIRECRAWL_API_KEY` / `MISTRAL_API_KEY`: optional provider keys (free providers work without keys)
 
 ### 2. Docker (Backend)
 

@@ -14,14 +14,11 @@ pub use defaults::RoutingProfileConfig;
 pub use defaults::routing_profile_defaults;
 
 #[derive(Error, Debug)]
-#[allow(dead_code)]
 pub enum ConfigError {
     #[error("Failed to read config file: {0}")]
     IoError(#[from] std::io::Error),
     #[error("Failed to parse config file: {0}")]
     ParseError(#[from] toml::de::Error),
-    #[error("Invalid configuration: {0}")]
-    InvalidConfig(String),
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -64,8 +61,6 @@ pub struct Config {
     pub circuit_breaker_threshold: u32,
     #[serde(default = "default_circuit_breaker_cooldown")]
     pub circuit_breaker_cooldown_secs: u64,
-    #[serde(default = "default_max_links")]
-    pub max_links: usize,
     #[serde(default)]
     pub providers: HashMap<String, ProviderConfig>,
 }
@@ -199,7 +194,6 @@ impl Default for Config {
             error_cache_ttl_secs: default_error_cache_ttl(),
             circuit_breaker_threshold: default_circuit_breaker_threshold(),
             circuit_breaker_cooldown_secs: default_circuit_breaker_cooldown(),
-            max_links: default_max_links(),
             providers: HashMap::new(),
         }
     }
@@ -255,7 +249,6 @@ impl Config {
             other.circuit_breaker_cooldown_secs,
             default_circuit_breaker_cooldown(),
         );
-        merge_value(&mut self.max_links, other.max_links, default_max_links());
         merge_bool(
             &mut self.semantic_cache.enabled,
             other.semantic_cache.enabled,
