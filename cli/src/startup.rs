@@ -59,7 +59,7 @@ pub async fn prewarm_domains<F, Fut>(
     resolve: F,
 ) -> anyhow::Result<()>
 where
-    F: Fn(String) -> Fut + Clone + Send + Sync + 'static,
+    F: Fn(String) -> Fut + Clone + Send + 'static,
     Fut: Future<Output = anyhow::Result<()>> + Send + 'static,
 {
     // A zero limit would deadlock the spawn loop on the first acquire; treat
