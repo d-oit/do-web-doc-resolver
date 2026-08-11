@@ -90,12 +90,19 @@ jobs:
       - name: Lint PR title against commitlint
         if: github.actor != 'dependabot[bot]'
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           # Defends against bots (Jules, Dependabot, Copilot) that bypass
           # local commit-msg hooks. The PR title is the squash-merge subject
           # for the merged commit; it MUST be a valid conventional commit.
           # See ADR-008 (PR #505 run 27086771117).
+          # Fetch the live title from the API, NOT github.event.pull_request.title:
+          # reruns replay the original event payload, so an edited PR title
+          # would be checked against a stale value and keep failing forever.
+          PR_TITLE="$(gh pr view "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json title --jq '.title')"
           printf '%s\n' "$PR_TITLE" > pr-title.txt
           if ! npx commitlint \
                 --config commitlint.config.cjs \
@@ -110,12 +117,18 @@ jobs:
       - name: Enforce PR body length for squash merge compatibility
         if: github.actor != 'dependabot[bot]'
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           # On squash merge, GitHub concatenates PR title + body as the
           # commit message. Enforce body limits here since commitlint
           # body-max-length is disabled (squash merges produce long bodies
           # from PR descriptions by design).
+          # Fetch the live body from the API (same reconsideration as the
+          # title lint above): reruns replay the stale event payload.
+          PR_BODY="$(gh pr view "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json body --jq '.body // ""')"
           BODY_LEN=${#PR_BODY}
           if [ "$BODY_LEN" -gt 2000 ]; then
             echo "::error::PR body is ${BODY_LEN} chars (max 2000)."
