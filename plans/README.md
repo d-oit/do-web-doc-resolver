@@ -15,7 +15,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 
 ## Release Status
 
-- **Current**: `v0.3.9` — manifests aligned across Python / Rust / Web / CLI
+- **Current**: `v0.3.10` — manifests aligned across Python / Rust / Web / CLI
 - **Quality gate**: PASS (markdownlint warnings non-blocking)
 - **Open PRs**: 0 · **Open issues**: 0
 - **Static analysis on `main`**: Clippy ✅ · ESLint ✅ · Ruff ✅ · mypy ✅
@@ -29,6 +29,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 | 013 | [Test Coverage & CI](013-test-coverage-and-ci-reliability.md) | Misleading tests, CI fixes | ✅ All waves DONE |
 | 014 | [Architecture & Parity](014-architecture-and-parity.md) | DRY consolidation, constants, dead code | ✅ Waves 3, 6 DONE |
 | 015 | Nightly Bridge PR (archived) | Nightly workflow push→PR | ✅ Implemented (PR #366) |
+| 017 | [libsql parser defer](../docs/adr/ADR-017-libsql-parser-defer.md) | GHSA-8m95-fffc-h4c5 deferral (upstream-blocked) | 🔒 Deferred |
 
 ## Roadmap Plans
 
