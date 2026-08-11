@@ -1,7 +1,9 @@
-## [Unreleased]
+## [0.3.10] - 2026-08-11
 
 ### Added
 
+- **CLI**: close out cache pre-warming — offline integration tests, `[routing.prewarm]` config block, documentation (#570)
+- **CI**: nightly integration test for JS-heavy LLM-ready markdown (#571)
 - **Cascade**: FetchTier enum and stealth escalation layer for provider tier mapping (#509, #488)
 - **Resolver**: ReadonlyResolverProtocol for typed provider callables (#508)
 - **Resolver**: visual_clip provider wired into URL resolution cascade
@@ -18,6 +20,8 @@
 
 ### Changed
 
+- **CLI**: refactor dead-code removal, split utils into package, expand config output (#575)
+- **CLI**: drop unnecessary Sync bound on prewarm resolve closure (#573)
 - **Resolver**: align synthesis logic with 2026 LLM-ready standards (#511)
 - **CLI**: optimize semantic cache metrics and redundancy pruning
 - **CLI**: optimize deterministic merge reducing line allocations
