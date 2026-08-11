@@ -24,8 +24,6 @@ from scripts.doc_validator import (
     check_shell_commands,
     fix_cargo_features,
     fix_duplicate_links,
-    fix_python_cli,
-    fix_repo_trees,
     fix_rust_architecture,
 )
 
@@ -72,10 +70,8 @@ def run_all_checks() -> Report:
 def run_fixers(report: Report) -> int:
     """Run fixers for common issues."""
     fixed_count = 0
-    fixed_count += fix_python_cli(report)
     fixed_count += fix_cargo_features(report)
     fixed_count += fix_duplicate_links(report)
-    fixed_count += fix_repo_trees(report)
     fixed_count += fix_rust_architecture(report)
     return fixed_count
 

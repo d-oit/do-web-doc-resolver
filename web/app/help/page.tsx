@@ -65,7 +65,7 @@ export default function HelpPage() {
             <div className="p-3 border-2 border-border-muted">
               <p className="text-[13px] font-bold">Failed to fetch</p>
               <p className="text-[11px] text-text-muted mt-1">
-                Backend not running or NEXT_PUBLIC_RESOLVER_URL misconfigured.
+                Backend or provider not reachable. Try again or check network.
               </p>
             </div>
             <div className="p-3 border-2 border-border-muted">

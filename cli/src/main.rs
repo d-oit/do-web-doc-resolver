@@ -16,13 +16,22 @@ use do_wdr_lib::{
     types::ProviderType,
 };
 
-/// Initialize logging based on verbosity level
-fn init_logging(verbose: u8) {
+/// Initialize logging based on verbosity level and config log level
+fn init_logging(verbose: u8, log_level: &str) {
     let filter = match verbose {
-        0 => EnvFilter::try_from_default_env()
-            .unwrap_or_else(|_| EnvFilter::new("do_wdr=info,do_wdr_lib=info")),
         1 => EnvFilter::new("do_wdr=debug,do_wdr_lib=debug"),
-        _ => EnvFilter::new("do_wdr=trace,do_wdr_lib=trace"),
+        _ if verbose >= 2 => EnvFilter::new("do_wdr=trace,do_wdr_lib=trace"),
+        _ => {
+            let lvl = log_level.trim().to_lowercase();
+            match lvl.as_str() {
+                "info" => EnvFilter::new("do_wdr=info,do_wdr_lib=info"),
+                "trace" | "debug" | "warn" | "error" | "off" => {
+                    EnvFilter::new(format!("do_wdr={lvl},do_wdr_lib={lvl}"))
+                }
+                _ => EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| EnvFilter::new("do_wdr=info,do_wdr_lib=info")),
+            }
+        }
     };
 
     fmt()
@@ -185,7 +194,7 @@ fn main() -> ExitCode {
     let cli = Cli::parse_args();
 
     // Initialize logging
-    init_logging(cli.verbose);
+    init_logging(cli.verbose, &Config::load().log_level);
 
     // Run the appropriate command
     let result = match cli.command {

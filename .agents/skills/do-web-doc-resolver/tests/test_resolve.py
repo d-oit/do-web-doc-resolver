@@ -20,10 +20,10 @@ class TestIsUrl:
         assert is_url("http://example.com") is True
         assert is_url("http://localhost:8000") is True
 
-    def test_detects_ftp_url(self):
-        """Should detect ftp URLs."""
-        assert is_url("ftp://ftp.example.com") is True
-        assert is_url("ftps://secure.example.com") is True
+    def test_rejects_ftp_url(self):
+        """FTP URLs are rejected — only http/https are resolvable (SSRF guard)."""
+        assert is_url("ftp://ftp.example.com") is False
+        assert is_url("ftps://secure.example.com") is False
 
     def test_detects_url_with_path(self):
         """Should detect URLs with paths."""

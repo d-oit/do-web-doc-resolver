@@ -28,7 +28,7 @@ async function runQueryProvider(
 ): Promise<string | null> {
   // Special case: exa_mcp_mistral combo not in shared map
   if (provider === "exa_mcp_mistral") {
-    return searchViaExaMcpWithMistral(query, keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || "", log);
+    return searchViaExaMcpWithMistral(query, keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || "", log, maxChars);
   }
   // Validate provider against allowlist before dynamic dispatch
   const allowedProviders = ["exa_mcp", "exa", "serper", "tavily", "duckduckgo", "mistral_websearch"];
@@ -42,7 +42,7 @@ async function runQueryProvider(
   if (!mergedKeys.TAVILY_API_KEY && process.env.TAVILY_API_KEY) mergedKeys.TAVILY_API_KEY = process.env.TAVILY_API_KEY;
   if (!mergedKeys.FIRECRAWL_API_KEY && process.env.FIRECRAWL_API_KEY) mergedKeys.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
   if (!mergedKeys.MISTRAL_API_KEY && process.env.MISTRAL_API_KEY) mergedKeys.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
-  return fn(query, mergedKeys, log);
+  return fn(query, mergedKeys, log, maxChars);
 }
 
 // URL provider functions using Logger
@@ -65,7 +65,7 @@ async function runUrlProvider(
   if (!mergedKeys.TAVILY_API_KEY && process.env.TAVILY_API_KEY) mergedKeys.TAVILY_API_KEY = process.env.TAVILY_API_KEY;
   if (!mergedKeys.FIRECRAWL_API_KEY && process.env.FIRECRAWL_API_KEY) mergedKeys.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
   if (!mergedKeys.MISTRAL_API_KEY && process.env.MISTRAL_API_KEY) mergedKeys.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
-  return fn(url, mergedKeys, log);
+  return fn(url, mergedKeys, log, maxChars);
 }
 
 // Run providers sequentially with budget and circuit breaker

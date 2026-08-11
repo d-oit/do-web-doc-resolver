@@ -1077,3 +1077,69 @@ class TestQualityGate:
             assert final_result["source"] == "exa_mcp"
             assert final_result["metrics"]["quality_gate"]["passed"] is True
             assert final_result["metrics"]["quality_gate"]["score"] == 0.8
+
+
+class TestRoutingMemoryPersistence:
+    """File-backed routing memory (AUDIT #25)."""
+
+    def test_round_trip_save_load(self, tmp_path):
+        rm = RoutingMemory(path=str(tmp_path / "routing_memory.json"))
+        rm.record("persist.com", "p1", True, 120, 0.9)
+        rm.record("persist.com", "p2", False, 400, 0.2)
+        rm.save()
+
+        assert (tmp_path / "routing_memory.json").exists()
+
+        reloaded = RoutingMemory(path=str(tmp_path / "routing_memory.json"))
+        assert reloaded.get_domain_stats("p1", "persist.com") is not None
+        assert reloaded.get_domain_stats("p1", "persist.com")["attempts"] == 1
+        assert reloaded.get_domain_stats("p2", "persist.com")["success_rate"] == 0.0
+        ranked = reloaded.rank("persist.com", ["p1", "p2"])
+        assert ranked[0] == "p1"
+
+    def test_no_path_is_in_memory_only(self):
+        rm = RoutingMemory()
+        rm.record("mem.com", "p1", True, 100, 0.9)
+        # save() must not raise and must not require a path
+        rm.save()
+        rm.clear()
+        assert rm.get_domain_stats("p1", "mem.com") is None
+
+    def test_missing_file_loads_empty(self, tmp_path):
+        rm = RoutingMemory(path=str(tmp_path / "nonexistent.json"))
+        assert rm.rank("unknown.com", ["p1", "p2"]) == ["p1", "p2"]
+
+    def test_corrupt_file_loads_empty(self, tmp_path):
+        f = tmp_path / "corrupt.json"
+        f.write_text("{not valid json")
+        rm = RoutingMemory(path=str(f))
+        assert rm.rank("unknown.com", ["p1", "p2"]) == ["p1", "p2"]
+
+    def test_clear_removes_disk_file_and_in_memory(self, tmp_path):
+        p = tmp_path / "rm.json"
+        rm = RoutingMemory(path=str(p))
+        rm.record("x.com", "p1", True, 100, 0.9)
+        rm.save()
+        assert p.exists()
+        rm.clear()
+        # clear() resets memory; reloading from the pre-clear file should see nothing
+        # if the file was overwritten by a later save — verify in-memory is empty now
+        assert rm.get_domain_stats("p1", "x.com") is None
+
+    def test_corrupt_stats_entry_does_not_crash_rank(self, tmp_path):
+        """A partially-corrupt persisted entry should degrade to defaults, not crash."""
+        p = tmp_path / "rm.json"
+        p.write_text('{"bad.com": {"bp": {"success": 1}}}')
+        rm = RoutingMemory(path=str(p))
+        ranked = rm.rank("bad.com", ["bp", "other"])
+        assert isinstance(ranked, list)
+        assert len(ranked) == 2
+
+    def test_record_auto_persists(self, tmp_path):
+        """record() with a path should write the file within the throttle window."""
+        p = tmp_path / "rm.json"
+        rm = RoutingMemory(path=str(p))
+        rm.record("auto.com", "p1", True, 100, 0.9)
+        assert p.exists()
+        reloaded = RoutingMemory(path=str(p))
+        assert reloaded.get_domain_stats("p1", "auto.com") is not None

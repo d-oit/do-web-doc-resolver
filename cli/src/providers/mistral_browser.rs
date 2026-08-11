@@ -148,13 +148,17 @@ impl crate::providers::UrlProvider for MistralBrowserProvider {
                 .join("\n")
         } else {
             // Cleanup on failure
-            let _ = self.delete_agent(&agent_id, api_key).await;
+            if let Err(e) = self.delete_agent(&agent_id, api_key).await {
+                tracing::warn!("Failed to delete Mistral agent {}: {}", agent_id, e);
+            }
             let error_text = conv_response.text().await.unwrap_or_default();
             return Err(detect_error_type(&error_text));
         };
 
         // Step 3: Cleanup - delete the agent
-        let _ = self.delete_agent(&agent_id, api_key).await;
+        if let Err(e) = self.delete_agent(&agent_id, api_key).await {
+            tracing::warn!("Failed to delete Mistral agent {}: {}", agent_id, e);
+        }
 
         Ok(ResolvedResult::new(
             url,

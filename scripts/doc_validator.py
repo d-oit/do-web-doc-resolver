@@ -68,17 +68,24 @@ def check_shell_commands(report: Report, doc_name: str, content: str):
 
 
 def check_python_cli(report: Report):
-    """Verify scripts/cli.py entrypoint matches documented patterns."""
+    """Verify scripts/cli.py help text appears in README.md."""
     cli_path = REPO_ROOT / "scripts/cli.py"
     if not cli_path.exists():
         return
 
     content = cli_path.read_text()
     readme = (REPO_ROOT / "README.md").read_text()
-    for match in re.finditer(r"help=['\"]([^'\"]+)['\"]", content):
-        help_text = match.group(1)
-        if help_text not in readme and len(help_text) > 10:
-            pass
+    for line_no, line in enumerate(content.splitlines(), 1):
+        for match in re.finditer(r"help=['\"]([^'\"]+)['\"]", line):
+            help_text = match.group(1)
+            if help_text not in readme and len(help_text) > 10:
+                report.add(
+                    "warning",
+                    "cli-help-doc-sync",
+                    "scripts/cli.py",
+                    f"Help text not documented in README: '{help_text}'",
+                    line_no,
+                )
 
 
 def check_rust_cli_flags(report: Report):
@@ -251,11 +258,6 @@ def check_cross_docs(report: Report):
 # --- Fixers ---
 
 
-def fix_python_cli(report: Report) -> int:
-    """Example fixer for Python CLI docs."""
-    return 0
-
-
 def fix_cargo_features(report: Report) -> int:
     """Auto-update RUST_CLI.md with missing Cargo features."""
     fixed = 0
@@ -293,14 +295,42 @@ def fix_cargo_features(report: Report) -> int:
     return fixed
 
 
-def fix_duplicate_links(report: Report) -> int:
-    """Remove duplicate links from README.md."""
-    return 0
+def fix_duplicate_links(report: Report, doc: str = "README.md") -> int:
+    """Remove duplicate markdown links from a doc, keeping the first occurrence.
 
+    Only whole-line duplicate links are removed (a line whose trimmed content is
+    exactly a single markdown link), so prose containing a link is never touched.
+    """
+    fixed = 0
+    path = REPO_ROOT / doc
+    if not path.exists():
+        return fixed
 
-def fix_repo_trees(report: Report) -> int:
-    """Auto-fix repository trees in documentation."""
-    return 0
+    issues = [i for i in report.issues if i.category == "duplicate-link" and i.doc == doc]
+    if not issues:
+        return fixed
+
+    content = path.read_text(encoding="utf-8")
+    lines = content.splitlines(keepends=True)
+    seen: set[tuple[str, str]] = set()
+    # A line whose trimmed content is exactly one markdown link: [text](target)
+    whole_line_link = re.compile(r"^\[([^\]]+)\]\(([^)]+)\)$")
+    new_lines = []
+
+    for line in lines:
+        trimmed = line.strip()
+        match = whole_line_link.match(trimmed)
+        if match:
+            key = (match.group(1), match.group(2))
+            if key in seen:
+                fixed += 1
+                continue
+            seen.add(key)
+        new_lines.append(line)
+
+    if fixed > 0:
+        path.write_text("".join(new_lines), encoding="utf-8")
+    return fixed
 
 
 def fix_rust_architecture(report: Report) -> int:

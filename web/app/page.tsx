@@ -288,6 +288,7 @@ export default function Home() {
     const startTime = performance.now();
 
     try {
+      const effectiveProfile = (override?.profile ?? profile) === "custom" ? "balanced" : (override?.profile ?? profile);
       const res = await fetch("/api/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -295,6 +296,7 @@ export default function Home() {
           query: activeQuery.trim(),
           ...apiKeys,
           providers: override?.providers ?? requestProviders,
+          profile: effectiveProfile,
           deepResearch: override?.deepResearch ?? deepResearch,
           maxChars: override?.maxChars ?? maxChars,
           skipCache: override?.skipCache ?? skipCache,

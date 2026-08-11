@@ -187,14 +187,6 @@ async function syncToServer(state: Partial<UIState>): Promise<void> {
 }
 
 // Legacy exports for backward compatibility (deprecated)
-export function loadUiState(): UIState {
-  return loadFromLocalStorage();
-}
-
-export function saveUiState(state: Partial<UIState>): void {
-  saveUIState(state);
-}
-
 export async function loadStateFromServer(): Promise<UIState | null> {
   try {
     const res = await fetch("/api/ui-state");

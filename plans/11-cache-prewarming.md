@@ -2,7 +2,12 @@
 
 ## Status
 
-Proposed
+✅ **Shipped** — implemented 2026-07; verified green 2026-08-11.
+All Wave 1-4 work is complete: `cli/src/startup.rs` (`prewarm_cache` +
+`prewarm_domains` DI core), `cli/src/main.rs:129` wiring, `config.toml`
+`[routing.prewarm]`, docs in `agents-docs/CONFIG.md`, and offline integration
+tests (`cli/tests/startup_prewarm.rs`, `startup_semaphore.rs`, `config_prewarm.rs`).
+T3 (Python) was intentionally dropped — the Python runtime has no prewarm path.
 
 ## Context
 
