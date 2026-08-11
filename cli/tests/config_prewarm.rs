@@ -40,4 +40,8 @@ fn committed_config_toml_parses_with_prewarm() {
     assert!(config.routing.prewarm.enabled);
     assert_eq!(config.routing.prewarm.top_n_domains, 20);
     assert_eq!(config.routing.prewarm.max_concurrency, 4);
+    // Canary for key placement: log_level is a TOP-LEVEL Config field; nested
+    // under [routing] it deserializes as "" (serde default) instead of "info",
+    // so this assertion catches a re-introduced misnesting.
+    assert_eq!(config.log_level, "info");
 }

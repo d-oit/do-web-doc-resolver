@@ -1,12 +1,12 @@
-[routing]
-min_free_quality_to_skip_paid = 0.70
-
 max_chars = 8000
 min_chars = 200
 exa_results = 5
 tavily_results = 3
 output_limit = 10
 log_level = "info"
+
+[routing]
+min_free_quality_to_skip_paid = 0.70
 
 [routing.prewarm]
 enabled = true        # warm cache for top domains on CLI startup
