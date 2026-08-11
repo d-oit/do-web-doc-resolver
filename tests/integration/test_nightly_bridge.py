@@ -90,3 +90,36 @@ def test_nightly_llm_ready_standards():
     assert "[ANCHOR: TECHNICAL_DETAILS]" in content
     assert "[ANCHOR: COMPARISON]" in content
     assert "[ANCHOR: CITATIONS]" in content
+
+
+@pytest.mark.integration
+def test_nightly_js_heavy_llm_ready():
+    """Verify that resolving a complex JavaScript-heavy site outputs LLM-ready Markdown."""
+    url = "https://react.dev/learn"
+
+    result = subprocess.run(
+        [CLI_PATH, "resolve", url, "--provider", "jina", "--synthesize"],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "MISTRAL_API_KEY": "test_key"},
+    )
+
+    content = result.stdout
+
+    # 1. Output must be valid LLM-ready markdown with frontmatter and structural anchors
+    assert content.startswith("---")
+    assert "relevance_score:" in content
+    assert "intent_category:" in content
+    assert "token_estimate:" in content
+    assert "last_updated:" in content
+
+    # Structural Anchors
+    assert "[ANCHOR: SUMMARY]" in content
+    assert "[ANCHOR: TECHNICAL_DETAILS]" in content
+    assert "[ANCHOR: COMPARISON]" in content
+    assert "[ANCHOR: CITATIONS]" in content
+
+    # 2. Ensure no unparsed HTML tags like <pre> or <code> in the body
+    assert "<pre" not in content
+    assert "<code" not in content
