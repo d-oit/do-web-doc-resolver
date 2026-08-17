@@ -5,6 +5,7 @@
 The `do-wdr` CLI (`v0.3.10`) was evaluated against a standard set of 5 benchmark documentation URLs across major programming ecosystems (Python, Rust, JavaScript/MDN).
 
 All evaluated metrics meet or exceed standard requirements:
+
 - **Exact Match Latency:** 1 ms (Target: < 100 ms)
 - **Quality Synthesis Score:** 0.90 – 1.00 (Target: > 0.85)
 - **Redundancy Pruning:** > 0.995 cosine similarity threshold active
@@ -14,6 +15,7 @@ All evaluated metrics meet or exceed standard requirements:
 ## Evaluation Benchmark
 
 ### Tested Standard Documentation URLs
+
 1. `https://docs.python.org/3/library/os.html`
 2. `https://doc.rust-lang.org/std/vec/struct.Vec.html`
 3. `https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array`
