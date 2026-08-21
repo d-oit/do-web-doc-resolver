@@ -222,7 +222,9 @@ jobs:
       - name: Run cargo audit
         run: |
           cargo install cargo-audit --version 0.22.1 --locked
-          cd cli && cargo audit
+          # RUSTSEC-2026-0258: low-severity h2 DoS; direct h2 bumped to 0.4.18,
+          # remaining transitive h2 0.3.x via tonic 0.11 <- libsql has no patch (see deny.toml)
+          cd cli && cargo audit --ignore RUSTSEC-2026-0258
 
   # ============================================================================
   # RUST SECURITY (SAST, Deny, Outdated)
