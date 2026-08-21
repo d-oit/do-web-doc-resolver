@@ -7,11 +7,81 @@ const MAX_QUERY_LENGTH = 10000;
 const MAX_URL_LENGTH = 2048;
 
 /**
+ * Normalize host string by converting integer, hex, or octal IPv4 formats
+ * to canonical dotted-decimal IPv4 address strings if applicable.
+ */
+function normalizeHost(hostname: string): string {
+  const h = hostname.trim().toLowerCase();
+
+  // Decimal integer notation (e.g., 2130706433 -> 127.0.0.1)
+  if (/^\d+$/.test(h)) {
+    const num = Number(h);
+    if (num >= 0 && num <= 0xffffffff) {
+      return [
+        (num >>> 24) & 0xff,
+        (num >>> 16) & 0xff,
+        (num >>> 8) & 0xff,
+        num & 0xff,
+      ].join(".");
+    }
+  }
+
+  // Hexadecimal notation (e.g., 0x7f000001 -> 127.0.0.1)
+  if (/^0x[0-9a-f]+$/i.test(h)) {
+    const num = parseInt(h, 16);
+    if (num >= 0 && num <= 0xffffffff) {
+      return [
+        (num >>> 24) & 0xff,
+        (num >>> 16) & 0xff,
+        (num >>> 8) & 0xff,
+        num & 0xff,
+      ].join(".");
+    }
+  }
+
+  // Dotted notation with octal/hex/decimal parts (e.g., 0177.0.0.1, 0x7f.0.0.1)
+  const parts = h.split(".");
+  if (parts.length === 4) {
+    const convertedParts: number[] = [];
+    for (const part of parts) {
+      if (/^0x[0-9a-f]+$/i.test(part)) {
+        convertedParts.push(parseInt(part, 16));
+      } else if (/^0[0-7]+$/.test(part)) {
+        convertedParts.push(parseInt(part, 8));
+      } else if (/^\d+$/.test(part)) {
+        convertedParts.push(parseInt(part, 10));
+      } else {
+        return h;
+      }
+    }
+    if (convertedParts.every((p) => p >= 0 && p <= 255)) {
+      return convertedParts.join(".");
+    }
+  }
+
+  return h;
+}
+
+const BLOCKED_HOSTNAMES = new Set([
+  "localhost",
+  "metadata.google.internal",
+  "metadata.google",
+  "metadata.azure.com",
+  "169.254.169.254",
+  "kubernetes.default.svc",
+  "kubernetes.default",
+  "kubernetes",
+  "host.docker.internal",
+  "gateway.docker.internal",
+]);
+
+/**
  * Check if an IP address is private or reserved
  */
 function isPrivateIpAddress(ip: string): boolean {
   try {
-    const addr = ipaddr.parse(ip);
+    const normalizedIp = normalizeHost(ip);
+    const addr = ipaddr.parse(normalizedIp);
     const kind = addr.kind();
 
     // Handle IPv4-mapped IPv6 and similar encapsulations
@@ -64,9 +134,11 @@ function isPrivateIpAddress(ip: string): boolean {
 }
 
 function isBlockedInternalHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
+  const normalized = hostname.toLowerCase().replace(/\.$/, "");
+  if (BLOCKED_HOSTNAMES.has(normalized)) {
+    return true;
+  }
   return (
-    normalized === "localhost" ||
     normalized.endsWith(".local") ||
     normalized.endsWith(".internal")
   );
