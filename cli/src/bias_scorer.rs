@@ -2,6 +2,21 @@
 
 use url::Url;
 
+/// Check if a string contains another string case-insensitively (ASCII-only)
+fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    let haystack_bytes = haystack.as_bytes();
+    let needle_bytes = needle.as_bytes();
+    if haystack_bytes.len() < needle_bytes.len() {
+        return false;
+    }
+    haystack_bytes
+        .windows(needle_bytes.len())
+        .any(|window| window.eq_ignore_ascii_case(needle_bytes))
+}
+
 /// Score a result based on domain trust and content quality
 pub fn score_result(url: &str, content: &str) -> f64 {
     let mut score: f64 = 0.5;
@@ -53,11 +68,10 @@ pub fn score_result(url: &str, content: &str) -> f64 {
         score += 0.05;
     }
 
-    // SEO spam detection
+    // SEO spam detection using zero-allocation case-insensitive ASCII substring search
     let spam_terms = ["buy now", "cheap", "discount", "free trial", "best price"];
-    let lower_content = content.to_lowercase();
     for term in spam_terms {
-        if lower_content.contains(term) {
+        if contains_ignore_ascii_case(content, term) {
             score -= 0.1;
         }
     }
