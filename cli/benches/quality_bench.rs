@@ -1,4 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
+use do_wdr_lib::bias_scorer::score_result;
 use do_wdr_lib::quality::score_content;
 use std::hint::black_box;
 
@@ -53,5 +54,39 @@ One more subscribe button.
     });
 }
 
-criterion_group!(benches, bench_quality_scoring);
+fn bench_bias_scoring(c: &mut Criterion) {
+    let content = r#"
+# Sample Page
+
+This is a sample page with some content.
+It has multiple lines.
+
+Cookie Policy: We use cookies.
+All rights reserved (c) 2026.
+Privacy Policy is available here.
+
+```rust
+fn main() {
+    println!("Hello, world!");
+}
+```
+
+Subscribe to our newsletter for more updates.
+Follow us on Twitter.
+Click here to learn more.
+buy now cheap discount free trial best price
+"#
+    .repeat(10);
+
+    c.bench_function("score_result", |b| {
+        b.iter(|| {
+            score_result(
+                black_box("https://github.com/rust-lang/rust"),
+                black_box(&content),
+            );
+        });
+    });
+}
+
+criterion_group!(benches, bench_quality_scoring, bench_bias_scoring);
 criterion_main!(benches);
