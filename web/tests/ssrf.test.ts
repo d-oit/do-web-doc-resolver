@@ -60,4 +60,21 @@ describe("SSRF Validation", () => {
       expect(validateUrl("http://[::FFFF:127.0.0.1]").valid).toBe(false);
       expect(validateUrl("http://LOCALHOST").valid).toBe(false);
   });
+
+  it("rejects decimal integer, hex, octal IP notations and cloud metadata hostnames", () => {
+    const dangerousUrls = [
+      "http://2130706433/test", // 127.0.0.1 in decimal integer
+      "http://0x7f000001/test", // 127.0.0.1 in hex
+      "http://0177.0.0.1/test", // 127.0.0.1 in octal prefix
+      "http://169.254.169.254/latest/meta-data/",
+      "http://metadata.google.internal/computeMetadata/v1/",
+      "http://metadata.google/",
+      "http://metadata.azure.com/",
+      "http://kubernetes.default.svc/",
+      "http://host.docker.internal/",
+    ];
+    for (const url of dangerousUrls) {
+      expect(validateUrl(url).valid).toBe(false);
+    }
+  });
 });
