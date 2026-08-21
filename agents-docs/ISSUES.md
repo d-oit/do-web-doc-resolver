@@ -35,3 +35,10 @@
 - **Issue**: Status code 403: {"message":"Unauthorized.","statusCode":403}
 - **Action Taken**: Deprioritized serper in the routing logic.
 - **Status**: Monitoring for stability.
+
+## Provider Alert: serper unstable
+
+- **Date**: 2026-08-20
+- **Issue**: Status code 403: {"message":"Unauthorized.","statusCode":403}
+- **Action Taken**: Deprioritized serper in the routing logic.
+- **Status**: Monitoring for stability.

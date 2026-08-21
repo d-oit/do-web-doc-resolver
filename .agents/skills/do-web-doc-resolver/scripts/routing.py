@@ -233,7 +233,7 @@ def plan_provider_order(
             ]
     else:
         # DuckDuckGo deprioritized due to instability (Alert 2026-04-20)
-        # Serper deprioritized due to instability (Alert 2026-07-20)
+        # Serper deprioritized due to instability (Alert 2026-07-20 / Alert 2026-08-20)
         base = ["exa_mcp", "exa", "tavily", "mistral_websearch", "duckduckgo", "serper"]
 
     skip_providers = skip_providers or set()
