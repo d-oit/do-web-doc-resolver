@@ -98,12 +98,11 @@ export default function SettingsPage() {
             const value = apiKeys[field.key] || "";
             const localHasKey = !!value;
             const serverHasKey = !!keyStatus[field.provider];
-            const inputId = `setting-input-${field.provider}`;
 
             return (
               <div key={field.key} className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor={inputId} className="text-[13px]">{field.label}</label>
+                  <label className="text-[13px]">{field.label}</label>
                   <div className="flex items-center gap-2">
                     {localHasKey ? (
                       <span className="text-[11px] text-accent">Local key</span>
@@ -114,10 +113,8 @@ export default function SettingsPage() {
                     )}
                     {localHasKey && (
                       <button
-                        type="button"
                         onClick={() => clearKey(field.key)}
-                        aria-label={`Remove ${field.label} API key`}
-                        className="text-[11px] text-[#ff4444] hover:text-[#ff6666] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 min-h-[30px] px-1 flex items-center"
+                        className="text-[11px] text-[#ff4444] hover:text-[#ff6666]"
                       >
                         Remove
                       </button>
@@ -125,12 +122,11 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <input
-                  id={inputId}
                   type="password"
                   value={value}
                   onChange={(e) => handleKeyChange(field.key, e.target.value)}
                   placeholder="sk-..."
-                  className="bg-[#141414] border-2 border-border-muted px-3 py-2 text-[13px] text-foreground placeholder:text-text-dim focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 min-h-[44px]"
+                  className="bg-[#141414] border-2 border-border-muted px-3 py-2 text-[13px] text-foreground placeholder:text-text-dim focus:border-accent focus:outline-none"
                 />
                 {serverHasKey && !localHasKey && (
                   <p className="text-[11px] text-text-muted">
