@@ -42,6 +42,7 @@ export default function SettingsPage() {
   });
   const [keyStatus, setKeyStatus] = useState<KeyStatus>({});
   const [saved, setSaved] = useState(false);
+  const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch("/api/key-status")
@@ -79,11 +80,15 @@ export default function SettingsPage() {
     persistKeys(newKeys);
   };
 
+  const toggleKeyVisibility = (key: string) => {
+    setVisibleKeys((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
     <main className="min-h-screen bg-background text-foreground font-mono p-8">
       <div className="max-w-xl">
         <div className="mb-8">
-          <Link href="/" className="text-[11px] uppercase tracking-[0.1em] text-text-muted hover:text-accent">
+          <Link href="/" className="text-[11px] uppercase tracking-[0.1em] text-text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2">
             ← Back
           </Link>
         </div>
@@ -98,11 +103,12 @@ export default function SettingsPage() {
             const value = apiKeys[field.key] || "";
             const localHasKey = !!value;
             const serverHasKey = !!keyStatus[field.provider];
+            const isVisible = !!visibleKeys[field.key];
 
             return (
               <div key={field.key} className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[13px]">{field.label}</label>
+                  <label htmlFor={`input-${field.key}`} className="text-[13px]">{field.label}</label>
                   <div className="flex items-center gap-2">
                     {localHasKey ? (
                       <span className="text-[11px] text-accent">Local key</span>
@@ -114,20 +120,33 @@ export default function SettingsPage() {
                     {localHasKey && (
                       <button
                         onClick={() => clearKey(field.key)}
-                        className="text-[11px] text-[#ff4444] hover:text-[#ff6666]"
+                        className="text-[11px] text-[#ff4444] hover:text-[#ff6666] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
                       >
                         Remove
                       </button>
                     )}
                   </div>
                 </div>
-                <input
-                  type="password"
-                  value={value}
-                  onChange={(e) => handleKeyChange(field.key, e.target.value)}
-                  placeholder="sk-..."
-                  className="bg-[#141414] border-2 border-border-muted px-3 py-2 text-[13px] text-foreground placeholder:text-text-dim focus:border-accent focus:outline-none"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    id={`input-${field.key}`}
+                    type={isVisible ? "text" : "password"}
+                    value={value}
+                    onChange={(e) => handleKeyChange(field.key, e.target.value)}
+                    placeholder="sk-..."
+                    className="w-full bg-[#141414] border-2 border-border-muted pl-3 pr-12 py-2 text-[13px] text-foreground placeholder:text-text-dim focus:border-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+                  />
+                  {localHasKey && (
+                    <button
+                      type="button"
+                      onClick={() => toggleKeyVisibility(field.key)}
+                      className="absolute right-2 px-2 py-1 text-[11px] text-text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+                      aria-label={isVisible ? "Hide key" : "Show key"}
+                    >
+                      {isVisible ? "Hide" : "Show"}
+                    </button>
+                  )}
+                </div>
                 {serverHasKey && !localHasKey && (
                   <p className="text-[11px] text-text-muted">
                     Server key available. Enter your own to override.
