@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import ProfileCombobox from "@/app/components/ProfileCombobox";
 import History, { HistoryEntry } from "@/app/components/History";
@@ -61,6 +62,12 @@ export default function Sidebar({
   handleHistoryLoad,
   isCustomSelection,
 }: SidebarProps) {
+  const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
+
+  const toggleKeyVisibility = (key: string) => {
+    setVisibleKeys((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
     <aside
       id="sidebar-navigation"
@@ -259,16 +266,32 @@ export default function Sidebar({
                   const value = apiKeys[key] || "";
                   const source = keySource[provider.sourceKey || provider.id];
                   const hasServer = source === "server";
+                  const isVisible = !!visibleKeys[key];
+                  const hasValue = !!value;
+
                   return (
                     <div key={provider.id} className="flex flex-col gap-1">
-                      <label className="text-[10px] text-text-muted">{provider.label} {hasServer && !value && "(server)"}</label>
-                      <input
-                        type="password"
-                        value={value}
-                        onChange={(e) => handleKeyChange(key, e.target.value)}
-                        placeholder={hasServer && !value ? "Using server key" : "sk-..."}
-                        className="bg-[#141414] border-2 border-border-muted px-2 py-2 text-[12px] text-foreground placeholder:text-text-dim focus:border-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 min-h-[44px]"
-                      />
+                      <label htmlFor={`input-${provider.id}`} className="text-[10px] text-text-muted">{provider.label} {hasServer && !value && "(server)"}</label>
+                      <div className="relative flex items-center">
+                        <input
+                          id={`input-${provider.id}`}
+                          type={isVisible ? "text" : "password"}
+                          value={value}
+                          onChange={(e) => handleKeyChange(key, e.target.value)}
+                          placeholder={hasServer && !value ? "Using server key" : "sk-..."}
+                          className="w-full bg-[#141414] border-2 border-border-muted pl-2 pr-12 py-2 text-[12px] text-foreground placeholder:text-text-dim focus:border-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 min-h-[44px]"
+                        />
+                        {hasValue && (
+                          <button
+                            type="button"
+                            onClick={() => toggleKeyVisibility(key)}
+                            className="absolute right-2 px-2 py-1 text-[10px] text-text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+                            aria-label={isVisible ? "Hide key" : "Show key"}
+                          >
+                            {isVisible ? "Hide" : "Show"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
