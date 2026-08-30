@@ -163,16 +163,17 @@ pub async fn synthesize_results(
         - [ANCHOR: TECHNICAL_DETAILS] - Specifications, code, or architecture.\n\
         - [ANCHOR: COMPARISON] - Evaluation of trade-offs and alternatives.\n\
         - [ANCHOR: CITATIONS] - Source mapping for bracketed indices.\n\n\
-        3. Token-Efficiency & Density Requirements:\n\
-        - CommonMark: Strict adherence to CommonMark for parser compatibility.\n\
-        - Zero Filler: Remove all conversational intros ('Certainly!', 'I would be happy to help'), \
-        transition theater ('In conclusion', 'It is worth noting that'), and hollow affirmations.\n\
-        - AI-Slop Prohibition: Aggressively prune marketing jargon and prohibited terms \
-        (e.g., 'seamlessly', 'robust', 'powerful', 'comprehensive', 'streamlined', 'leverage', \
-        'revolutionize', 'game-changing', 'intuitive', 'next-generation', 'cutting-edge', \
-        'state-of-the-art', 'best-in-class', 'unlock', 'transform', 'supercharge'). \
-        Be extremely dense and factual.\n\
-        - Deduplication: Merge redundant information across sources.\n\
+        3. Adhere to strict 2026 Token-Efficiency requirements:\n\
+        - Use strict CommonMark for maximum downstream compatibility.\n\
+        - Extreme Density: Adhere to Section 3 of docs/standards.md.\n\
+          - Zero Filler: Remove all conversational intros (\"Certainly!\", \"I'd be happy to help\"), \
+          transition theater (\"In conclusion\", \"It is worth noting that\"), and hollow affirmations.\n\
+          - AI-Slop Prohibition: Aggressively remove marketing filler and 'AI slop' words \
+          (e.g., 'seamlessly', 'robust', 'powerful', 'comprehensive', 'streamlined', 'leverage', \
+          'revolutionize', 'game-changing', 'intuitive', 'next-generation', 'cutting-edge', \
+          'state-of-the-art', 'best-in-class', 'unlock', 'transform', 'supercharge'). \
+          Be extremely dense and factual.\n\
+        - Aggressively deduplicate redundant information across sources.\n\
         - Citation Precision: Every claim MUST be followed by bracketed indices (e.g., [1], [2]) \
         matching the CITATIONS anchor.",
         chrono::Local::now().format("%Y-%m-%d")
