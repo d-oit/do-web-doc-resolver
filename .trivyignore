@@ -2,3 +2,9 @@
 # Transitive dependency of next.js — requires breaking next.js upgrade to fix
 GHSA-qx2v-qp2m-jg93
 CVE-2026-41305
+
+# Local linting and agent tooling dependencies (.cache, .opencode)
+CVE-2026-31808
+CVE-2026-32630
+CVE-2026-63376
+CVE-2026-77465
