@@ -97,6 +97,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
         role="dialog"
         aria-modal="true"
         aria-labelledby="shortcuts-modal-title"
+        aria-describedby="shortcuts-modal-description"
       >
         <div className="flex justify-between mb-4">
           <h2 id="shortcuts-modal-title" className="text-[13px] font-bold text-foreground">
@@ -112,7 +113,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
             ×
           </button>
         </div>
-        <div className="space-y-2">
+        <div id="shortcuts-modal-description" className="space-y-2">
           {SHORTCUTS.map(({ key, action }) => (
             <div key={key} className="flex justify-between text-[11px]">
               <span className="text-text-muted">{action}</span>
