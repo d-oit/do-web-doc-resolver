@@ -49,7 +49,7 @@ pub fn score_result(url: &str, content: &str) -> f64 {
     }
 
     // Content quality heuristics - graduated scoring
-    let word_count = content.split_whitespace().count();
+    let word_count = content.split_whitespace().take(501).count();
     if word_count > 500 {
         score += 0.2;
     } else if word_count > 300 {
