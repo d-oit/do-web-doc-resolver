@@ -160,12 +160,14 @@ export default function History({ onLoad }: HistoryProps) {
                       onClick={() => handleDelete(entry.id)}
                       className={`text-[10px] min-h-[32px] min-w-[32px] flex items-center justify-center transition-all focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 ${
                         confirmDeleteId === entry.id
-                          ? "text-[#ff4444] font-bold"
+                          ? "text-[#ff4444] font-bold opacity-100"
                           : "text-text-muted hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                       }`}
                       aria-label={
                         confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`
                       }
+                      aria-live={confirmDeleteId === entry.id ? "polite" : undefined}
+                      title={confirmDeleteId === entry.id ? "Click again to confirm delete" : "Delete history entry"}
                     >
                       {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
                     </button>
