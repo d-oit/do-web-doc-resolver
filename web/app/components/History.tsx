@@ -135,7 +135,7 @@ export default function History({ onLoad }: HistoryProps) {
                 className="absolute right-0 top-0 h-full px-3 text-text-dim hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
                 aria-label="Clear search"
               >
-                ×
+                <span aria-hidden="true">&times;</span>
               </button>
             )}
           </div>
@@ -167,7 +167,7 @@ export default function History({ onLoad }: HistoryProps) {
                         confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`
                       }
                     >
-                      {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
+                      {confirmDeleteId === entry.id ? "CONFIRM" : <span aria-hidden="true">&times;</span>}
                     </button>
                   </div>
                   <div className="text-[9px] text-text-dim mt-1 flex flex-wrap gap-2">
