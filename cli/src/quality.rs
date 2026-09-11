@@ -4,8 +4,6 @@ use std::sync::OnceLock;
 static NOISY_PATTERNS: OnceLock<Regex> = OnceLock::new();
 static JARGON_PATTERNS: OnceLock<Regex> = OnceLock::new();
 
-const INITIAL_LINE_CAPACITY: usize = 128;
-
 // Quality scoring thresholds
 const THRESHOLD_NOISE: usize = 6;
 const THRESHOLD_JARGON: usize = 3;
@@ -39,15 +37,22 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     let too_short = len < THRESHOLD_MIN_CHARS;
     let missing_links = links.is_empty();
 
-    // Optimize duplicate detection: single pass over lines
-    let mut total_lines = 0;
-    let mut unique_set = std::collections::HashSet::with_capacity(INITIAL_LINE_CAPACITY);
+    // Optimize duplicate detection: line count pre-pass & early break once unique threshold is met
+    let total_lines = if trimmed.is_empty() {
+        0
+    } else {
+        trimmed.bytes().filter(|&b| b == b'\n').count() + 1
+    };
+    let threshold_unique = std::cmp::max(5, total_lines / 3);
+    let mut unique_set =
+        std::collections::HashSet::with_capacity(std::cmp::min(total_lines, threshold_unique + 1));
     for line in trimmed.lines() {
-        total_lines += 1;
         unique_set.insert(line);
+        if unique_set.len() >= threshold_unique {
+            break;
+        }
     }
-    let unique_lines = unique_set.len();
-    let duplicate_heavy = total_lines > 0 && unique_lines < std::cmp::max(5, total_lines / 3);
+    let duplicate_heavy = total_lines > 0 && unique_set.len() < threshold_unique;
 
     // Optimize noise detection: use case-insensitive regex to avoid to_lowercase() allocation
     let noisy_re = NOISY_PATTERNS.get_or_init(|| {
@@ -73,11 +78,17 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     let jargon_heavy = jargon_count > THRESHOLD_JARGON;
 
     let has_frontmatter = trimmed.starts_with("---")
-        && trimmed.contains("relevance_score:")
-        && trimmed.contains("intent_category:")
-        && trimmed.contains("token_estimate:")
-        && trimmed.contains("last_updated:");
-    let has_structural_anchors = trimmed.contains("[ANCHOR: SUMMARY]")
+        && (if let Some(end_idx) = trimmed[3..].find("---") {
+            let header = &trimmed[..end_idx + 6];
+            header.contains("relevance_score:")
+                && header.contains("intent_category:")
+                && header.contains("token_estimate:")
+                && header.contains("last_updated:")
+        } else {
+            false
+        });
+    let has_structural_anchors = trimmed.contains("[ANCHOR:")
+        && trimmed.contains("[ANCHOR: SUMMARY]")
         && trimmed.contains("[ANCHOR: TECHNICAL_DETAILS]")
         && trimmed.contains("[ANCHOR: COMPARISON]")
         && trimmed.contains("[ANCHOR: CITATIONS]");
