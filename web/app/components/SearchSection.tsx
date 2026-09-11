@@ -131,7 +131,7 @@ export function SearchSection({
               className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-text-dim hover:text-accent transition-colors focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
               aria-label="Clear query"
             >
-              ×
+              <span aria-hidden="true">&times;</span>
             </button>
           )}
         </div>
