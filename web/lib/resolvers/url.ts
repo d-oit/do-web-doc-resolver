@@ -243,6 +243,11 @@ export async function extractViaFirecrawl(url: string, apiKey: string, log: Logg
   const start = Date.now();
   log.info("attempt", "firecrawl", { url });
   try {
+    const validation = await validateUrlForFetchAsync(url);
+    if (!validation.valid) {
+      throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
+    }
+
     const res = await fetchWithTimeout(
       "https://api.firecrawl.dev/v1/scrape",
       {
@@ -277,6 +282,11 @@ export async function extractViaMistralBrowser(url: string, apiKey: string, log:
   const start = Date.now();
   log.info("attempt", "mistral_browser", { url });
   try {
+    const validation = await validateUrlForFetchAsync(url);
+    if (!validation.valid) {
+      throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
+    }
+
     const res = await fetchWithTimeout(
       "https://api.mistral.ai/v1/chat/completions",
       {
