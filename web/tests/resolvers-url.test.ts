@@ -8,7 +8,7 @@ vi.mock("@/lib/validation", () => ({
   validateUrlForFetchAsync: mockValidateUrlForFetchAsync,
 }));
 
-import { extractViaJina } from "../lib/resolvers/url";
+import { extractViaJina, extractViaFirecrawl, extractViaMistralBrowser } from "../lib/resolvers/url";
 import { Logger } from "../lib/log";
 
 describe("extractViaJina", () => {
@@ -48,5 +48,45 @@ describe("extractViaJina", () => {
     expect(mockValidateUrlForFetchAsync).toHaveBeenNthCalledWith(1, "https://example.com/docs");
     expect(mockValidateUrlForFetchAsync).toHaveBeenNthCalledWith(2, "https://r.jina.ai/https://example.com/docs");
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("extractViaFirecrawl", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch = vi.fn();
+  });
+
+  it("blocks private target URLs before calling Firecrawl API", async () => {
+    mockValidateUrlForFetchAsync.mockResolvedValueOnce({
+      valid: false,
+      error: "Private/internal URLs are not allowed",
+    });
+
+    const result = await extractViaFirecrawl("http://127.0.0.1/private", "test-key", new Logger("error"));
+
+    expect(result).toBeNull();
+    expect(mockValidateUrlForFetchAsync).toHaveBeenCalledWith("http://127.0.0.1/private");
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("extractViaMistralBrowser", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch = vi.fn();
+  });
+
+  it("blocks private target URLs before calling Mistral API", async () => {
+    mockValidateUrlForFetchAsync.mockResolvedValueOnce({
+      valid: false,
+      error: "Private/internal URLs are not allowed",
+    });
+
+    const result = await extractViaMistralBrowser("http://127.0.0.1/private", "test-key", new Logger("error"));
+
+    expect(result).toBeNull();
+    expect(mockValidateUrlForFetchAsync).toHaveBeenCalledWith("http://127.0.0.1/private");
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });
