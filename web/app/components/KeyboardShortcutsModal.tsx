@@ -110,7 +110,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
             className="text-text-muted hover:text-foreground text-[18px] leading-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
             aria-label="Close shortcuts"
           >
-            ×
+            <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <div id="shortcuts-modal-description" className="space-y-2">
