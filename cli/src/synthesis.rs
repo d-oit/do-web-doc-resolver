@@ -21,9 +21,6 @@ use crate::types::ResolvedResult;
 use serde_json::json;
 use std::sync::LazyLock;
 
-static LINK_REGEX: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"https?://[^\s)>\]]+").unwrap());
-
 /// Patterns that may indicate prompt injection attempts
 static INJECTION_PATTERNS: LazyLock<Vec<regex::Regex>> = LazyLock::new(|| {
     vec![
@@ -242,7 +239,7 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
         )
     } else {
         let mut body = String::new();
-        let mut seen_lines = std::collections::HashSet::with_capacity(128);
+        let mut seen_lines = std::collections::HashSet::new();
 
         for (i, res) in results.iter().enumerate() {
             let idx = i + 1;
@@ -252,7 +249,7 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
                 let mut unique_content = String::new();
                 for line in content.lines() {
                     let trimmed = line.trim();
-                    if !trimmed.is_empty() && seen_lines.insert(trimmed) {
+                    if !trimmed.is_empty() && seen_lines.insert(trimmed.to_string()) {
                         unique_content.push_str(line);
                         unique_content.push('\n');
                     } else if trimmed.is_empty() {
@@ -289,7 +286,8 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
     };
 
     // Extract links for quality scoring
-    let links: Vec<String> = LINK_REGEX
+    let link_re = regex::Regex::new(r"https?://[^\s)>\]]+").unwrap();
+    let links: Vec<String> = link_re
         .find_iter(&body_content)
         .map(|m| m.as_str().to_string())
         .take(10)
