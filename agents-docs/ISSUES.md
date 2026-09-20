@@ -49,3 +49,10 @@
 - **Summary**: Executed `do-wdr` CLI benchmark audit across 5 standard documentation URLs (`docs.python.org/3/library/os.html`, `doc.rust-lang.org/std/fs/index.html`, `developer.mozilla.org/en-US/docs/Web/JavaScript`, `docs.python.org/3/library/sys.html`, `doc.rust-lang.org/std/path/struct.Path.html`).
 - **Results**: Semantic cache hit rate = 100% (5/5), Cache hit latency = 1ms (well within the < 200ms threshold), Quality synthesis score = 1.0 (exceeds the >= 0.85 threshold).
 - **Status**: Healthy. Python-Rust bridge integration operating with zero bottlenecks; embedding retrieval logic and cache redundancy pruning remain fully optimized.
+
+## Provider Alert: serper unstable
+
+- **Date**: 2026-09-20
+- **Issue**: Status code 403: {"message":"Unauthorized.","statusCode":403}
+- **Action Taken**: Deprioritized serper in the routing logic.
+- **Status**: Monitoring for stability.
