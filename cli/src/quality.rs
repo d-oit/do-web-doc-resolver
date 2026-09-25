@@ -37,26 +37,15 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     let too_short = len < THRESHOLD_MIN_CHARS;
     let missing_links = links.is_empty();
 
-    // Optimize duplicate detection: pre-calculate total lines via byte scan and early exit
-    let duplicate_heavy = if trimmed.is_empty() {
-        false
-    } else {
-        let total_lines = trimmed.bytes().filter(|&b| b == b'\n').count() + 1;
-        let threshold_unique = std::cmp::max(5, total_lines / 3);
-        let mut unique_set = std::collections::HashSet::with_capacity(std::cmp::min(
-            total_lines,
-            threshold_unique + 1,
-        ));
-        let mut is_dup = true;
-        for line in trimmed.lines() {
-            unique_set.insert(line);
-            if unique_set.len() >= threshold_unique {
-                is_dup = false;
-                break;
-            }
-        }
-        is_dup
-    };
+    // Optimize duplicate detection: single pass over lines
+    let mut total_lines = 0;
+    let mut unique_set = std::collections::HashSet::with_capacity(128);
+    for line in trimmed.lines() {
+        total_lines += 1;
+        unique_set.insert(line);
+    }
+    let unique_lines = unique_set.len();
+    let duplicate_heavy = total_lines > 0 && unique_lines < std::cmp::max(5, total_lines / 3);
 
     // Optimize noise detection: use case-insensitive regex to avoid to_lowercase() allocation
     let noisy_re = NOISY_PATTERNS.get_or_init(|| {
@@ -82,10 +71,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     let jargon_heavy = jargon_count > THRESHOLD_JARGON;
 
     let has_frontmatter = if let Some(rest) = trimmed.strip_prefix("---") {
-        let header_end = rest
-            .find("\n---")
-            .map(|i| i + 7)
-            .unwrap_or(trimmed.len());
+        let header_end = rest.find("\n---").map(|i| i + 7).unwrap_or(trimmed.len());
         let header_slice = &trimmed[..header_end];
         header_slice.contains("relevance_score:")
             && header_slice.contains("intent_category:")
@@ -95,8 +81,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
         false
     };
 
-    let has_structural_anchors = trimmed.contains("[ANCHOR:")
-        && trimmed.contains("[ANCHOR: SUMMARY]")
+    let has_structural_anchors = trimmed.contains("[ANCHOR: SUMMARY]")
         && trimmed.contains("[ANCHOR: TECHNICAL_DETAILS]")
         && trimmed.contains("[ANCHOR: COMPARISON]")
         && trimmed.contains("[ANCHOR: CITATIONS]");
