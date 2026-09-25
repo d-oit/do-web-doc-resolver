@@ -20,7 +20,7 @@ export default function Error({
         <p className="text-[13px] text-text-muted">{error.message || "An unexpected error occurred."}</p>
         <button
           onClick={reset}
-          className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] min-h-[44px]"
+          className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] min-h-[44px] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
         >
           Try again
         </button>
