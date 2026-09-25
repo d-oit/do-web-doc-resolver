@@ -4,8 +4,6 @@ use std::sync::OnceLock;
 static NOISY_PATTERNS: OnceLock<Regex> = OnceLock::new();
 static JARGON_PATTERNS: OnceLock<Regex> = OnceLock::new();
 
-const INITIAL_LINE_CAPACITY: usize = 128;
-
 // Quality scoring thresholds
 const THRESHOLD_NOISE: usize = 6;
 const THRESHOLD_JARGON: usize = 3;
@@ -41,7 +39,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
 
     // Optimize duplicate detection: single pass over lines
     let mut total_lines = 0;
-    let mut unique_set = std::collections::HashSet::with_capacity(INITIAL_LINE_CAPACITY);
+    let mut unique_set = std::collections::HashSet::with_capacity(128);
     for line in trimmed.lines() {
         total_lines += 1;
         unique_set.insert(line);
@@ -72,11 +70,17 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
         .count();
     let jargon_heavy = jargon_count > THRESHOLD_JARGON;
 
-    let has_frontmatter = trimmed.starts_with("---")
-        && trimmed.contains("relevance_score:")
-        && trimmed.contains("intent_category:")
-        && trimmed.contains("token_estimate:")
-        && trimmed.contains("last_updated:");
+    let has_frontmatter = if let Some(rest) = trimmed.strip_prefix("---") {
+        let header_end = rest.find("\n---").map(|i| i + 7).unwrap_or(trimmed.len());
+        let header_slice = &trimmed[..header_end];
+        header_slice.contains("relevance_score:")
+            && header_slice.contains("intent_category:")
+            && header_slice.contains("token_estimate:")
+            && header_slice.contains("last_updated:")
+    } else {
+        false
+    };
+
     let has_structural_anchors = trimmed.contains("[ANCHOR: SUMMARY]")
         && trimmed.contains("[ANCHOR: TECHNICAL_DETAILS]")
         && trimmed.contains("[ANCHOR: COMPARISON]")
