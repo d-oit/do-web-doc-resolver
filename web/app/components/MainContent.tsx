@@ -126,7 +126,8 @@ export function MainContent(props: MainContentProps) {
               <textarea
                 readOnly
                 value={result}
-                className="flex-1 bg-[#141414] p-4 text-[13px] text-foreground font-mono resize-none whitespace-pre-wrap overflow-auto min-h-[200px]"
+                aria-label="Raw markdown result"
+                className="flex-1 bg-[#141414] p-4 text-[13px] text-foreground font-mono resize-none whitespace-pre-wrap overflow-auto min-h-[200px] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
               />
             ) : (
               <div className="flex-1 overflow-auto bg-background p-4 space-y-4">
