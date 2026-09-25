@@ -26,7 +26,7 @@ export default function HelpPage() {
     <main className="min-h-screen bg-background text-foreground font-mono p-8">
       <div className="max-w-xl">
         <div className="mb-8">
-          <Link href="/" className="text-[11px] uppercase tracking-[0.1em] text-text-muted hover:text-accent">
+          <Link href="/" className="text-[11px] uppercase tracking-[0.1em] text-text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2">
             ← Back
           </Link>
         </div>
