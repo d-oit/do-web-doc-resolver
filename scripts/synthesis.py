@@ -1,6 +1,5 @@
 """
 Two-stage synthesis gating logic for the Web Doc Resolver.
-Aligned with 2026 LLM-Readable-Doc standards (docs/standards.md).
 """
 
 import datetime
