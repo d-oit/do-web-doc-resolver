@@ -29,4 +29,4 @@ Evaluated using `do-wdr resolve <URL> --metrics-json` on the compiled release bi
 - Background encoder warm-up offloads model initialization, keeping CLI query resolution ultra-fast.
 
 ---
-*Last Updated: September 2026*
+*Last Updated: September 28, 2026*
