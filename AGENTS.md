@@ -41,20 +41,22 @@ readonly QUALITY_MIN_CHARS=500
 
 ## Project Documentation
 
-Detailed reference material in `agents-docs/`:
-
-- [Development](agents-docs/DEVELOPMENT.md)
-- [Configuration](agents-docs/CONFIG.md)
-- [Overview](agents-docs/OVERVIEW.md)
-- [Semantic Health](agents-docs/SEMANTIC_HEALTH.md)
+| Document | Path | Description |
+|---|---|---|
+| Development | `agents-docs/DEVELOPMENT.md` | Setup, testing, and debugging workflow |
+| Configuration | `agents-docs/CONFIG.md` | Environment variables and configuration files |
+| Overview | `agents-docs/OVERVIEW.md` | System architecture and cascade execution |
+| Semantic Health | `agents-docs/SEMANTIC_HEALTH.md` | Quality metrics and output standards |
 
 ## Skills
 
-- `do-web-doc-resolver`: `.agents/skills/do-web-doc-resolver/`
-- `do-wdr-cli`: `.agents/skills/do-wdr-cli/`
-- `anti-ai-slop`: `.agents/skills/anti-ai-slop/`
-- `readme-best-practices`: `.agents/skills/readme-best-practices/`
-- `skill-creator`: `.agents/skills/skill-creator/`
+| Skill | Path | Description |
+|---|---|---|
+| `do-web-doc-resolver` | `.agents/skills/do-web-doc-resolver/` | Core Python resolver skill definition |
+| `do-wdr-cli` | `.agents/skills/do-wdr-cli/` | Rust CLI skill interface |
+| `anti-ai-slop` | `.agents/skills/anti-ai-slop/` | Design and copy standards |
+| `readme-best-practices` | `.agents/skills/readme-best-practices/` | GitHub README structure standards |
+| `skill-creator` | `.agents/skills/skill-creator/` | Meta-skill for building agent skills |
 
 ## Coding Workflow
 
@@ -66,7 +68,7 @@ Detailed reference material in `agents-docs/`:
 ### PR Checklist
 
 - Quality gate command passes: `./scripts/quality_gate.sh`
-- Linting clean (`ruff`, `black`, `cargo fmt`, `cargo clippy`, `npm run lint`)
+- Lint clean (`ruff`, `black`, `cargo fmt`, `cargo clippy`, `npm run lint`)
 - No new secrets added
 - `AGENTS.md` updated if repository structure or skills change
 
