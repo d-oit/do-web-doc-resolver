@@ -4,6 +4,13 @@ use std::sync::OnceLock;
 static NOISY_PATTERNS: OnceLock<Regex> = OnceLock::new();
 static JARGON_PATTERNS: OnceLock<Regex> = OnceLock::new();
 
+// Pre-sized capacity for line-deduplication sets
+const INITIAL_LINE_CAPACITY: usize = 128;
+
+// Frontmatter delimiters emitted by the resolver's Markdown synthesiser
+const FRONTMATTER_DELIMITER: &str = "---";
+const FRONTMATTER_CLOSE: &str = "\n---";
+
 // Quality scoring thresholds
 const THRESHOLD_NOISE: usize = 6;
 const THRESHOLD_JARGON: usize = 3;
@@ -39,7 +46,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
 
     // Optimize duplicate detection: single pass over lines
     let mut total_lines = 0;
-    let mut unique_set = std::collections::HashSet::with_capacity(128);
+    let mut unique_set = std::collections::HashSet::with_capacity(INITIAL_LINE_CAPACITY);
     for line in trimmed.lines() {
         total_lines += 1;
         unique_set.insert(line);
@@ -70,8 +77,16 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
         .count();
     let jargon_heavy = jargon_count > THRESHOLD_JARGON;
 
-    let has_frontmatter = if let Some(rest) = trimmed.strip_prefix("---") {
-        let header_end = rest.find("\n---").map(|i| i + 7).unwrap_or(trimmed.len());
+    let has_frontmatter = if let Some(rest) = trimmed.strip_prefix(FRONTMATTER_DELIMITER) {
+        // Restrict the checks to the frontmatter block so that a body line
+        // cannot spoof the bonus. `rest` begins just after the opening
+        // delimiter, so the closing delimiter ends at
+        // prefix + offset + len(close). With no closing delimiter we fall back
+        // to scanning the whole document, matching the previous behaviour.
+        let header_end = rest
+            .find(FRONTMATTER_CLOSE)
+            .map(|offset| FRONTMATTER_DELIMITER.len() + offset + FRONTMATTER_CLOSE.len())
+            .unwrap_or(trimmed.len());
         let header_slice = &trimmed[..header_end];
         header_slice.contains("relevance_score:")
             && header_slice.contains("intent_category:")
@@ -82,6 +97,7 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     };
 
     let has_structural_anchors = trimmed.contains("[ANCHOR: SUMMARY]")
+
         && trimmed.contains("[ANCHOR: TECHNICAL_DETAILS]")
         && trimmed.contains("[ANCHOR: COMPARISON]")
         && trimmed.contains("[ANCHOR: CITATIONS]");
