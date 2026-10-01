@@ -97,7 +97,6 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
     };
 
     let has_structural_anchors = trimmed.contains("[ANCHOR: SUMMARY]")
-
         && trimmed.contains("[ANCHOR: TECHNICAL_DETAILS]")
         && trimmed.contains("[ANCHOR: COMPARISON]")
         && trimmed.contains("[ANCHOR: CITATIONS]");

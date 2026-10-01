@@ -37,8 +37,11 @@ fn padded_body() -> String {
 
 #[test]
 fn test_frontmatter_bonus_requires_fields_inside_the_block() {
-    let links = vec!["https://example.com".to_string()];
+    // Empty links apply the missing-links penalty, which keeps the base score
+    // below 1.0 so the +0.05 frontmatter bonus survives the final clamp.
+    let links: Vec<String> = vec![];
     let body = padded_body();
+
 
     // Genuine frontmatter: all four fields sit inside the opening/closing block.
     let real_frontmatter = format!(
@@ -64,4 +67,3 @@ fn test_frontmatter_bonus_requires_fields_inside_the_block() {
         fake.score
     );
 }
-
