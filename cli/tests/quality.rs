@@ -42,7 +42,6 @@ fn test_frontmatter_bonus_requires_fields_inside_the_block() {
     let links: Vec<String> = vec![];
     let body = padded_body();
 
-
     // Genuine frontmatter: all four fields sit inside the opening/closing block.
     let real_frontmatter = format!(
         "---\nrelevance_score: 1.0\nintent_category: docs\n\
