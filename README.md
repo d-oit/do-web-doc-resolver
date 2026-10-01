@@ -18,6 +18,30 @@
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [What the Cascade Is](#what-the-cascade-is)
+  - [Query Cascade Order](#query-cascade-order)
+  - [URL Cascade Order](#url-cascade-order)
+- [How to Install](#how-to-install)
+  - [Python](#python)
+  - [Rust CLI (`do-wdr`)](#rust-cli-do-wdr)
+  - [Web UI](#web-ui)
+- [How to Run](#how-to-run)
+  - [Python CLI](#python-cli)
+  - [Python Module](#python-module)
+  - [Rust CLI (`do-wdr`)](#rust-cli-do-wdr-1)
+  - [Web UI](#web-ui-1)
+- [Environment Variables Required](#environment-variables-required)
+- [How to Run Tests](#how-to-run-tests)
+  - [Python Test Suite](#python-test-suite)
+  - [Rust Test Suite](#rust-test-suite)
+  - [Web UI Playwright Tests](#web-ui-playwright-tests)
+  - [Quality Gate Script](#quality-gate-script)
+
+---
+
 ## Overview
 
 `do-web-doc-resolver` fetches web pages and executes search queries, stripping HTML boilerplate and returning token-dense Markdown for LLM context windows. It evaluates results against content density and quality thresholds, executing a tiered fallback cascade across free and paid providers.
