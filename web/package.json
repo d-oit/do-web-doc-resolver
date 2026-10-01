@@ -37,7 +37,7 @@
     "@types/react-dom": "^19.3.0",
     "@typescript-eslint/eslint-plugin": "^8.70.1",
     "@typescript-eslint/parser": "^8.70.1",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.3",
     "eslint": "^10.11.0",
     "eslint-config-next": "16.3.6",
     "eslint-plugin-playwright": "^2.12.0",
@@ -46,7 +46,8 @@
     "postcss": "8.5.28",
     "tailwindcss": "^4.0.0",
     "typescript": "6.0.3",
-    "vitest": "^5.0.1",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3",
     "wait-on": "^9.1.0"
   },
   "overrides": {
