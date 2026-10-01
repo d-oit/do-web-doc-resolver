@@ -18,15 +18,39 @@
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [What the Cascade Is](#what-the-cascade-is)
+  - [Query Cascade Order](#query-cascade-order)
+  - [URL Cascade Order](#url-cascade-order)
+- [How to Install](#how-to-install)
+  - [Python](#python)
+  - [Rust CLI (`do-wdr`)](#rust-cli-do-wdr)
+  - [Web UI](#web-ui)
+- [How to Run](#how-to-run)
+  - [Python CLI](#python-cli)
+  - [Python Module](#python-module)
+  - [Rust CLI (`do-wdr`)](#rust-cli-do-wdr-1)
+  - [Web UI](#web-ui-1)
+- [Environment Variables Required](#environment-variables-required)
+- [How to Run Tests](#how-to-run-tests)
+  - [Python Test Suite](#python-test-suite)
+  - [Rust Test Suite](#rust-test-suite)
+  - [Web UI Playwright Tests](#web-ui-playwright-tests)
+  - [Quality Gate Script](#quality-gate-script)
+
+---
+
 ## Overview
 
-`do-web-doc-resolver` fetches web pages and executes search queries, stripping boilerplate and formatting the output into token-dense Markdown for LLM prompt context. It executes an execution cascade across free and paid providers, falling back automatically if a provider fails or returns low-density content.
+`do-web-doc-resolver` fetches web pages and executes search queries, stripping HTML boilerplate and returning token-dense Markdown for LLM context windows. It evaluates results against content density and quality thresholds, executing a tiered fallback cascade across free and paid providers.
 
 ---
 
 ## What the Cascade Is
 
-The resolution engine queries providers in tiered priority order, returning upon the first result that satisfies quality thresholds.
+The resolver queries providers in priority tiers and halts upon receiving a response that satisfies quality scoring thresholds.
 
 ### Query Cascade Order
 
@@ -36,7 +60,7 @@ The resolution engine queries providers in tiered priority order, returning upon
 
 ### URL Cascade Order
 
-1. **Semantic Cache**: Pre-cached document lookup.
+1. **Semantic Cache**: Local vector lookup.
 2. **Free Static Tier**: `llms.txt` discovery.
 3. **Free Direct & Lite Tier**: Direct HTTP fetch, Jina Reader, Firecrawl.
 4. **Browser Tier**: Mistral Browser.
@@ -57,7 +81,7 @@ pip install -r requirements.txt
 
 ### Rust CLI (`do-wdr`)
 
-Requires Rust 1.80+.
+Requires Rust 1.80 or higher.
 
 ```bash
 cd cli
@@ -66,7 +90,7 @@ cargo build --release
 
 ### Web UI
 
-Requires Node.js 18+.
+Requires Node.js 18 or higher.
 
 ```bash
 cd web
@@ -78,6 +102,8 @@ npm install --legacy-peer-deps
 ## How to Run
 
 ### Python CLI
+
+Pass a target URL or query as the positional argument:
 
 ```bash
 python -m scripts.cli "https://docs.python.org/3/"
@@ -112,11 +138,11 @@ npm run dev
 
 ## Environment Variables Required
 
-No API keys are required for zero-config operation using free providers. Optional API keys enable additional paid provider tiers:
+Zero-configuration mode runs using free providers without API keys. Optional environment variables enable paid provider tiers:
 
 | Environment Variable | Provider | Required | Description |
 |---|---|---|---|
-| `EXA_API_KEY` | Exa SDK | No | Enables Exa search and extraction |
+| `EXA_API_KEY` | Exa SDK | No | Enables Exa search and content extraction |
 | `TAVILY_API_KEY` | Tavily | No | Enables Tavily web search |
 | `SERPER_API_KEY` | Serper | No | Enables Google Search via Serper |
 | `FIRECRAWL_API_KEY` | Firecrawl | No | Enables Firecrawl scraping |
