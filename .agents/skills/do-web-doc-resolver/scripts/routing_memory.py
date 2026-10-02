@@ -99,10 +99,9 @@ class RoutingMemory:
                 stats["failure"] = f + 1
 
             # Throttled auto-persist so a running CLI retains learned preferences.
-            if self._path is not None and (
-                self._dirty is False or time.time() - self._last_save >= SAVE_INTERVAL_SECONDS
-            ):
-                self._dirty = True
+            # Only the elapsed interval gates the write: `_save_to_disk_unlocked()`
+            # resets `_dirty`, so consulting it here would persist on every call.
+            if self._path is not None and time.time() - self._last_save >= SAVE_INTERVAL_SECONDS:
                 self._save_to_disk_unlocked()
 
     def get_domain_stats(self, provider: str, domain: str) -> dict[str, Any] | None:

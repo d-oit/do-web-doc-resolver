@@ -26,8 +26,15 @@ SKILL_SCRIPTS = PROJECT_ROOT / ".agents/skills/do-web-doc-resolver/scripts"
 # Files to sync (exclude __pycache__, __init__.py is special).
 # `utils` is a package (scripts/utils/), so it is synced file-by-file below.
 SYNC_FILES = [
+    "_cascade.py",
+    "_cascade_async.py",
+    "_query_resolve.py",
+    "_routing_utils.py",
+    "_url_resolve.py",
+    "_url_resolve_async.py",
     "cache_negative.py",
     "circuit_breaker.py",
+    "cli.py",
     "constants.py",
     "models.py",
     "providers_impl.py",
@@ -35,8 +42,27 @@ SYNC_FILES = [
     "resolve.py",
     "routing.py",
     "routing_memory.py",
+    "semantic_cache.py",
     "state.py",
     "synthesis.py",
+    "visual_resolver.py",
+]
+
+# Modules in the scripts/providers/ package mirror. `providers_impl.py` re-exports
+# from this package, so the mirror is unusable without it.
+PROVIDERS_FILES = [
+    "__init__.py",
+    "docling.py",
+    "duckduckgo.py",
+    "exa.py",
+    "firecrawl.py",
+    "jina.py",
+    "mistral.py",
+    "ocr.py",
+    "serper.py",
+    "stealth.py",
+    "tavily.py",
+    "visual_clip.py",
 ]
 
 # Files inside the scripts/utils/ package mirror (kept in lock-step with the
@@ -151,6 +177,9 @@ def main():
     for filename in SYNC_FILES:
         if sync_file(filename, dry_run):
             synced += 1
+    for filename in PROVIDERS_FILES:
+        if sync_file(filename, dry_run, subdir="providers"):
+            synced += 1
     synced += sync_utils_package(dry_run)
 
     sync_init(dry_run)
@@ -166,9 +195,11 @@ def main():
         print()
         print("=== Verification ===")
         all_ok = True
-        for filename, subdir in [(f, None) for f in SYNC_FILES] + [
-            (f, "utils") for f in UTILS_FILES
-        ]:
+        for filename, subdir in (
+            [(f, None) for f in SYNC_FILES]
+            + [(f, "providers") for f in PROVIDERS_FILES]
+            + [(f, "utils") for f in UTILS_FILES]
+        ):
             src = (MAIN_SCRIPTS / subdir / filename) if subdir else (MAIN_SCRIPTS / filename)
             dst = (SKILL_SCRIPTS / subdir / filename) if subdir else (SKILL_SCRIPTS / filename)
             if src.exists() and dst.exists():

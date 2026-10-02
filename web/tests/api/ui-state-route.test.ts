@@ -37,6 +37,37 @@ describe("/api/ui-state route", () => {
     expect(restored.lastUpdated).toBe(123);
   });
 
+  it("never returns API keys, even when a client POSTs them", async () => {
+    // Keys are secrets and belong in localStorage only. The session id is
+    // derived from IP + User-Agent, so a shared-NAT peer could otherwise read
+    // someone else's keys back through the unauthenticated GET.
+    const postReq = new NextRequest("http://localhost/api/ui-state", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "user-agent": "key-agent",
+        "x-forwarded-for": "10.0.0.9",
+      },
+      body: JSON.stringify({
+        activeProfile: "free",
+        apiKeys: { tavily: "tvly-super-secret" },
+        lastUpdated: 500,
+      }),
+    });
+    await POST(postReq);
+
+    const getReq = new NextRequest("http://localhost/api/ui-state", {
+      headers: {
+        "user-agent": "key-agent",
+        "x-forwarded-for": "10.0.0.9",
+      },
+    });
+    const restored = await (await GET(getReq)).json();
+
+    expect(restored.apiKeys).toBeUndefined();
+    expect(restored.activeProfile).toBe("free");
+  });
+
   it("rejects invalid payload", async () => {
     const postReq = new NextRequest("http://localhost/api/ui-state", {
       method: "POST",

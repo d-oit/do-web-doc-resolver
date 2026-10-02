@@ -17,6 +17,17 @@ fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
         .any(|window| window.eq_ignore_ascii_case(needle_bytes))
 }
 
+/// Check whether `host` is `site` itself or a subdomain of it.
+///
+/// Substring matching would award trust to hosts like `github.com.evil.example`,
+/// so the boundary has to land on a dot.
+fn is_domain_or_subdomain(host: &str, site: &str) -> bool {
+    let host = host.to_ascii_lowercase();
+    let site = site.to_ascii_lowercase();
+
+    host == site || host.ends_with(&format!(".{site}"))
+}
+
 /// Score a result based on domain trust and content quality
 pub fn score_result(url: &str, content: &str) -> f64 {
     let mut score: f64 = 0.5;
@@ -31,7 +42,10 @@ pub fn score_result(url: &str, content: &str) -> f64 {
         }
 
         let news_sites = ["nytimes.com", "bbc.co.uk", "reuters.com", "theguardian.com"];
-        if news_sites.iter().any(|&site| domain.contains(site)) {
+        if news_sites
+            .iter()
+            .any(|&site| is_domain_or_subdomain(domain, site))
+        {
             score += 0.1;
         }
 
@@ -43,7 +57,10 @@ pub fn score_result(url: &str, content: &str) -> f64 {
             "rust-lang.org",
             "tokio.rs",
         ];
-        if dev_sites.iter().any(|&site| domain.contains(site)) {
+        if dev_sites
+            .iter()
+            .any(|&site| is_domain_or_subdomain(domain, site))
+        {
             score += 0.2;
         }
     }
@@ -77,4 +94,43 @@ pub fn score_result(url: &str, content: &str) -> f64 {
     }
 
     score.clamp(0.0, 1.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_subdomain_match() {
+        assert!(is_domain_or_subdomain("github.com", "github.com"));
+        assert!(is_domain_or_subdomain("gist.github.com", "github.com"));
+        assert!(is_domain_or_subdomain("GITHUB.COM", "github.com"));
+    }
+
+    #[test]
+    fn test_suffix_lookalike_rejected() {
+        // A host that merely contains a trusted domain must not earn trust.
+        assert!(!is_domain_or_subdomain(
+            "github.com.evil.example",
+            "github.com"
+        ));
+        assert!(!is_domain_or_subdomain(
+            "notstackoverflow.com",
+            "stackoverflow.com"
+        ));
+    }
+
+    #[test]
+    fn test_lookalike_host_scores_lower_than_real() {
+        // 600 words of filler satisfies the word-count bonus for both hosts, so
+        // any difference comes purely from the domain trust heuristic.
+        let content = "word ".repeat(600);
+        let real = score_result("https://github.com/foo/bar", &content);
+        let spoofed = score_result("https://github.com.evil.example/foo", &content);
+
+        assert!(
+            real > spoofed,
+            "real host ({real}) should outscore lookalike ({spoofed})"
+        );
+    }
 }

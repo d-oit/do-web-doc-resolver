@@ -81,9 +81,18 @@ function normalizeUIState(value: unknown): UIState {
 export function resolveUIState(serverState: UIState | null, localState: UIState): UIState {
   if (!serverState) return localState;
   
+  // API keys never round-trip through the server (stripped by /api/ui-state), so
+  // the local copy is authoritative regardless of which side wins on timestamp.
+  const withLocalKeys = (base: UIState): UIState => ({
+    ...base,
+    apiKeys: Object.keys(localState.apiKeys).length > 0
+      ? localState.apiKeys
+      : base.apiKeys,
+  });
+  
   // Server wins for conflicts (newer timestamp takes precedence)
   if (serverState.lastUpdated >= localState.lastUpdated) {
-    return serverState;
+    return withLocalKeys(serverState);
   }
   
   return localState;
@@ -171,10 +180,15 @@ async function syncToServer(state: Partial<UIState>): Promise<void> {
       lastUpdated: Date.now(),
     };
     
+    // Never ship API keys to the server: localStorage is the only store for
+    // them. The server also strips them, but not sending them at all keeps
+    // secrets out of the request log and transit path.
+    const { apiKeys: _apiKeys, ...syncable } = payload;
+    
     const res = await fetch("/api/ui-state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(syncable),
     });
     
     if (!res.ok) {

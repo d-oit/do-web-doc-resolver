@@ -319,7 +319,7 @@ export default function Home() {
       setResult(markdown);
       setParsedResults(parsed);
       setSourceProvider(data.provider);
-      setQualityScore(data.quality_score ?? null);
+      setQualityScore(data.quality?.score ?? null);
       const endTime = performance.now();
       const timeTaken = Math.round(endTime - startTime);
       setResolveTime(timeTaken);
