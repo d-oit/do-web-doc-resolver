@@ -156,6 +156,7 @@ export default function Sidebar({
                 step="1000"
                 value={maxChars}
                 onChange={(e) => setMaxChars(parseInt(e.target.value))}
+                aria-valuetext={`${(maxChars / 1000).toFixed(0)}k characters`}
                 className="w-full h-1 bg-border-muted accent-accent appearance-none cursor-pointer focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
               />
             </div>
