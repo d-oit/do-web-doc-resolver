@@ -17,6 +17,17 @@ from scripts.utils.async_http import get_async_client
 logger = logging.getLogger(__name__)
 
 
+def _get_result_text(r: object) -> str | None:
+    highlight = getattr(r, "highlight", None)
+    if highlight:
+        return str(highlight)
+    highlights = getattr(r, "highlights", None)
+    if highlights:
+        return highlights[0] if isinstance(highlights, list) else str(highlights)
+    text = getattr(r, "text", None)
+    return str(text) if text else None
+
+
 async def resolve_with_exa_mcp_async(
     query: str, max_chars: int = MAX_CHARS
 ) -> ResolvedResult | None:
@@ -96,13 +107,8 @@ async def resolve_with_exa_async(query: str, max_chars: int = MAX_CHARS) -> Reso
         if not res or not res.results:
             logger.warning("Exa returned no results for query: %s", query)
             return None
-        content = "\n\n---\n\n".join(
-            [
-                r.highlight or r.text
-                for r in res.results
-                if hasattr(r, "highlight") and r.highlight or hasattr(r, "text") and r.text
-            ]
-        )
+        extracted = [_get_result_text(r) for r in res.results]
+        content = "\n\n---\n\n".join([t for t in extracted if t])
         if not content:
             logger.warning("Exa returned empty content for query: %s", query)
             return None
@@ -192,13 +198,8 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult |
         if not res or not res.results:
             logger.warning("Exa returned no results for query: %s", query)
             return None
-        content = "\n\n---\n\n".join(
-            [
-                r.highlight or r.text
-                for r in res.results
-                if hasattr(r, "highlight") and r.highlight or hasattr(r, "text") and r.text
-            ]
-        )
+        extracted = [_get_result_text(r) for r in res.results]
+        content = "\n\n---\n\n".join([t for t in extracted if t])
         if not content:
             logger.warning("Exa returned empty content for query: %s", query)
             return None
