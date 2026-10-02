@@ -96,13 +96,19 @@ async def resolve_with_exa_async(query: str, max_chars: int = MAX_CHARS) -> Reso
         if not res or not res.results:
             logger.warning("Exa returned no results for query: %s", query)
             return None
-        content = "\n\n---\n\n".join(
-            [
-                r.highlight or r.text
-                for r in res.results
-                if hasattr(r, "highlight") and r.highlight or hasattr(r, "text") and r.text
-            ]
-        )
+        parts: list[str] = []
+        for r in res.results:
+            hl = getattr(r, "highlights", None) or getattr(r, "highlight", None)
+            if hl:
+                if isinstance(hl, list):
+                    parts.append("\n".join(str(x) for x in hl if x))
+                elif isinstance(hl, str):
+                    parts.append(hl)
+            else:
+                txt = getattr(r, "text", None)
+                if txt and isinstance(txt, str):
+                    parts.append(txt)
+        content = "\n\n---\n\n".join(parts)
         if not content:
             logger.warning("Exa returned empty content for query: %s", query)
             return None
@@ -192,13 +198,19 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult |
         if not res or not res.results:
             logger.warning("Exa returned no results for query: %s", query)
             return None
-        content = "\n\n---\n\n".join(
-            [
-                r.highlight or r.text
-                for r in res.results
-                if hasattr(r, "highlight") and r.highlight or hasattr(r, "text") and r.text
-            ]
-        )
+        parts: list[str] = []
+        for r in res.results:
+            hl = getattr(r, "highlights", None) or getattr(r, "highlight", None)
+            if hl:
+                if isinstance(hl, list):
+                    parts.append("\n".join(str(x) for x in hl if x))
+                elif isinstance(hl, str):
+                    parts.append(hl)
+            else:
+                txt = getattr(r, "text", None)
+                if txt and isinstance(txt, str):
+                    parts.append(txt)
+        content = "\n\n---\n\n".join(parts)
         if not content:
             logger.warning("Exa returned empty content for query: %s", query)
             return None
