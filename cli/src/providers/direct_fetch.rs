@@ -6,7 +6,6 @@ use crate::error::{ResolverError, detect_error_type};
 use crate::providers::shared_client::get_client;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
-use std::collections::HashSet;
 use std::result::Result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -196,6 +195,33 @@ fn get_attribute(tag_content: &str, attr_name: &str) -> Option<String> {
     None
 }
 
+/// Check if an HTML tag name represents a block-level element
+fn is_block_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        "p" | "div"
+            | "h1"
+            | "h2"
+            | "h3"
+            | "h4"
+            | "h5"
+            | "h6"
+            | "li"
+            | "tr"
+            | "pre"
+            | "br"
+            | "article"
+            | "section"
+            | "header"
+            | "footer"
+            | "nav"
+            | "aside"
+            | "main"
+            | "figure"
+            | "figcaption"
+    )
+}
+
 /// Parse language hint from class attribute
 fn parse_language_hint(class_attr: &str) -> Option<String> {
     for part in class_attr.split_whitespace() {
@@ -213,50 +239,21 @@ fn parse_language_hint(class_attr: &str) -> Option<String> {
 }
 
 /// State for HTML stripping
-struct StripperState<'a> {
+struct StripperState {
     result: String,
     skip_content_depth: usize,
     in_pre: bool,
     current_pre_lang: String,
-    block_tags: HashSet<&'a str>,
     last_formula: String, // Track last extracted formula for deduplication
 }
 
-impl StripperState<'_> {
+impl StripperState {
     fn new() -> Self {
-        let block_tags = [
-            "p",
-            "div",
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6",
-            "li",
-            "tr",
-            "pre",
-            "br",
-            "article",
-            "section",
-            "header",
-            "footer",
-            "nav",
-            "aside",
-            "main",
-            "figure",
-            "figcaption",
-        ]
-        .iter()
-        .cloned()
-        .collect();
-
         Self {
             result: String::new(),
             skip_content_depth: 0,
             in_pre: false,
             current_pre_lang: String::new(),
-            block_tags,
             last_formula: String::new(),
         }
     }
@@ -310,10 +307,7 @@ impl StripperState<'_> {
     }
 
     fn handle_opening_tag(&mut self, tag_name: &str, tag_content: &str) {
-        if self.block_tags.contains(tag_name)
-            && !self.result.is_empty()
-            && !self.result.ends_with('\n')
-        {
+        if is_block_tag(tag_name) && !self.result.is_empty() && !self.result.ends_with('\n') {
             self.result.push('\n');
         }
 
@@ -395,9 +389,7 @@ impl StripperState<'_> {
                 self.result.push_str("```\n");
             }
             _ => {
-                if self.block_tags.contains(tag_name)
-                    && !self.result.is_empty()
-                    && !self.result.ends_with('\n')
+                if is_block_tag(tag_name) && !self.result.is_empty() && !self.result.ends_with('\n')
                 {
                     self.result.push('\n');
                 }

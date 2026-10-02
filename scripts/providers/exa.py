@@ -17,6 +17,17 @@ from scripts.utils.async_http import get_async_client
 logger = logging.getLogger(__name__)
 
 
+def _get_result_text(r: object) -> str | None:
+    highlight = getattr(r, "highlight", None)
+    if highlight:
+        return str(highlight)
+    highlights = getattr(r, "highlights", None)
+    if highlights:
+        return highlights[0] if isinstance(highlights, list) else str(highlights)
+    text = getattr(r, "text", None)
+    return str(text) if text else None
+
+
 async def resolve_with_exa_mcp_async(
     query: str, max_chars: int = MAX_CHARS
 ) -> ResolvedResult | None:
@@ -96,22 +107,8 @@ async def resolve_with_exa_async(query: str, max_chars: int = MAX_CHARS) -> Reso
         if not res or not res.results:
             logger.warning("Exa returned no results for query: %s", query)
             return None
-        parts: list[str] = []
-        for r in res.results:
-            hl = getattr(r, "highlights", None)
-            if isinstance(hl, list) and hl:
-                parts.append("\n".join(str(x) for x in hl if x))
-            elif isinstance(hl, str) and hl:
-                parts.append(hl)
-            else:
-                hl_single = getattr(r, "highlight", None)
-                if isinstance(hl_single, str) and hl_single:
-                    parts.append(hl_single)
-                else:
-                    txt = getattr(r, "text", None)
-                    if isinstance(txt, str) and txt:
-                        parts.append(txt)
-        content = "\n\n---\n\n".join(parts)
+        extracted = [_get_result_text(r) for r in res.results]
+        content = "\n\n---\n\n".join([t for t in extracted if t])
         if not content:
             logger.warning("Exa returned empty content for query: %s", query)
             return None
@@ -201,22 +198,8 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult |
         if not res or not res.results:
             logger.warning("Exa returned no results for query: %s", query)
             return None
-        parts: list[str] = []
-        for r in res.results:
-            hl = getattr(r, "highlights", None)
-            if isinstance(hl, list) and hl:
-                parts.append("\n".join(str(x) for x in hl if x))
-            elif isinstance(hl, str) and hl:
-                parts.append(hl)
-            else:
-                hl_single = getattr(r, "highlight", None)
-                if isinstance(hl_single, str) and hl_single:
-                    parts.append(hl_single)
-                else:
-                    txt = getattr(r, "text", None)
-                    if isinstance(txt, str) and txt:
-                        parts.append(txt)
-        content = "\n\n---\n\n".join(parts)
+        extracted = [_get_result_text(r) for r in res.results]
+        content = "\n\n---\n\n".join([t for t in extracted if t])
         if not content:
             logger.warning("Exa returned empty content for query: %s", query)
             return None
