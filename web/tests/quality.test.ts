@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scoreContent } from "../lib/quality";
+import { extractLinks, scoreContent } from "../lib/quality";
 
 function longText(len: number = 600): string {
   return "word ".repeat(Math.ceil(len / 5)).slice(0, len);
@@ -102,5 +102,48 @@ describe("scoreContent", () => {
     const resultUndef = scoreContent(undefined as unknown as string);
     expect(resultUndef.tooShort).toBe(true);
     expect(resultUndef.acceptable).toBe(false);
+  });
+});
+
+describe("extractLinks", () => {
+  it("extracts markdown inline links", () => {
+    const links = extractLinks(
+      "See [the docs](https://example.com/docs) and [more](https://example.org)."
+    );
+
+    expect(links).toHaveLength(2);
+    expect(links.some((l) => l.includes("example.com/docs"))).toBe(true);
+  });
+
+  it("extracts angle-bracket autolinks", () => {
+    expect(extractLinks("Visit <https://example.com/page> today")).not.toHaveLength(0);
+  });
+
+  it("returns empty for non-markdown and empty input", () => {
+    expect(extractLinks("plain text with no links at all")).toEqual([]);
+    expect(extractLinks("")).toEqual([]);
+  });
+});
+
+describe("link inference parity with scripts/quality.py", () => {
+  const body = "Useful documentation prose. ".repeat(40);
+
+  it("infers links when no list is supplied, so markdown links are not penalised", () => {
+    const inferred = scoreContent(body + "\n[ref](https://example.com/a)");
+
+    expect(inferred.missingLinks).toBe(false);
+
+    const baseline = scoreContent(body);
+    expect(baseline.missingLinks).toBe(true);
+    expect(baseline.score).toBeLessThan(inferred.score);
+  });
+
+  it("treats an explicitly empty list as no links", () => {
+    expect(scoreContent(body, []).missingLinks).toBe(true);
+  });
+
+  it("an explicit list wins over inference", () => {
+    expect(scoreContent(body, ["https://example.com"]).missingLinks).toBe(false);
+    expect(scoreContent(body, []).missingLinks).toBe(true);
   });
 });

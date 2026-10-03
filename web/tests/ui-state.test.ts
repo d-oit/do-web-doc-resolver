@@ -57,7 +57,6 @@ describe("ui-state persistence", () => {
       maxChars: 8000,
       skipCache: false,
       deepResearch: false,
-      apiKeys: {},
       lastUpdated: 200,
     };
     const serverState: UIState = { 
@@ -83,7 +82,6 @@ describe("ui-state persistence", () => {
       maxChars: 8000,
       skipCache: false,
       deepResearch: false,
-      apiKeys: {},
       lastUpdated: 100,
     };
     const serverState: UIState = { 
@@ -109,7 +107,6 @@ describe("ui-state persistence", () => {
       maxChars: 5000,
       skipCache: true,
       deepResearch: true,
-      apiKeys: {},
       lastUpdated: 100,
     };
 
@@ -126,6 +123,44 @@ describe("ui-state persistence", () => {
     expect(loaded.activeProfile).toBe("custom");
     expect(loaded.selectedProviders).toEqual(["duckduckgo"]);
     expect(loaded.lastUpdated).toBe(123456);
+  });
+
+  it("never persists API keys, even if a caller passes them", () => {
+    // Keys are secrets: UIState is written to localStorage in clear text and
+    // synced to the server, so it must not be able to carry credentials.
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchSpy as typeof fetch;
+
+    saveUIState({
+      activeProfile: "custom",
+      apiKeys: { tavily_api_key: "tvly-secret" },
+    } as Partial<UIState>);
+
+    const stored = storage.getItem("wdr-ui-state");
+    expect(stored).not.toContain("tvly-secret");
+    expect(stored).not.toContain("apiKeys");
+
+    const body = (fetchSpy.mock.calls.at(0)?.[1] as RequestInit | undefined)?.body;
+    expect(String(body)).not.toContain("tvly-secret");
+  });
+
+  it("scrubs apiKeys from a stale localStorage blob", async () => {
+    // Blobs written by older builds carried credentials; loading and re-saving
+    // must not keep them on disk.
+    storage.setItem(
+      "wdr-ui-state",
+      JSON.stringify({
+        activeProfile: "custom",
+        apiKeys: { tavily_api_key: "stale-secret" },
+        lastUpdated: 100,
+      })
+    );
+    global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
+
+    await loadUIState();
+    saveUIState({ maxChars: 6000 });
+
+    expect(storage.getItem("wdr-ui-state")).not.toContain("stale-secret");
   });
 
   it("normalizes server selectedProviders to string array", async () => {

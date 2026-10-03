@@ -2,6 +2,7 @@
 Heuristics for scoring the quality of resolved content.
 """
 
+import re
 from dataclasses import dataclass
 
 # Quality scoring penalties
@@ -168,12 +169,28 @@ def _compute_bonuses(score: float, has_frontmatter: bool, has_anchors: bool) -> 
     return score
 
 
+# Markdown inline links plus bare autolinks, used to infer link presence when the
+# caller does not supply an explicit link list.
+_MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(\s*<?[^)\s]+>?\s*\)")
+_AUTOLINK_RE = re.compile(r"<https?://[^>\s]+>")
+
+
+def extract_links(markdown: str) -> list[str]:
+    """Return the URLs referenced by markdown link syntax."""
+    if not isinstance(markdown, str) or not markdown:
+        return []
+    return _MARKDOWN_LINK_RE.findall(markdown) + _AUTOLINK_RE.findall(markdown)
+
+
 def score_content(markdown: str, links: list[str] | None = None) -> QualityScore:
     if not isinstance(markdown, str):
         return QualityScore(0.0, True, True, False, False, False)
 
     text = (markdown or "").strip()
-    links = links or []
+    # The cascades score raw provider content without passing links, so infer
+    # them here. Without this, `missing_links` was always true and every result
+    # took a flat PENALTY_MISSING_LINKS hit, skewing every downstream threshold.
+    links = extract_links(text) if links is None else links
 
     too_short = len(text) < THRESHOLD_MIN_CHARS
     missing_links = len(links) == 0

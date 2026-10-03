@@ -93,12 +93,6 @@ export default function Home() {
         setMaxChars(ui.maxChars || 8000);
         setSkipCache(Boolean(ui.skipCache));
         setDeepResearch(Boolean(ui.deepResearch));
-        if (ui.apiKeys && typeof ui.apiKeys === "object") {
-          const keys = loadApiKeys();
-          const mergedKeys = { ...keys, ...ui.apiKeys } as ApiKeys;
-          setApiKeys(mergedKeys);
-          saveApiKeys(mergedKeys);
-        }
 
         // Load search state from localStorage
         const savedSearch = localStorage.getItem(SEARCH_STORAGE_KEY);
@@ -144,9 +138,8 @@ export default function Home() {
       maxChars,
       skipCache,
       deepResearch,
-      apiKeys,
     };
-    // Save to server with localStorage fallback (fire-and-forget)
+    // Preferences go to localStorage + server; keys stay in memory only.
     saveUIState(state);
     saveApiKeys(apiKeys);
   }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch, apiKeys]);
@@ -319,7 +312,7 @@ export default function Home() {
       setResult(markdown);
       setParsedResults(parsed);
       setSourceProvider(data.provider);
-      setQualityScore(data.quality_score ?? null);
+      setQualityScore(data.quality?.score ?? null);
       const endTime = performance.now();
       const timeTaken = Math.round(endTime - startTime);
       setResolveTime(timeTaken);

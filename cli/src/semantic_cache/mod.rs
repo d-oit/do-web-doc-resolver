@@ -73,12 +73,16 @@ pub struct SemanticCache {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SemanticCacheConfig {
     /// Enable semantic cache
+    #[serde(default = "default_semantic_cache_enabled")]
     pub enabled: bool,
     /// Path to cache database
+    #[serde(default = "default_semantic_cache_path")]
     pub path: String,
     /// Similarity threshold (0.0 - 1.0)
+    #[serde(default = "default_semantic_cache_threshold")]
     pub threshold: f32,
     /// Maximum entries
+    #[serde(default = "default_semantic_cache_max_entries")]
     pub max_entries: usize,
     /// Tiered TTL configuration (injected from Config)
     #[serde(skip)]
@@ -110,13 +114,29 @@ impl SemanticCacheConfig {
     }
 }
 
+fn default_semantic_cache_enabled() -> bool {
+    true
+}
+
+fn default_semantic_cache_path() -> String {
+    ".do-wdr_cache".to_string()
+}
+
+fn default_semantic_cache_threshold() -> f32 {
+    0.85
+}
+
+fn default_semantic_cache_max_entries() -> usize {
+    10000
+}
+
 impl Default for SemanticCacheConfig {
     fn default() -> Self {
         Self {
-            enabled: true,
-            path: ".do-wdr_cache".to_string(),
-            threshold: 0.85,
-            max_entries: 10000,
+            enabled: default_semantic_cache_enabled(),
+            path: default_semantic_cache_path(),
+            threshold: default_semantic_cache_threshold(),
+            max_entries: default_semantic_cache_max_entries(),
             ttls: None,
         }
     }

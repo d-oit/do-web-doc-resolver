@@ -213,7 +213,21 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Run npm audit (web)
-        run: cd web && npm ci && npm audit --audit-level=high
+        run: |
+          cd web && npm ci
+          # Shipped dependencies: nothing below high.
+          npm audit --omit=dev --audit-level=high
+          # Dev toolchain: nothing below critical.
+          #
+          # GHSA-vfj7-8cjw-p6xm (CVE-2026-93687) is the one high advisory in the
+          # dev tree: braces 3.0.3 stack-exhaustion DoS, no patched release
+          # upstream (micromatch/braces PR #72 is still open), so it cannot be
+          # upgraded away. It is dev-only -- `npm ls braces --omit=dev` is empty --
+          # reached solely via @next/eslint-plugin-next -> fast-glob ->
+          # micromatch -> braces, and only when ESLint expands glob patterns
+          # from this repo's own eslint.config.mjs. No path from untrusted input.
+          # Same shape as the RUSTSEC-2026-0258 ignore below.
+          npm audit --audit-level=critical
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # v1
