@@ -164,13 +164,11 @@ export async function loadUIState(): Promise<UIState> {
       localState
     );
     
-    // Update localStorage with merged state. Re-projected through
-    // toPersistable because `merged` can trace back to the server response,
-    // which is untrusted input as far as storage is concerned.
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeUIState(toPersistable(merged))));
-    }
-    
+    // Deliberately not writing `merged` back to localStorage here. The result
+    // is applied to React state, and the mount effect in page.tsx then persists
+    // it via saveUIState, which already projects through toPersistable(). Writing
+    // it at this point would duplicate that with a value that traces back to the
+    // untrusted server response.
     return merged;
   } catch {
     // Offline or server error: use localStorage
