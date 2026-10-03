@@ -174,35 +174,19 @@ test.describe("Provider gating", () => {
 
   test("duckduckgo is styled as unavailable when mistral key is present", async ({ page }) => {
     await mockUiStateAndKeys(page);
-    await page.route("**/api/ui-state", async (route) => {
-      if (route.request().method() === "GET") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            sidebarCollapsed: false,
-            showApiKeys: false,
-            showAdvanced: false,
-            activeProfile: "free",
-            selectedProviders: [],
-            maxChars: 8000,
-            skipCache: false,
-            deepResearch: false,
-            apiKeys: { mistral_api_key: "test-key" },
-            updatedAt: Date.now(),
-          }),
-        });
-        return;
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ ok: true }),
-      });
-    });
     await page.goto("/");
     await openSidebarIfMobile(page);
+
+    // API keys are in-memory only (never persisted to localStorage or the
+    // server), so the key has to be entered through the UI to be present.
+    const apiKeysToggle = page.getByTestId("api-keys-toggle");
+    await apiKeysToggle.scrollIntoViewIfNeeded();
+    await apiKeysToggle.click();
+    await page
+      .locator("label", { hasText: "Mistral" })
+      .locator("..")
+      .locator("input[type='password']")
+      .fill("test-key");
 
     // Use a more flexible selector that matches the aria-label
     const duckduckgoButton = page.getByRole("button", { name: /DuckDuckGo/ });

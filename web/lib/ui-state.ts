@@ -1,5 +1,12 @@
 import type { ApiKeys } from "./keys";
 
+/**
+ * Persisted UI preferences.
+ *
+ * Deliberately excludes API keys. `UIState` is written to localStorage in
+ * clear text and synced to `/api/ui-state`, so keeping credentials in it would
+ * store secrets at rest. Keys live only in `keys.ts` (in-memory, per session).
+ */
 export interface UIState {
   sidebarCollapsed: boolean;
   showApiKeys: boolean;
@@ -10,7 +17,6 @@ export interface UIState {
   maxChars: number;
   skipCache: boolean;
   deepResearch: boolean;
-  apiKeys: ApiKeys;
   lastUpdated: number;
 }
 
@@ -27,7 +33,6 @@ const DEFAULTS: UIState = {
   maxChars: 8000,
   skipCache: false,
   deepResearch: false,
-  apiKeys: {},
   lastUpdated: 0,
 };
 
@@ -69,10 +74,8 @@ function normalizeUIState(value: unknown): UIState {
     selectedProviders,
     maxChars: typeof parsed.maxChars === "number" ? parsed.maxChars : DEFAULTS.maxChars,
     skipCache: typeof parsed.skipCache === "boolean" ? parsed.skipCache : DEFAULTS.skipCache,
-    deepResearch: typeof parsed.deepResearch === "boolean" ? parsed.deepResearch : DEFAULTS.deepResearch,
-    apiKeys: parsed.apiKeys && typeof parsed.apiKeys === "object" && !Array.isArray(parsed.apiKeys)
-      ? parsed.apiKeys as ApiKeys
-      : DEFAULTS.apiKeys,
+    deepResearch:
+      typeof parsed.deepResearch === "boolean" ? parsed.deepResearch : DEFAULTS.deepResearch,
     lastUpdated: typeof parsed.lastUpdated === "number" ? parsed.lastUpdated : DEFAULTS.lastUpdated,
   };
 }
@@ -80,22 +83,27 @@ function normalizeUIState(value: unknown): UIState {
 // Merge server and local state (server wins on conflict)
 export function resolveUIState(serverState: UIState | null, localState: UIState): UIState {
   if (!serverState) return localState;
-  
-  // API keys never round-trip through the server (stripped by /api/ui-state), so
-  // the local copy is authoritative regardless of which side wins on timestamp.
-  const withLocalKeys = (base: UIState): UIState => ({
-    ...base,
-    apiKeys: Object.keys(localState.apiKeys).length > 0
-      ? localState.apiKeys
-      : base.apiKeys,
-  });
-  
+
   // Server wins for conflicts (newer timestamp takes precedence)
   if (serverState.lastUpdated >= localState.lastUpdated) {
-    return withLocalKeys(serverState);
+    return serverState;
   }
-  
+
   return localState;
+}
+
+/**
+ * Drop any credential-bearing fields before persistence.
+ *
+ * `UIState` no longer declares `apiKeys`, but callers are plain JavaScript at
+ * runtime and legacy localStorage blobs can still carry the key, so strip it
+ * unconditionally rather than trusting the type.
+ */
+function stripSecrets(state: Partial<UIState>): Partial<UIState> {
+  const { apiKeys: _apiKeys, ...rest } = state as Partial<UIState> & {
+    apiKeys?: unknown;
+  };
+  return rest;
 }
 
 // Load from localStorage (for server-side rendering safety)
@@ -114,14 +122,14 @@ function loadFromLocalStorage(): UIState {
 // Save to localStorage immediately (optimistic update)
 function saveToLocalStorage(state: Partial<UIState>): void {
   if (typeof window === "undefined") return;
-  
+
   try {
     const current = loadFromLocalStorage();
-    const next: UIState = {
-      ...current,
-      ...state,
+    const next = normalizeUIState({
+      ...stripSecrets(current),
+      ...stripSecrets(state),
       lastUpdated: Date.now(),
-    };
+    });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
     // Ignore storage errors (private mode, quota exceeded)
@@ -174,21 +182,16 @@ export function saveUIState(state: Partial<UIState>): void {
 async function syncToServer(state: Partial<UIState>): Promise<void> {
   try {
     const current = loadFromLocalStorage();
-    const payload: UIState = {
-      ...current,
-      ...state,
+    const payload = normalizeUIState({
+      ...stripSecrets(current),
+      ...stripSecrets(state),
       lastUpdated: Date.now(),
-    };
-    
-    // Never ship API keys to the server: localStorage is the only store for
-    // them. The server also strips them, but not sending them at all keeps
-    // secrets out of the request log and transit path.
-    const { apiKeys: _apiKeys, ...syncable } = payload;
-    
+    });
+
     const res = await fetch("/api/ui-state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(syncable),
+      body: JSON.stringify(payload),
     });
     
     if (!res.ok) {
