@@ -224,6 +224,10 @@ Thumbs.db
 # Playwright
 web/playwright-report
 
+# Generated test and benchmark output (Playwright's default outputDir)
+test-results/
+
+
 # Runtime state
 .do_wdr_state.toml
 videos/
