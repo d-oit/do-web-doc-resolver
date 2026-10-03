@@ -144,6 +144,25 @@ describe("ui-state persistence", () => {
     expect(String(body)).not.toContain("tvly-secret");
   });
 
+  it("scrubs apiKeys from a stale localStorage blob", async () => {
+    // Blobs written by older builds carried credentials; loading and re-saving
+    // must not keep them on disk.
+    storage.setItem(
+      "wdr-ui-state",
+      JSON.stringify({
+        activeProfile: "custom",
+        apiKeys: { tavily_api_key: "stale-secret" },
+        lastUpdated: 100,
+      })
+    );
+    global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
+
+    await loadUIState();
+    saveUIState({ maxChars: 6000 });
+
+    expect(storage.getItem("wdr-ui-state")).not.toContain("stale-secret");
+  });
+
   it("normalizes server selectedProviders to string array", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

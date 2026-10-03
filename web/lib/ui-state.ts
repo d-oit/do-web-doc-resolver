@@ -92,19 +92,7 @@ export function resolveUIState(serverState: UIState | null, localState: UIState)
   return localState;
 }
 
-/**
- * Drop any credential-bearing fields before persistence.
- *
- * `UIState` no longer declares `apiKeys`, but callers are plain JavaScript at
- * runtime and legacy localStorage blobs can still carry the key, so strip it
- * unconditionally rather than trusting the type.
- */
-function stripSecrets(state: Partial<UIState>): Partial<UIState> {
-  const { apiKeys: _apiKeys, ...rest } = state as Partial<UIState> & {
-    apiKeys?: unknown;
-  };
-  return rest;
-}
+
 
 // Load from localStorage (for server-side rendering safety)
 function loadFromLocalStorage(): UIState {
@@ -119,6 +107,28 @@ function loadFromLocalStorage(): UIState {
   }
 }
 
+/**
+ * Project onto the persistable field set.
+ *
+ * Fields are copied explicitly rather than spread, so no value can reach
+ * storage by accident — including credentials passed by a JS caller or
+ * carried in a stale localStorage blob from an older build.
+ */
+function toPersistable(state: Partial<UIState>): Partial<UIState> {
+  const out: Partial<UIState> = {};
+  if (typeof state.sidebarCollapsed === "boolean") out.sidebarCollapsed = state.sidebarCollapsed;
+  if (typeof state.showApiKeys === "boolean") out.showApiKeys = state.showApiKeys;
+  if (typeof state.showAdvanced === "boolean") out.showAdvanced = state.showAdvanced;
+  if (typeof state.activeProfile === "string") out.activeProfile = state.activeProfile;
+  if (state.theme === "light" || state.theme === "dark") out.theme = state.theme;
+  if (Array.isArray(state.selectedProviders)) out.selectedProviders = state.selectedProviders;
+  if (typeof state.maxChars === "number") out.maxChars = state.maxChars;
+  if (typeof state.skipCache === "boolean") out.skipCache = state.skipCache;
+  if (typeof state.deepResearch === "boolean") out.deepResearch = state.deepResearch;
+  if (typeof state.lastUpdated === "number") out.lastUpdated = state.lastUpdated;
+  return out;
+}
+
 // Save to localStorage immediately (optimistic update)
 function saveToLocalStorage(state: Partial<UIState>): void {
   if (typeof window === "undefined") return;
@@ -126,8 +136,8 @@ function saveToLocalStorage(state: Partial<UIState>): void {
   try {
     const current = loadFromLocalStorage();
     const next = normalizeUIState({
-      ...stripSecrets(current),
-      ...stripSecrets(state),
+      ...toPersistable(current),
+      ...toPersistable(state),
       lastUpdated: Date.now(),
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -154,9 +164,11 @@ export async function loadUIState(): Promise<UIState> {
       localState
     );
     
-    // Update localStorage with merged state
+    // Update localStorage with merged state. Re-projected through
+    // toPersistable because `merged` can trace back to the server response,
+    // which is untrusted input as far as storage is concerned.
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeUIState(toPersistable(merged))));
     }
     
     return merged;
@@ -183,8 +195,8 @@ async function syncToServer(state: Partial<UIState>): Promise<void> {
   try {
     const current = loadFromLocalStorage();
     const payload = normalizeUIState({
-      ...stripSecrets(current),
-      ...stripSecrets(state),
+      ...toPersistable(current),
+      ...toPersistable(state),
       lastUpdated: Date.now(),
     });
 
