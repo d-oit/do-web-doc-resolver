@@ -8,7 +8,9 @@ use thiserror::Error;
 
 use defaults::*;
 mod defaults;
+mod merge;
 mod parsing;
+use merge::{merge_explicit_bool, merge_map, merge_option, merge_string, merge_value, merge_vec};
 
 pub use defaults::RoutingProfileConfig;
 pub use defaults::routing_profile_defaults;
@@ -23,6 +25,12 @@ pub enum ConfigError {
 
 /// Boolean config keys whose TOML presence must be tracked so that
 /// `enabled = false` can override a `true` default.
+///
+/// This is a hand-maintained list, so **adding a default-on boolean config
+/// option means adding its dotted path here too.** `test_config_file_can_disable_
+/// default_on_features` covers every entry and will not catch a new field that
+/// was never registered, so treat a new `enabled` flag as requiring both a
+/// registry entry and a test assertion.
 const EXPLICIT_BOOL_KEYS: &[&str] = &[
     "semantic_cache.enabled",
     "cache.synthesis.enabled",
@@ -460,164 +468,8 @@ impl Config {
     }
 }
 
-fn merge_value<T: PartialEq>(target: &mut T, value: T, default: T) {
-    if value != default {
-        *target = value;
-    }
-}
-
-fn merge_string(target: &mut String, value: String) {
-    merge_value(target, value, "info".to_string());
-}
-
-/// Merge a boolean that is `true` by default.
-///
-/// Plain "override when true" merging makes it impossible to turn a
-/// default-on feature off from a config file, because an absent key
-/// deserializes to the same `true` as an explicit `enabled = true`. Presence
-/// is therefore tracked in [`Config::explicit_bools`] at parse time and the
-/// merge only applies keys the source actually specified.
-fn merge_explicit_bool(target: &mut bool, value: bool, key: &str, explicit: &ExplicitBools) {
-    if explicit.contains(key) {
-        *target = value;
-    } else if value {
-        *target = true;
-    }
-}
-
-fn merge_option<T>(target: &mut Option<T>, value: Option<T>) {
-    if value.is_some() {
-        *target = value;
-    }
-}
-
-fn merge_vec<T>(target: &mut Vec<T>, value: Vec<T>) {
-    if !value.is_empty() {
-        *target = value;
-    }
-}
-
-fn merge_map<K, V>(target: &mut HashMap<K, V>, value: HashMap<K, V>)
-where
-    K: Eq + std::hash::Hash,
-{
-    for (name, provider_config) in value {
-        target.entry(name).or_insert(provider_config);
-    }
-}
-
+// Unit tests live in their own module file so this one stays under the
+// 500-line source limit documented in AGENTS.md.
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_default_config() {
-        let config = Config::default();
-        assert_eq!(config.max_chars, 8000);
-        assert_eq!(config.min_chars, 200);
-        assert_eq!(config.exa_results, 5);
-        assert_eq!(config.tavily_results, 3);
-        assert_eq!(config.output_limit, 10);
-    }
-
-    #[test]
-    fn test_api_key_lookup() {
-        let config = Config::default();
-        assert!(config.api_key("unknown").is_none());
-    }
-
-    #[test]
-    fn test_skip_providers() {
-        let config = Config {
-            skip_providers: vec!["exa".to_string(), "tavily".to_string()],
-            ..Default::default()
-        };
-
-        assert!(config.is_skipped("exa"));
-        assert!(config.is_skipped("tavily"));
-        assert!(!config.is_skipped("firecrawl"));
-    }
-
-    #[test]
-    fn test_get_ttl() {
-        let config = Config::default();
-        assert_eq!(config.get_ttl("firecrawl"), 21600);
-        assert_eq!(config.get_ttl("exa"), 14400);
-        assert_eq!(config.get_ttl("exa_mcp"), 14400);
-        assert_eq!(config.get_ttl("tavily"), 14400);
-        assert_eq!(config.get_ttl("serper"), 7200);
-        assert_eq!(config.get_ttl("jina"), 7200);
-        assert_eq!(config.get_ttl("mistral"), 28800);
-        assert_eq!(config.get_ttl("mistral_browser"), 28800);
-        assert_eq!(config.get_ttl("mistral_websearch"), 28800);
-        assert_eq!(config.get_ttl("duckduckgo"), 3600);
-        assert_eq!(config.get_ttl("llms_txt"), 28800);
-        assert_eq!(config.get_ttl("synthesis"), 43200);
-        assert_eq!(config.get_ttl("unknown"), 3600);
-    }
-
-    /// Regression test: `enabled = false` in a config file must survive the
-    /// merge. Previously `merge_bool` only applied `true`, so every
-    /// default-on feature could be turned off by env var or CLI flag but never
-    /// by the config file itself.
-    #[test]
-    fn test_config_file_can_disable_default_on_features() {
-        let dir = std::env::temp_dir().join(format!("wdr-config-merge-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).expect("create temp dir");
-        let path = dir.join("disable.toml");
-
-        std::fs::write(
-            &path,
-            r#"
-max_chars = 1234
-
-[semantic_cache]
-enabled = false
-
-[cache.synthesis]
-enabled = false
-
-[routing.prewarm]
-enabled = false
-"#,
-        )
-        .expect("write config");
-
-        let config = Config::from_file(&path).expect("parse config");
-
-        assert!(
-            !config.semantic_cache.enabled,
-            "semantic_cache must be disabled"
-        );
-        assert!(
-            !config.cache.synthesis.enabled,
-            "synthesis cache must be disabled"
-        );
-        assert!(!config.routing.prewarm.enabled, "prewarm must be disabled");
-        // Non-boolean fields must still merge normally.
-        assert_eq!(config.max_chars, 1234);
-
-        let _ = std::fs::remove_file(&path);
-        let _ = std::fs::remove_dir(&dir);
-    }
-
-    /// A config file that omits these keys must not disable them.
-    #[test]
-    fn test_absent_bools_keep_defaults() {
-        let dir = std::env::temp_dir().join(format!("wdr-config-absent-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).expect("create temp dir");
-        let path = dir.join("minimal.toml");
-
-        std::fs::write(&path, "log_level = \"debug\"\n").expect("write config");
-
-        let config = Config::from_file(&path).expect("parse config");
-
-        assert!(config.semantic_cache.enabled);
-        assert!(config.cache.synthesis.enabled);
-        assert!(config.routing.prewarm.enabled);
-        assert_eq!(config.log_level, "debug");
-
-        let _ = std::fs::remove_file(&path);
-        let _ = std::fs::remove_dir(&dir);
-    }
-}
+#[path = "tests.rs"]
+mod tests;

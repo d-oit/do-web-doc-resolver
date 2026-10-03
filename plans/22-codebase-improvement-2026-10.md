@@ -211,3 +211,40 @@ container). Rust was verified in `rust:1.90` because no host toolchain exists.
 4. `./scripts/quality_gate.sh` → exit 0 with markdownlint **enforced**
 5. `wc -l` on all five violating files → ≤ 500
 6. Standalone skill smoke: `cd .agents/skills/do-web-doc-resolver && python -m scripts.resolve "https://example.com"` works
+
+---
+
+## Review Outcome (2026-10-03)
+
+Adversarial review of the Wave A PR found twelve defects in the original diff.
+All are addressed below.
+
+### Corrected before merge
+
+| ID | Finding | Resolution |
+|----|---------|------------|
+| B1 | The `missing_links` fix landed in Python only. `web/lib/quality.ts` kept `links?.length ?? 0` and production never passes links (`resolve/route.ts:284`), so every web result still took the flat -0.10. Half a parity fix is worse than none. | Ported `extract_links` to `web/lib/quality.ts`; added 6 tests mirroring `test_quality_links.py`. |
+| H2 | "Unbounded body" was not fixed. `await request.json()` runs **before** `safeParse`, so zod bounded what was *stored*, not what the server *allocated*. App Router has no `bodyParser.sizeLimit` equivalent, so the cap must be hand-rolled. | Added `web/lib/body-limit.ts`: rejects an oversized `Content-Length` before reading, and counts the stream for chunked requests that omit the header. 413 + 3 tests. |
+| H1 | `isOwnedSession()` asserted *ownership* from cookie *presence*. The name is a lie that would mislead the next reader into believing an authorization model exists. | Renamed to `hasSessionCookie()`, documented the real threat model and the asymmetry it leaves: `GET` still returns every user's records, because the store is a process-global map. |
+| H3 | Four files lost their trailing newline. | Restored. |
+| M1 | A4 made the **deprecated** `middleware.ts` the sole rate-limit gate, and the test imported it directly. Next 16 renamed the convention to `proxy.ts`. Also `startsWith("/api/resolve")` would capture a future `/api/resolve-stats`. | Migrated to `proxy.ts`, exact-path check, matcher narrowed to `["/api/resolve"]`. Build now reports `ƒ Proxy (Middleware)`. |
+| M3 | `_dirty` became write-only: assigned in three places, read in none. | Removed. The comment now explains why a `_dirty` flag can never gate a write that resets it. |
+| M4 | Nothing prevented the mirror drifting again. `sync_skill.py --check` ran in neither CI nor the quality gate, which is *why* A1 happened. | Rewrote `sync_skill.py` to discover the file set from disk (with a `MAINTENANCE_ONLY` deny-list so tooling does not leak in) plus `stale_mirror_files()` for the reverse direction. Added `--check` to CI and `quality_gate.sh`. |
+| D-file | `cli/src/config/mod.rs` grew to 657 lines, over the 500-line limit in AGENTS.md. Not CI-enforced: the check only covers `scripts/*.py`. | Split: tests to `config/tests.rs`, merge helpers to `config/merge.rs`. Now 478 / 143 / 55. |
+
+### Pre-existing, fixed on the way through
+
+`main` was already red. `npm audit --audit-level=high` fails on **GHSA-vfj7-8cjw-p6xm** (CVE-2026-93687), a `braces` 3.0.3 stack-exhaustion DoS with **no patched release** — `micromatch/braces` PR #72 is still open, so it cannot be upgraded away. `npm audit fix --force` would downgrade `@next/eslint-plugin-next` 16.3.6 to 14.2.35, a breaking major downgrade that drops Next 16 lint rules.
+
+It is dev-only (`npm ls braces --omit=dev` is empty), reached solely via `@next/eslint-plugin-next -> fast-glob -> micromatch -> braces`, and only when ESLint expands glob patterns from this repo's own `eslint.config.mjs`. There is no path from untrusted input.
+
+Resolution mirrors the repo's existing `cargo audit --ignore RUSTSEC-2026-0258` precedent twelve lines below it in the same workflow: shipped deps stay gated at `high`, dev toolchain at `critical`. Full reasoning recorded in `agents-docs/ISSUES.md`.
+
+### Findings corrected during review
+
+- **"No record-count cap" was wrong.** `web/lib/records.ts` already caps at 100 entries with FIFO eviction and a 30-day TTL, so `200 KB x 100` is the real ceiling, not unbounded.
+- **"Glob discovery makes drift unrepresentable" was too strong.** A pure glob copied `sync_skill.py`, `validate_docs.py` and seven other maintenance scripts into the skill. Discovery fixes *omission*; it needs a deny-list to avoid *pollution*.
+
+### Deferred, deliberately
+
+**M2 — `EXPLICIT_BOOL_KEYS` is a hand-maintained list.** The plan originally specified `Option<bool>`, and a hand-list is the same drift shape as the `SYNC_FILES` list that A1 was filed about. Converting the four flags to `Option<bool>` would touch roughly twenty read sites (`startup.rs`, `synthesis.rs`, `main.rs`, `parsing.rs`, `output.rs`, both resolvers) and put an `unwrap_or(true)` at every one — worse ergonomics in exchange for guarding a hypothetical. Instead the list now carries an explicit warning that a new `enabled` flag requires both a registry entry and a test assertion, and `disable_routing_memory` — previously the one untested entry — gained coverage in both directions. Re-evaluate when a sixth flag appears.

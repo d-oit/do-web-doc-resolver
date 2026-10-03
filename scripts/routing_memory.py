@@ -31,7 +31,6 @@ class RoutingMemory:
         )
         self._lock = threading.RLock()
         self._path = Path(path) if path is not None else None
-        self._dirty = False
         self._last_save = 0.0
         if self._path is not None:
             self._load_from_disk()
@@ -68,7 +67,6 @@ class RoutingMemory:
             with tmp.open("w", encoding="utf-8") as fh:
                 json.dump(data, fh, sort_keys=True)
             tmp.replace(self._path)
-            self._dirty = False
             self._last_save = time.time()
         except OSError as e:
             logger.warning("Failed to save routing memory to %s: %s", self._path, e)
@@ -99,8 +97,9 @@ class RoutingMemory:
                 stats["failure"] = f + 1
 
             # Throttled auto-persist so a running CLI retains learned preferences.
-            # Only the elapsed interval gates the write: `_save_to_disk_unlocked()`
-            # resets `_dirty`, so consulting it here would persist on every call.
+            # Only the elapsed interval gates the write. A `_dirty` flag would not:
+            # `_save_to_disk_unlocked()` resets it, so testing it here evaluated to
+            # True on every call and wrote JSON to disk on every single record().
             if self._path is not None and time.time() - self._last_save >= SAVE_INTERVAL_SECONDS:
                 self._save_to_disk_unlocked()
 
@@ -181,4 +180,3 @@ class RoutingMemory:
     def clear(self) -> None:
         with self._lock:
             self.domain_stats.clear()
-            self._dirty = False

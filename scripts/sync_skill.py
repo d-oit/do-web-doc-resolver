@@ -23,61 +23,73 @@ PROJECT_ROOT = Path(__file__).parent.parent
 MAIN_SCRIPTS = PROJECT_ROOT / "scripts"
 SKILL_SCRIPTS = PROJECT_ROOT / ".agents/skills/do-web-doc-resolver/scripts"
 
-# Files to sync (exclude __pycache__, __init__.py is special).
-# `utils` is a package (scripts/utils/), so it is synced file-by-file below.
-SYNC_FILES = [
-    "_cascade.py",
-    "_cascade_async.py",
-    "_query_resolve.py",
-    "_routing_utils.py",
-    "_url_resolve.py",
-    "_url_resolve_async.py",
-    "cache_negative.py",
-    "circuit_breaker.py",
-    "cli.py",
-    "constants.py",
-    "models.py",
-    "providers_impl.py",
-    "quality.py",
-    "resolve.py",
-    "routing.py",
-    "routing_memory.py",
-    "semantic_cache.py",
-    "state.py",
-    "synthesis.py",
-    "visual_resolver.py",
-]
+# The mirror is a byte-for-byte copy of the source tree, so the file set is
+# discovered from disk rather than listed by hand. A hand-maintained list is
+# exactly what let the mirror drift: `_query_resolve`, `_url_resolve`,
+# `semantic_cache`, `cli` and the whole `providers/` package were added to
+# scripts/ and never reached the skill, leaving the standalone skill
+# unimportable.
+#
+# Discovery is allow-by-default, so a new resolver module is picked up without
+# anyone remembering to add it. `MAINTENANCE_ONLY` is the correction: tooling
+# that lives in scripts/ but is not part of the resolver runtime, and which
+# would only bloat or confuse the standalone skill if copied in.
+NOT_SYNCED = {"__init__.py"}
 
-# Modules in the scripts/providers/ package mirror. `providers_impl.py` re-exports
-# from this package, so the mirror is unusable without it.
-PROVIDERS_FILES = [
-    "__init__.py",
-    "docling.py",
-    "duckduckgo.py",
-    "exa.py",
-    "firecrawl.py",
-    "jina.py",
-    "mistral.py",
-    "ocr.py",
-    "serper.py",
-    "stealth.py",
-    "tavily.py",
-    "visual_clip.py",
-]
+# Repo maintenance / CI tooling, not resolver runtime. Copying these is actively
+# wrong: sync_skill.py would ship a copy of itself, and the validators resolve
+# paths that do not exist outside this repository.
+MAINTENANCE_ONLY = {
+    "diagnose_providers.py",
+    "doc_models.py",
+    "doc_validator.py",
+    "generate_changelog.py",
+    "monitor_providers.py",
+    "sync_skill.py",
+    "sync_versions.py",
+    "validate_docs.py",
+    "validate_skill_symlink.py",
+}
 
-# Files inside the scripts/utils/ package mirror (kept in lock-step with the
-# canonical package). Added after the flattening refactor (ADR-014), which
-# turned the former utils.py module into a package.
-UTILS_FILES = [
-    "async_http.py",
-    "cache.py",
-    "content_clean.py",
-    "fetch.py",
-    "html.py",
-    "http.py",
-    "thread_pool.py",
-    "urls.py",
-]
+
+def discover(subdir: str | None = None) -> list[str]:
+    """List the syncable runtime modules of `scripts/<subdir>/`, sorted."""
+    base = MAIN_SCRIPTS / subdir if subdir else MAIN_SCRIPTS
+    if not base.is_dir():
+        return []
+    return sorted(
+        p.name
+        for p in base.glob("*.py")
+        if p.name not in NOT_SYNCED and p.name not in MAINTENANCE_ONLY
+    )
+
+
+def sync_targets() -> list[tuple[str, str | None]]:
+    """Every (filename, subdir) pair the mirror must contain."""
+    targets: list[tuple[str, str | None]] = [(name, None) for name in discover()]
+    # These two packages export symbols from their roots, so __init__.py is
+    # part of the mirror rather than an empty shim.
+    for subdir in ("providers", "utils"):
+        targets += [(name, subdir) for name in discover(subdir)]
+        if (MAIN_SCRIPTS / subdir / "__init__.py").exists():
+            targets.append(("__init__.py", subdir))
+    return targets
+
+
+def stale_mirror_files() -> list[Path]:
+    """Mirror files with no counterpart in the source tree.
+
+    Catches the opposite direction of drift: a module renamed, merged or deleted
+    upstream that is still sitting in the skill, shadowing nothing and rotting.
+    """
+    if not SKILL_SCRIPTS.is_dir():
+        return []
+    expected = {SKILL_SCRIPTS / (sub or "") / name for name, sub in sync_targets()}
+    # sync_init() creates an empty shim at the mirror root; it is not a copy of
+    # scripts/__init__.py and must not be reported as stale.
+    expected.add(SKILL_SCRIPTS / "__init__.py")
+    actual = {p for p in SKILL_SCRIPTS.rglob("*.py") if "__pycache__" not in p.parts}
+    return sorted(actual - expected)
 
 
 def get_diff(file1: Path, file2: Path | None) -> str:
@@ -141,15 +153,6 @@ def sync_utils_package(dry_run: bool = False) -> int:
             legacy.unlink()
             print("  DELETE utils.py (replaced by utils/ package)")
             synced += 1
-
-    for filename in UTILS_FILES:
-        if sync_file(filename, dry_run, subdir="utils"):
-            synced += 1
-
-    # __init__.py re-exports symbols and defines helpers (e.g. _detect_error_type)
-    # that skill code imports from the package root — empty stubs break imports.
-    if sync_file("__init__.py", dry_run, subdir="utils"):
-        synced += 1
     return synced
 
 
@@ -163,28 +166,53 @@ def sync_init(dry_run: bool = False) -> None:
 
 
 def main():
-    dry_run = "--dry-run" in sys.argv
+    # --check is the CI gate: report drift and exit non-zero without writing.
+    # --dry-run previews writes. Both are non-destructive.
+    check_only = "--check" in sys.argv
+    dry_run = check_only or "--dry-run" in sys.argv
 
     print("=== Skill Sync: scripts/ → .agents/skills/do-web-doc-resolver/scripts/ ===")
-    print(f"Mode: {'DRY RUN' if dry_run else 'LIVE'}")
+    if check_only:
+        print("Mode: CHECK (no writes)")
+    elif dry_run:
+        print("Mode: DRY RUN")
+    else:
+        print("Mode: LIVE")
     print()
 
     if not SKILL_SCRIPTS.exists():
         print(f"ERROR: Skill scripts directory not found: {SKILL_SCRIPTS}")
         sys.exit(1)
 
+    targets = sync_targets()
+    print(f"Discovered {len(targets)} module(s) to mirror\n")
+
     synced = 0
-    for filename in SYNC_FILES:
-        if sync_file(filename, dry_run):
-            synced += 1
-    for filename in PROVIDERS_FILES:
-        if sync_file(filename, dry_run, subdir="providers"):
+    for filename, subdir in targets:
+        if sync_file(filename, dry_run, subdir=subdir):
             synced += 1
     synced += sync_utils_package(dry_run)
-
     sync_init(dry_run)
 
+    # Remove mirror files with no source counterpart.
+    for stale in stale_mirror_files():
+        rel = stale.relative_to(SKILL_SCRIPTS)
+        if check_only or dry_run:
+            print(f"  STALE {rel}")
+            synced += 1
+        else:
+            stale.unlink()
+            print(f"  DELETE {rel} (no source counterpart)")
+            synced += 1
+
     print()
+    if check_only:
+        if synced:
+            print(f"FAIL: {synced} mirrored file(s) out of sync.")
+            print("Run: python scripts/sync_skill.py")
+            sys.exit(1)
+        print("OK: skill mirror is in sync.")
+        return
     if dry_run:
         print(f"Would sync {synced} file(s)")
     else:
@@ -195,21 +223,18 @@ def main():
         print()
         print("=== Verification ===")
         all_ok = True
-        for filename, subdir in (
-            [(f, None) for f in SYNC_FILES]
-            + [(f, "providers") for f in PROVIDERS_FILES]
-            + [(f, "utils") for f in UTILS_FILES]
-        ):
-            src = (MAIN_SCRIPTS / subdir / filename) if subdir else (MAIN_SCRIPTS / filename)
-            dst = (SKILL_SCRIPTS / subdir / filename) if subdir else (SKILL_SCRIPTS / filename)
+        for filename, subdir in targets:
+            src = MAIN_SCRIPTS / subdir / filename if subdir else MAIN_SCRIPTS / filename
+            dst = SKILL_SCRIPTS / subdir / filename if subdir else SKILL_SCRIPTS / filename
+            label = f"{subdir}/{filename}" if subdir else filename
             if src.exists() and dst.exists():
                 if filecmp.cmp(src, dst):
-                    print(f"  OK   {filename}")
+                    print(f"  OK   {label}")
                 else:
-                    print(f"  FAIL {filename}")
+                    print(f"  FAIL {label}")
                     all_ok = False
             elif src.exists() and not dst.exists():
-                print(f"  MISS {filename}")
+                print(f"  MISS {label}")
                 all_ok = False
 
         if all_ok:
