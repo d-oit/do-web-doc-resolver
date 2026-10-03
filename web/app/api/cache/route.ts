@@ -3,8 +3,13 @@ import { stats, clear } from "@/lib/cache";
 
 /**
  * The cache is process-local shared state, so clearing it affects every user
- * served by this instance. Require the caller's own session so a random
- * client cannot wipe it.
+ * served by this instance.
+ *
+ * The session-cookie check below stops an anonymous `curl -X DELETE`, which is
+ * the realistic abuse. It is not authorization: the cookie is client-supplied
+ * and unverified, so anyone can obtain one by calling any endpoint. The same
+ * caveat and the follow-up (sign the value server-side) are documented on
+ * `hasSessionCookie` in app/api/records/route.ts.
  */
 export async function GET() {
   return NextResponse.json(stats());

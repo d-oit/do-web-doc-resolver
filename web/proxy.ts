@@ -7,12 +7,14 @@ function nowMs(): number {
   return globalThis.performance.timeOrigin + performance.now();
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (request.method !== "POST") {
     return NextResponse.next();
   }
 
-  if (!request.nextUrl.pathname.startsWith("/api/resolve")) {
+  // Exact path, not a prefix test: `startsWith` would also capture a sibling
+  // route such as `/api/resolve-stats` and rate-limit it by accident.
+  if (request.nextUrl.pathname !== "/api/resolve") {
     return NextResponse.next();
   }
 
@@ -34,5 +36,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*"],
+  // Narrower than `/api/:path*`: only the route that actually calls a paid
+  // provider belongs here. Widening the matcher would gate cheap endpoints and
+  // spend in-memory counter entries on every API call.
+  matcher: ["/api/resolve"],
 };

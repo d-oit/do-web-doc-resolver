@@ -1,10 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "../../app/api/resolve/route";
-import { middleware } from "../../middleware";
+import { proxy } from "../../proxy";
 
-// Rate limiting is enforced in web/middleware.ts. The route handler used to
-// call checkRateLimit as well, which consumed the same in-memory counter twice
+// Rate limiting is enforced in web/proxy.ts (the App Router file convention
+// that replaced middleware.ts in Next 16). The route handler used to call
+// checkRateLimit as well, which consumed the same in-memory counter twice
 // and halved the effective limit to 15 req/min.
 vi.mock("../../lib/rate-limit", () => ({
   checkRateLimit: vi.fn(),
@@ -40,7 +41,7 @@ describe("POST /api/resolve rate limiting", () => {
     vi.clearAllMocks();
   });
 
-  it("middleware returns 429 when rate limit is exceeded", () => {
+  it("proxy returns 429 when rate limit is exceeded", () => {
     vi.mocked(rateLimit.getClientIdentifier).mockReturnValue("test-ip");
     vi.mocked(rateLimit.checkRateLimit).mockReturnValue({
       allowed: false,
@@ -49,14 +50,14 @@ describe("POST /api/resolve rate limiting", () => {
     });
 
     const request = resolveRequest();
-    const response = middleware(request);
+    const response = proxy(request);
 
     expect(response.status).toBe(429);
     expect(rateLimit.getClientIdentifier).toHaveBeenCalledWith(request);
     expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("test-ip", expect.any(Object));
   });
 
-  it("middleware allows the request and exposes rate limit headers", () => {
+  it("proxy allows the request and exposes rate limit headers", () => {
     vi.mocked(rateLimit.getClientIdentifier).mockReturnValue("test-ip");
     vi.mocked(rateLimit.checkRateLimit).mockReturnValue({
       allowed: true,
@@ -64,7 +65,7 @@ describe("POST /api/resolve rate limiting", () => {
       resetAt: Date.now() + 60000,
     });
 
-    const response = middleware(resolveRequest());
+    const response = proxy(resolveRequest());
 
     expect(response.status).toBe(200);
     expect(response.headers.get("X-RateLimit-Remaining")).toBe("29");

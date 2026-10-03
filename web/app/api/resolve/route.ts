@@ -205,7 +205,7 @@ function normalizeQueryProviders(providerIds: string[], keys: ProviderKeys): str
 }
 
 export async function POST(request: NextRequest) {
-  // Rate limiting is enforced in web/middleware.ts, which runs before this handler
+  // Rate limiting is enforced in web/proxy.ts, which runs before this handler
   // and can set Retry-After. Checking here as well consumed the same in-memory
   // counter twice, halving the effective limit to 15 req/min.
   const log = new Logger();

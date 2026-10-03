@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { save, list, clear, search } from "@/lib/records";
+import { BodyTooLargeError, readJsonWithLimit } from "@/lib/body-limit";
 
 /**
- * Destructive record operations are scoped to the caller's own session.
+ * Whether the caller presented a session cookie.
  *
- * The store is process-local, so without this check any client could DELETE the
- * entire record set (and POST unbounded `content` strings into it). The
- * identifier matches the one used by /api/history.
+ * This is a speed bump against anonymous `curl`, not authorization: the cookie
+ * value is client-supplied and unverified, so anyone can mint one by calling any
+ * endpoint. Making it a real access check means signing the value server-side —
+ * see agents-docs/ISSUES.md.
+ *
+ * Note the asymmetry it leaves behind: the store in `lib/records.ts` is a single
+ * process-global map with no per-session partitioning, so `GET` still returns
+ * every user's records and `GET ?q=` searches across them. Partitioning the
+ * store is a schema change and is deliberately out of scope here.
  */
-function isOwnedSession(request: NextRequest): boolean {
+function hasSessionCookie(request: NextRequest): boolean {
   return Boolean(request.cookies.get("ui-session")?.value);
 }
 
@@ -32,39 +39,50 @@ const RecordSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  let body: unknown;
+
   try {
-    const body = await request.json();
-    const parsed = RecordSchema.safeParse(body);
-
-    if (!parsed.success) {
+    // Bounded before parsing: the per-field caps below only bound what is
+    // stored, not what the client can make this handler allocate.
+    body = await readJsonWithLimit(request);
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) {
       return NextResponse.json(
-        { error: "Invalid record payload", details: parsed.error.issues },
-        { status: 400 }
+        { error: `Request body exceeds ${error.limit} bytes` },
+        { status: 413 }
       );
     }
-
-    if (!parsed.data.query && !parsed.data.url) {
-      return NextResponse.json(
-        { error: "query or url required" },
-        { status: 400 }
-      );
-    }
-
-    const record = save({
-      query: parsed.data.query || parsed.data.url || "",
-      url: parsed.data.url ?? null,
-      content: parsed.data.content || "",
-      source: parsed.data.source || "manual",
-      score: parsed.data.score ?? 0,
-    });
-    return NextResponse.json(record, { status: 201 });
-  } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  const parsed = RecordSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid record payload", details: parsed.error.issues },
+      { status: 400 }
+    );
+  }
+
+  if (!parsed.data.query && !parsed.data.url) {
+    return NextResponse.json(
+      { error: "query or url required" },
+      { status: 400 }
+    );
+  }
+
+  const record = save({
+    query: parsed.data.query || parsed.data.url || "",
+    url: parsed.data.url ?? null,
+    content: parsed.data.content || "",
+    source: parsed.data.source || "manual",
+    score: parsed.data.score ?? 0,
+  });
+  return NextResponse.json(record, { status: 201 });
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isOwnedSession(request)) {
+  if (!hasSessionCookie(request)) {
     return NextResponse.json(
       { error: "Session required to clear records" },
       { status: 401 }
