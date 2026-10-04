@@ -1,5 +1,6 @@
 """
 Two-stage synthesis gating logic for the Web Doc Resolver.
+Aligned with 2026 LLM-Readable-Doc standards (docs/standards.md).
 """
 
 import datetime
@@ -159,7 +160,8 @@ def deterministic_merge(results: list[ResolvedResult]) -> str:
 def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, model: str) -> str:
     """
     Synthesize multiple results into a cohesive, LLM-ready markdown document.
-    Follows 2026 LLM-Readable-Doc standards.
+    Follows 2026 LLM-Readable-Doc standards (docs/standards.md) with
+    Token-Efficiency Headers (YAML frontmatter) and Structural Anchors for RAG.
     """
     if not results:
         return "No results to synthesize."
