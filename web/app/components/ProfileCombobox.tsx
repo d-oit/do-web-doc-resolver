@@ -26,6 +26,8 @@ export default function ProfileCombobox({ id: providedId, value, onChange, optio
   const listboxId = `listbox-${id}`;
 
   const selectedOption = options.find((o) => o.id === value);
+  const activeOption = open && activeIndex >= 0 ? options[activeIndex] : undefined;
+  const activeDescendantId = activeOption ? `${listboxId}-option-${activeOption.id}` : undefined;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -103,13 +105,15 @@ export default function ProfileCombobox({ id: providedId, value, onChange, optio
     }
   };
 
-  // Focus the active option button when activeIndex changes and list is open
+  // Scroll active option into view when activeIndex changes
   useEffect(() => {
-    if (open && activeIndex >= 0 && listboxRef.current) {
-      const buttons = listboxRef.current.querySelectorAll("button");
-      (buttons[activeIndex] as HTMLElement)?.focus();
+    if (open && activeIndex >= 0 && listboxRef.current && activeOption) {
+      const activeEl = document.getElementById(`${listboxId}-option-${activeOption.id}`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: "nearest" });
+      }
     }
-  }, [activeIndex, open]);
+  }, [activeIndex, open, activeOption, listboxId]);
 
   return (
     <div className="relative" ref={containerRef}>
@@ -122,6 +126,7 @@ export default function ProfileCombobox({ id: providedId, value, onChange, optio
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
+        aria-activedescendant={activeDescendantId}
         aria-label="Change search profile"
         title="Change search profile"
       >
@@ -137,23 +142,35 @@ export default function ProfileCombobox({ id: providedId, value, onChange, optio
           role="listbox"
           aria-label="Search profiles"
         >
-          {options.map((option, index) => (
-            <button
-              key={option.id}
-              id={`${listboxId}-option-${option.id}`}
-              onClick={() => handleSelect(option.id)}
-              onKeyDown={handleKeyDown}
-              className={`w-full px-3 py-2 text-left hover:bg-accent hover:text-background transition-colors flex flex-col focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 focus:bg-accent focus:text-background ${
-                option.id === value ? "bg-[#222] text-accent" : "text-foreground"
-              } ${index === activeIndex ? "ring-inset ring-2 ring-accent" : ""}`}
-              role="option"
-              aria-selected={option.id === value}
-              tabIndex={-1}
-            >
-              <span className="text-[12px] font-bold">{option.label}</span>
-              {option.description && <div className="text-[10px] text-text-muted">{option.description}</div>}
-            </button>
-          ))}
+          {options.map((option, index) => {
+            const isSelected = option.id === value;
+            const isActive = index === activeIndex;
+
+            return (
+              <div
+                key={option.id}
+                id={`${listboxId}-option-${option.id}`}
+                onClick={() => handleSelect(option.id)}
+                onMouseEnter={() => setActiveIndex(index)}
+                className={`w-full px-3 py-2 text-left transition-colors flex flex-col cursor-pointer ${
+                  isActive
+                    ? "bg-accent text-background font-bold"
+                    : isSelected
+                    ? "bg-[#222] text-accent"
+                    : "text-foreground hover:bg-[#222]"
+                }`}
+                role="option"
+                aria-selected={isSelected}
+              >
+                <span className="text-[12px] font-bold">{option.label}</span>
+                {option.description && (
+                  <div className={`text-[10px] ${isActive ? "text-background/80" : "text-text-muted"}`}>
+                    {option.description}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
