@@ -56,6 +56,9 @@ pub fn score_result(url: &str, content: &str) -> f64 {
             "mozilla.org",
             "rust-lang.org",
             "tokio.rs",
+            "go.dev",
+            "react.dev",
+            "python.org",
         ];
         if dev_sites
             .iter()
