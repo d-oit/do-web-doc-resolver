@@ -25,79 +25,68 @@ fn decode_entities_old(text: &str) -> String {
         .replace("\u{2060}", "") // Remove word joiner
 }
 
-// Proposed optimized implementation
+// Proposed optimized implementation using byte slice lookahead
 fn decode_entities_optimized(text: &str) -> String {
     if !text.contains('&') && !text.contains('\u{2060}') {
         return text.to_string();
     }
 
-    let mut result = String::with_capacity(text.len());
-    let mut chars = text.char_indices().peekable();
+    let bytes = text.as_bytes();
+    let len = bytes.len();
+    let mut result = String::with_capacity(len);
+    let mut i = 0;
 
-    while let Some((_, ch)) = chars.next() {
-        if ch == '&' {
-            let mut found_semi = false;
-            let mut end_idx = 0;
-            let temp_chars = chars.clone();
+    while i < len {
+        let b = bytes[i];
 
-            for (idx, next_ch) in temp_chars.take(10) {
-                if next_ch == ';' {
-                    found_semi = true;
-                    end_idx = idx + 1;
-                    break;
-                }
-            }
-
-            if found_semi {
-                let start_idx = if let Some(&(idx, _)) = chars.peek() {
-                    idx
-                } else {
-                    end_idx
-                };
-
-                let entity = &text[start_idx..end_idx];
+        if b == b'&' {
+            let rest = &bytes[i + 1..];
+            let limit = rest.len().min(10);
+            if let Some(semi_pos) = rest[..limit].iter().position(|&c| c == b';') {
+                let entity = &text[i + 1..i + 1 + semi_pos];
                 let decoded = match entity {
-                    "lt;" => Some("<"),
-                    "gt;" => Some(">"),
-                    "quot;" => Some("\""),
-                    "#x27;" | "#39;" => Some("'"),
-                    "nbsp;" => Some(" "),
-                    "copy;" => Some("©"),
-                    "reg;" => Some("®"),
-                    "trade;" => Some("™"),
-                    "ndash;" => Some("–"),
-                    "mdash;" => Some("—"),
-                    "lsquo;" => Some("‘"),
-                    "rsquo;" => Some("’"),
-                    "ldquo;" => Some("“"),
-                    "rdquo;" => Some("”"),
-                    "#91;" => Some("["),
-                    "#93;" => Some("]"),
-                    "#8288;" => Some(""),
-                    "amp;" => Some("&"),
+                    "lt" => Some("<"),
+                    "gt" => Some(">"),
+                    "quot" => Some("\""),
+                    "#x27" | "#39" => Some("'"),
+                    "nbsp" => Some(" "),
+                    "copy" => Some("©"),
+                    "reg" => Some("®"),
+                    "trade" => Some("™"),
+                    "ndash" => Some("–"),
+                    "mdash" => Some("—"),
+                    "lsquo" => Some("‘"),
+                    "rsquo" => Some("’"),
+                    "ldquo" => Some("“"),
+                    "rdquo" => Some("”"),
+                    "#91" => Some("["),
+                    "#93" => Some("]"),
+                    "#8288" => Some(""),
+                    "amp" => Some("&"),
                     _ => None,
                 };
 
                 if let Some(d) = decoded {
                     result.push_str(d);
-                    // Advance main iterator to after the semicolon
-                    while let Some(&(idx, _)) = chars.peek() {
-                        if idx < end_idx {
-                            chars.next();
-                        } else {
-                            break;
-                        }
-                    }
+                    i += 1 + semi_pos + 1;
                     continue;
                 }
             }
         }
 
-        if ch == '\u{2060}' {
+        if b == 0xE2 && i + 2 < len && bytes[i + 1] == 0x81 && bytes[i + 2] == 0xA0 {
+            i += 3;
             continue;
         }
 
-        result.push(ch);
+        if b.is_ascii() {
+            result.push(b as char);
+            i += 1;
+        } else {
+            let ch = text[i..].chars().next().unwrap();
+            result.push(ch);
+            i += ch.len_utf8();
+        }
     }
 
     result
