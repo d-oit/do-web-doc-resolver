@@ -12,6 +12,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 | [`AUDIT.md`](AUDIT.md) | Project audit — known gaps, file-size tracking, ADR status |
 | [`20-GOAP-STATE-UPDATE.md`](20-GOAP-STATE-UPDATE.md) | Latest GOAP state (2026-05-30); waves 1–7 complete |
 | [`21-codebase-improvement-2026-06.md`](21-codebase-improvement-2026-06.md) | Codebase improvement sweep (2026-06-01): ✅ Waves A-C DONE |
+| [`22-codebase-improvement-2026-10.md`](22-codebase-improvement-2026-10.md) | Full-repo improvement sweep (2026-10-02): security, correctness, DRY, CI | 🚧 Wave A IN PROGRESS |
 
 ## Release Status
 
@@ -45,6 +46,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 | 08 | [Deep Research](08-deep-research.md) | Multi-step research framework | All PENDING |
 | 11 | [Cache Pre-warming](11-cache-prewarming.md) | CLI + web prewarm | ✅ SHIPPED |
 | 21 | [Codebase Improvement 2026-06](21-codebase-improvement-2026-06.md) | mypy, broad excepts, file-size splits, providers DRY | ✅ Wave A, B1-B2 DONE |
+| 22 | [Codebase Improvement 2026-10](22-codebase-improvement-2026-10.md) | Security, async cost control, DRY, file-size, CI enforcement | 🚧 Wave A IN PROGRESS |
 
 ## Implementation Waves (history)
 
@@ -60,6 +62,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 | 7 | Web middleware + cross-platform parity | ✅ DONE (PR #408) |
 | 8 | Codebase improvement sweep (Plan 21) | ✅ Wave A, B1-B2 DONE |
 | 9 | All open tasks from AUDIT.md | ✅ DONE (PR #455) |
+| 10 | Codebase improvement sweep (Plan 22) | 🚧 IN PROGRESS |
 
 ## Conventions
 

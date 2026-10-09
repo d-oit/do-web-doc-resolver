@@ -13,6 +13,10 @@ pub struct JsonOutput<'a> {
     pub content: Option<&'a str>,
     pub score: f64,
     pub metrics: Option<&'a crate::metrics::ResolveMetrics>,
+    /// Failure reason. `None` for successful resolutions. Skipped when absent
+    /// so success payloads stay byte-compatible with earlier versions.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<&'a str>,
 }
 
 impl<'a> JsonOutput<'a> {
@@ -24,17 +28,20 @@ impl<'a> JsonOutput<'a> {
             content: result.content.as_deref(),
             score: result.score,
             metrics: result.metrics.as_ref(),
+            error: None,
         }
     }
 
-    /// Create error output
-    pub fn error(_msg: &'a str) -> Self {
+    /// Create error output. The message is surfaced in the `error` field so
+    /// `--json` consumers get the reason instead of having to scrape stderr.
+    pub fn error(msg: &'a str) -> Self {
         Self {
             source: "none",
             url: "",
             content: None,
             score: 0.0,
             metrics: None,
+            error: Some(msg),
         }
     }
 

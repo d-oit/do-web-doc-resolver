@@ -8,7 +8,9 @@ use thiserror::Error;
 
 use defaults::*;
 mod defaults;
+mod merge;
 mod parsing;
+use merge::{merge_explicit_bool, merge_map, merge_option, merge_string, merge_value, merge_vec};
 
 pub use defaults::RoutingProfileConfig;
 pub use defaults::routing_profile_defaults;
@@ -21,8 +23,54 @@ pub enum ConfigError {
     ParseError(#[from] toml::de::Error),
 }
 
+/// Boolean config keys whose TOML presence must be tracked so that
+/// `enabled = false` can override a `true` default.
+///
+/// This is a hand-maintained list, so **adding a default-on boolean config
+/// option means adding its dotted path here too.** `test_config_file_can_disable_
+/// default_on_features` covers every entry and will not catch a new field that
+/// was never registered, so treat a new `enabled` flag as requiring both a
+/// registry entry and a test assertion.
+const EXPLICIT_BOOL_KEYS: &[&str] = &[
+    "semantic_cache.enabled",
+    "cache.synthesis.enabled",
+    "routing.prewarm.enabled",
+    "disable_routing_memory",
+];
+
+/// Set of explicitly-present boolean keys, tracked as `a.b.c` dotted paths.
+pub type ExplicitBools = std::collections::BTreeSet<String>;
+
+/// Resolve a dotted path (e.g. `routing.prewarm.enabled`) inside a TOML table.
+fn lookup_dotted<'a>(table: &'a toml::Table, key: &str) -> Option<&'a toml::Value> {
+    let mut segments = key.split('.');
+    let first = segments.next()?;
+    let mut cursor = table.get(first)?;
+
+    for segment in segments {
+        cursor = cursor.as_table()?.get(segment)?;
+    }
+
+    Some(cursor)
+}
+
+/// Record which of [`EXPLICIT_BOOL_KEYS`] the parsed TOML actually specified.
+fn collect_explicit_bools(table: &toml::Table) -> ExplicitBools {
+    let mut out = ExplicitBools::new();
+    for key in EXPLICIT_BOOL_KEYS {
+        if lookup_dotted(table, key).is_some_and(toml::Value::is_bool) {
+            out.insert((*key).to_string());
+        }
+    }
+    out
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
+    /// Not user-facing: records which boolean keys the source config set
+    /// explicitly, so `enabled = false` can override a `true` default.
+    #[serde(skip)]
+    pub explicit_bools: ExplicitBools,
     #[serde(default = "default_max_chars")]
     pub max_chars: usize,
     #[serde(default = "default_min_chars")]
@@ -177,6 +225,7 @@ impl Default for Config {
             min_chars: default_min_chars(),
             exa_results: default_exa_results(),
             tavily_results: default_tavily_results(),
+            explicit_bools: ExplicitBools::new(),
             output_limit: default_output_limit(),
             log_level: "info".to_string(),
             skip_providers: Vec::new(),
@@ -202,13 +251,29 @@ impl Default for Config {
 impl Config {
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self, ConfigError> {
         let content = std::fs::read_to_string(path.as_ref())?;
-        let file_config: Config = toml::from_str(&content)?;
+
+        // Parse twice: once to learn which boolean keys the file actually set,
+        // and once to build the typed config.
+        let value: toml::Value = toml::from_str(&content)?;
+        let explicit_bools = value
+            .as_table()
+            .map(collect_explicit_bools)
+            .unwrap_or_default();
+
+        let mut file_config: Config = toml::from_str(&content)?;
+        file_config.explicit_bools = explicit_bools;
+
         let mut config = Config::default();
         config.merge(file_config);
         Ok(config)
     }
 
     pub fn merge(&mut self, other: Config) {
+        // Carry forward which boolean keys were explicit, so a merged-in file
+        // keeps its ability to turn a `true` default off through later merges.
+        self.explicit_bools
+            .extend(other.explicit_bools.iter().cloned());
+
         merge_value(&mut self.max_chars, other.max_chars, default_max_chars());
         merge_value(&mut self.min_chars, other.min_chars, default_min_chars());
         merge_value(
@@ -249,9 +314,11 @@ impl Config {
             other.circuit_breaker_cooldown_secs,
             default_circuit_breaker_cooldown(),
         );
-        merge_bool(
+        merge_explicit_bool(
             &mut self.semantic_cache.enabled,
             other.semantic_cache.enabled,
+            "semantic_cache.enabled",
+            &other.explicit_bools,
         );
         merge_value(
             &mut self.semantic_cache.path,
@@ -324,9 +391,22 @@ impl Config {
             &mut self.routing.min_free_quality_to_skip_paid,
             other.routing.min_free_quality_to_skip_paid,
         );
-        merge_bool(
+        merge_explicit_bool(
             &mut self.routing.prewarm.enabled,
             other.routing.prewarm.enabled,
+            "routing.prewarm.enabled",
+            &other.explicit_bools,
+        );
+        merge_explicit_bool(
+            &mut self.cache.synthesis.enabled,
+            other.cache.synthesis.enabled,
+            "cache.synthesis.enabled",
+            &other.explicit_bools,
+        );
+        merge_value(
+            &mut self.cache.synthesis.ttl,
+            other.cache.synthesis.ttl,
+            default_synthesis_cache_ttl(),
         );
         merge_value(
             &mut self.routing.prewarm.top_n_domains,
@@ -341,9 +421,11 @@ impl Config {
         merge_option(&mut self.max_provider_attempts, other.max_provider_attempts);
         merge_option(&mut self.max_paid_attempts, other.max_paid_attempts);
         merge_option(&mut self.max_total_latency_ms, other.max_total_latency_ms);
-        merge_bool(
+        merge_explicit_bool(
             &mut self.disable_routing_memory,
             other.disable_routing_memory,
+            "disable_routing_memory",
+            &other.explicit_bools,
         );
         merge_map(&mut self.providers, other.providers);
     }
@@ -386,90 +468,8 @@ impl Config {
     }
 }
 
-fn merge_value<T: PartialEq>(target: &mut T, value: T, default: T) {
-    if value != default {
-        *target = value;
-    }
-}
-
-fn merge_string(target: &mut String, value: String) {
-    merge_value(target, value, "info".to_string());
-}
-
-fn merge_bool(target: &mut bool, value: bool) {
-    if value {
-        *target = value;
-    }
-}
-
-fn merge_option<T>(target: &mut Option<T>, value: Option<T>) {
-    if value.is_some() {
-        *target = value;
-    }
-}
-
-fn merge_vec<T>(target: &mut Vec<T>, value: Vec<T>) {
-    if !value.is_empty() {
-        *target = value;
-    }
-}
-
-fn merge_map<K, V>(target: &mut HashMap<K, V>, value: HashMap<K, V>)
-where
-    K: Eq + std::hash::Hash,
-{
-    for (name, provider_config) in value {
-        target.entry(name).or_insert(provider_config);
-    }
-}
-
+// Unit tests live in their own module file so this one stays under the
+// 500-line source limit documented in AGENTS.md.
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_default_config() {
-        let config = Config::default();
-        assert_eq!(config.max_chars, 8000);
-        assert_eq!(config.min_chars, 200);
-        assert_eq!(config.exa_results, 5);
-        assert_eq!(config.tavily_results, 3);
-        assert_eq!(config.output_limit, 10);
-    }
-
-    #[test]
-    fn test_api_key_lookup() {
-        let config = Config::default();
-        assert!(config.api_key("unknown").is_none());
-    }
-
-    #[test]
-    fn test_skip_providers() {
-        let config = Config {
-            skip_providers: vec!["exa".to_string(), "tavily".to_string()],
-            ..Default::default()
-        };
-
-        assert!(config.is_skipped("exa"));
-        assert!(config.is_skipped("tavily"));
-        assert!(!config.is_skipped("firecrawl"));
-    }
-
-    #[test]
-    fn test_get_ttl() {
-        let config = Config::default();
-        assert_eq!(config.get_ttl("firecrawl"), 21600);
-        assert_eq!(config.get_ttl("exa"), 14400);
-        assert_eq!(config.get_ttl("exa_mcp"), 14400);
-        assert_eq!(config.get_ttl("tavily"), 14400);
-        assert_eq!(config.get_ttl("serper"), 7200);
-        assert_eq!(config.get_ttl("jina"), 7200);
-        assert_eq!(config.get_ttl("mistral"), 28800);
-        assert_eq!(config.get_ttl("mistral_browser"), 28800);
-        assert_eq!(config.get_ttl("mistral_websearch"), 28800);
-        assert_eq!(config.get_ttl("duckduckgo"), 3600);
-        assert_eq!(config.get_ttl("llms_txt"), 28800);
-        assert_eq!(config.get_ttl("synthesis"), 43200);
-        assert_eq!(config.get_ttl("unknown"), 3600);
-    }
-}
+#[path = "tests.rs"]
+mod tests;

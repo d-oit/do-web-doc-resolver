@@ -60,6 +60,11 @@ echo "Validating skill symlinks..."
 cd "$REPO_ROOT"
 python scripts/validate_skill_symlink.py
 
+# Skill mirror drift check
+echo "Validating skill mirror sync..."
+cd "$REPO_ROOT"
+python scripts/sync_skill.py --check
+
 # Documentation consistency check
 echo "Validating documentation..."
 cd "$REPO_ROOT"

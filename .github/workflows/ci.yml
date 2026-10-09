@@ -72,6 +72,15 @@ jobs:
         run: |
           python scripts/validate_skill_symlink.py
 
+      - name: Validate skill mirror is in sync
+        run: |
+          # The standalone skill embeds a byte-for-byte copy of scripts/. Without
+          # this gate the copy silently drifts and the skill stops importing —
+          # which is exactly how _query_resolve, _url_resolve, semantic_cache,
+          # cli and providers/ went missing before. sync_skill.py discovers the
+          # file set from disk, so a new module is picked up automatically.
+          python scripts/sync_skill.py --check
+
   validate-docs:
     name: Validate Documentation
     runs-on: ubuntu-latest

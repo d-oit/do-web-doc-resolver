@@ -32,6 +32,20 @@ function getSessionId(request: NextRequest): string {
   return hash.digest("hex");
 }
 
+// API keys are secrets: they stay in the browser's localStorage and must never
+// be persisted server-side. The session id is derived from IP + User-Agent, so
+// users behind shared NAT or an office proxy with an identical UA collide and
+// could otherwise read each other's keys via the unauthenticated GET below.
+const SECRET_KEYS = ["apiKeys"];
+
+function stripSecrets(data: Record<string, unknown>): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = { ...data };
+  for (const key of SECRET_KEYS) {
+    delete cleaned[key];
+  }
+  return cleaned;
+}
+
 // GET endpoint: Get UI state for session
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +58,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({});
     }
     
-    return NextResponse.json(stored.data);
+    return NextResponse.json(stripSecrets(stored.data));
   } catch {
     return NextResponse.json({ error: "Failed to load state" }, { status: 500 });
   }
@@ -62,9 +76,9 @@ export async function POST(request: NextRequest) {
     const sessionId = getSessionId(request);
     const now = Date.now();
     
-    // Store with 1-year TTL
+    // Store with 1-year TTL, minus any secrets the client shouldn't be storing.
     stateStore.set(sessionId, {
-      data: body as Record<string, unknown>,
+      data: stripSecrets(body as Record<string, unknown>),
       expiresAt: now + ONE_YEAR_MS,
     });
     

@@ -9,9 +9,31 @@ export interface QualityScore {
 
 const NOISY_SIGNALS = ["cookie", "subscribe", "javascript", "log in", "sign up"];
 
+// Markdown inline links plus bare autolinks. These patterns mirror
+// `extract_links` in scripts/quality.py so the web and Python runtimes agree
+// on what counts as a link; changing one without the other skews the accept
+// threshold in only half the runtimes.
+const MARKDOWN_LINK_RE = /\[[^\]]*\]\(\s*<?[^)\s]+>?\s*\)/g;
+const AUTOLINK_RE = /<https?:\/\/[^>\s]+>/g;
+
+export function extractLinks(markdown: string): string[] {
+  if (typeof markdown !== "string" || markdown.length === 0) {
+    return [];
+  }
+  return [
+    ...(markdown.match(MARKDOWN_LINK_RE) ?? []),
+    ...(markdown.match(AUTOLINK_RE) ?? []),
+  ];
+}
+
 export function scoreContent(markdown: string, links?: string[]): QualityScore {
   const text = (markdown ?? "").trim();
-  const linkCount = links?.length ?? 0;
+
+  // Callers score raw provider output and pass no link list, so infer the
+  // links from the markdown itself. Without this `missingLinks` was always
+  // true and every web result took a flat -0.10 penalty. An explicitly empty
+  // `links` array still means "no links" and keeps the penalty.
+  const linkCount = (links ?? extractLinks(text)).length;
 
   const tooShort = text.length < 500;
   const missingLinks = linkCount === 0;

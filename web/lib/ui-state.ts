@@ -1,5 +1,12 @@
 import type { ApiKeys } from "./keys";
 
+/**
+ * Persisted UI preferences.
+ *
+ * Deliberately excludes API keys. `UIState` is written to localStorage in
+ * clear text and synced to `/api/ui-state`, so keeping credentials in it would
+ * store secrets at rest. Keys live only in `keys.ts` (in-memory, per session).
+ */
 export interface UIState {
   sidebarCollapsed: boolean;
   showApiKeys: boolean;
@@ -10,7 +17,6 @@ export interface UIState {
   maxChars: number;
   skipCache: boolean;
   deepResearch: boolean;
-  apiKeys: ApiKeys;
   lastUpdated: number;
 }
 
@@ -27,7 +33,6 @@ const DEFAULTS: UIState = {
   maxChars: 8000,
   skipCache: false,
   deepResearch: false,
-  apiKeys: {},
   lastUpdated: 0,
 };
 
@@ -69,10 +74,8 @@ function normalizeUIState(value: unknown): UIState {
     selectedProviders,
     maxChars: typeof parsed.maxChars === "number" ? parsed.maxChars : DEFAULTS.maxChars,
     skipCache: typeof parsed.skipCache === "boolean" ? parsed.skipCache : DEFAULTS.skipCache,
-    deepResearch: typeof parsed.deepResearch === "boolean" ? parsed.deepResearch : DEFAULTS.deepResearch,
-    apiKeys: parsed.apiKeys && typeof parsed.apiKeys === "object" && !Array.isArray(parsed.apiKeys)
-      ? parsed.apiKeys as ApiKeys
-      : DEFAULTS.apiKeys,
+    deepResearch:
+      typeof parsed.deepResearch === "boolean" ? parsed.deepResearch : DEFAULTS.deepResearch,
     lastUpdated: typeof parsed.lastUpdated === "number" ? parsed.lastUpdated : DEFAULTS.lastUpdated,
   };
 }
@@ -80,14 +83,16 @@ function normalizeUIState(value: unknown): UIState {
 // Merge server and local state (server wins on conflict)
 export function resolveUIState(serverState: UIState | null, localState: UIState): UIState {
   if (!serverState) return localState;
-  
+
   // Server wins for conflicts (newer timestamp takes precedence)
   if (serverState.lastUpdated >= localState.lastUpdated) {
     return serverState;
   }
-  
+
   return localState;
 }
+
+
 
 // Load from localStorage (for server-side rendering safety)
 function loadFromLocalStorage(): UIState {
@@ -102,17 +107,39 @@ function loadFromLocalStorage(): UIState {
   }
 }
 
+/**
+ * Project onto the persistable field set.
+ *
+ * Fields are copied explicitly rather than spread, so no value can reach
+ * storage by accident — including credentials passed by a JS caller or
+ * carried in a stale localStorage blob from an older build.
+ */
+function toPersistable(state: Partial<UIState>): Partial<UIState> {
+  const out: Partial<UIState> = {};
+  if (typeof state.sidebarCollapsed === "boolean") out.sidebarCollapsed = state.sidebarCollapsed;
+  if (typeof state.showApiKeys === "boolean") out.showApiKeys = state.showApiKeys;
+  if (typeof state.showAdvanced === "boolean") out.showAdvanced = state.showAdvanced;
+  if (typeof state.activeProfile === "string") out.activeProfile = state.activeProfile;
+  if (state.theme === "light" || state.theme === "dark") out.theme = state.theme;
+  if (Array.isArray(state.selectedProviders)) out.selectedProviders = state.selectedProviders;
+  if (typeof state.maxChars === "number") out.maxChars = state.maxChars;
+  if (typeof state.skipCache === "boolean") out.skipCache = state.skipCache;
+  if (typeof state.deepResearch === "boolean") out.deepResearch = state.deepResearch;
+  if (typeof state.lastUpdated === "number") out.lastUpdated = state.lastUpdated;
+  return out;
+}
+
 // Save to localStorage immediately (optimistic update)
 function saveToLocalStorage(state: Partial<UIState>): void {
   if (typeof window === "undefined") return;
-  
+
   try {
     const current = loadFromLocalStorage();
-    const next: UIState = {
-      ...current,
-      ...state,
+    const next = normalizeUIState({
+      ...toPersistable(current),
+      ...toPersistable(state),
       lastUpdated: Date.now(),
-    };
+    });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
     // Ignore storage errors (private mode, quota exceeded)
@@ -137,11 +164,11 @@ export async function loadUIState(): Promise<UIState> {
       localState
     );
     
-    // Update localStorage with merged state
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-    }
-    
+    // Deliberately not writing `merged` back to localStorage here. The result
+    // is applied to React state, and the mount effect in page.tsx then persists
+    // it via saveUIState, which already projects through toPersistable(). Writing
+    // it at this point would duplicate that with a value that traces back to the
+    // untrusted server response.
     return merged;
   } catch {
     // Offline or server error: use localStorage
@@ -165,12 +192,12 @@ export function saveUIState(state: Partial<UIState>): void {
 async function syncToServer(state: Partial<UIState>): Promise<void> {
   try {
     const current = loadFromLocalStorage();
-    const payload: UIState = {
-      ...current,
-      ...state,
+    const payload = normalizeUIState({
+      ...toPersistable(current),
+      ...toPersistable(state),
       lastUpdated: Date.now(),
-    };
-    
+    });
+
     const res = await fetch("/api/ui-state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

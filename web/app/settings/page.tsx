@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { loadApiKeys, saveApiKeys, ApiKeys } from "@/lib/keys";
-import { loadUIState, saveUIState } from "@/lib/ui-state";
 
 const KEY_FIELDS = [
   {
@@ -49,20 +48,11 @@ export default function SettingsPage() {
       .then((res) => res.json())
       .then(setKeyStatus)
       .catch(() => {});
-
-    loadUIState()
-      .then((state) => {
-        if (state?.apiKeys && Object.keys(state.apiKeys).length > 0) {
-          setApiKeys(state.apiKeys);
-          saveApiKeys(state.apiKeys);
-        }
-      })
-      .catch(() => {});
   }, []);
 
   const persistKeys = (newKeys: ApiKeys) => {
+    // In-memory only: keys are never written to localStorage or the server.
     saveApiKeys(newKeys);
-    saveUIState({ apiKeys: newKeys });
   };
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
