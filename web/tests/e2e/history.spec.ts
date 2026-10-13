@@ -380,6 +380,13 @@ test.describe("History Load", () => {
       });
     });
 
+    // On first mount the app pre-warms its cache by POSTing /api/resolve for
+    // recently used domains (throttled by a localStorage timestamp). Skip that
+    // effect so only resolve requests caused by the history click are counted.
+    await page.addInitScript(() => {
+      localStorage.setItem("wdr-prewarm-last-run", String(Date.now()));
+    });
+
     await waitForApp(page);
     await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
