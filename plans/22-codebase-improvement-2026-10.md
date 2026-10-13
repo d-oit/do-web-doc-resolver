@@ -49,7 +49,7 @@ A12 deferred to Wave F9 with the Python retry work so both runtimes land togethe
 | B13 | Py | `scripts/constants.py:48` vs `quality.py:21` | `MIN_CHARS=200` (Jina gate) vs `THRESHOLD_MIN_CHARS=500` (quality) — 300-char results pass then always fail | Align thresholds |
 | B14 | Py | `scripts/providers/*` (all except blocks) | Providers swallow error causes; cascade/negative-cache can't distinguish no-key vs transient vs bot-challenge | Typed `ProviderResult`/error return |
 
-**Wave A + Wave B (B3–B13): DONE.** Verified per-item below.
+**Wave A + Wave B (B3–B13): DONE** — merged in **PR #668** (`fix(resolver,cli,web): complete plan 22 Wave B`). Verified per-item below.
 
 B14 (`ProviderResult`/typed provider errors across the provider package) remains
 open. Like A12/F9 (bounded retry parity), it is a cross-cutting provider
@@ -77,7 +77,7 @@ refactor that should land as its own change rather than half-ported.
 | B7 | Link validation retries a 405/501 HEAD with a `Range: bytes=0-0` GET so valid links are not dropped | 5 `link_validator` tests against a mock TCP server ✅ |
 | B8 | Compaction truncation is documented and enforced as a character budget (ASCII fast path, char walk only when bytes exceed the budget) | `compaction` char-budget test ✅ |
 | B9 | Document/image extension detection is case-insensitive and ignores query/fragment (`paper.PDF?v=2` → Docling) | `check_format` test ✅ |
-| B10 | History load renders the stored snapshot; re-running is explicit (no silent POST that could clobber the stored result). E2E spec asserts zero `/api/resolve` calls on load | typecheck + lint + updated `tests/e2e/history.spec.ts`; Playwright **could not run here** (browser needs system libs, no root) — needs CI confirmation |
+| B10 | History load renders the stored snapshot; re-running is explicit (no silent POST that could clobber the stored result). E2E spec asserts zero `/api/resolve` calls on load | typecheck + lint + updated `tests/e2e/history.spec.ts` (cache pre-warm disabled in the spec); Playwright desktop/mobile/tablet green in CI (PR #668) and locally after installing the browser system libs |
 | B11 | Shared `web/lib/is-url.ts` predicate used by the page mode label and the resolver; `route.test.ts` now imports production code | `tests/is-url.test.ts` + full vitest ✅ |
 | B12 | History provider-count renders `+{n}` instead of literal `+$` | lint + typecheck ✅ |
 
