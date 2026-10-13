@@ -1,0 +1,177 @@
+run_id=38393428620
+run_url=https://github.com/d-oit/do-web-doc-resolver/actions/runs/38393428620
+job_status=failure
+
+== PR ==
+{
+  "number": 669,
+  "state": "open",
+  "merged": false,
+  "mergeable": true,
+  "mergeable_state": "blocked",
+  "head": "5378419330c40042d238c7b6fdc1ffa1f3b6cd9a",
+  "review_comments": 0,
+  "commits": 1
+}
+
+== required check runs ==
+{"name":"Quality Gate","status":"completed","conclusion":"success","started_at":"2026-10-13T11:23:01Z","app":"github-actions"}
+{"name":"E2E Tests (web)","status":"completed","conclusion":"success","started_at":"2026-10-13T11:19:16Z","app":"github-actions"}
+{"name":"Lint","status":"completed","conclusion":"success","started_at":"2026-10-13T11:18:43Z","app":"github-actions"}
+{"name":"Sample Run","status":"completed","conclusion":"success","started_at":"2026-10-13T11:18:43Z","app":"github-actions"}
+
+== reviews ==
+
+== review comments ==
+
+== merge attempts ==
+attempt 1: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 2: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 3: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 4: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 5: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 6: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 7: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 8: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 9: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 10: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 11: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 12: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 13: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 14: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 15: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 16: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 17: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 18: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 19: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 20: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 21: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 22: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 23: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 24: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 25: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 26: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 27: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 28: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 29: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
+attempt 30: {
+  "message": "Repository rule violations found\n\n4 of 4 required status checks are expected.\n\n",
+  "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+  "status": "405"
+}
