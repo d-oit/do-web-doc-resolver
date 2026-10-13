@@ -23,6 +23,7 @@ use crate::providers::rate_limiter::RateLimiterRegistry;
 use crate::quality::score_content;
 use crate::routing_memory::RoutingMemory;
 use crate::semantic_cache::SemanticCache;
+use crate::state_store::PersistedState;
 use crate::synthesis::{deterministic_merge, synthesize_results};
 use crate::types::{ProviderType, ResolvedResult};
 use std::result::Result;
@@ -69,15 +70,36 @@ impl Resolver {
         #[cfg(not(feature = "semantic-cache"))]
         let cache: Option<SemanticCache> = None;
         let rate_limiters = Arc::new(RateLimiterRegistry::new(&config));
+        // Routing memory, negative cache and circuit breakers persist across
+        // invocations; without this, prewarm never had a tracked domain and
+        // every run re-probed providers that had just failed.
+        let persisted = PersistedState::load(&config.semantic_cache.path);
         Self {
             config,
             cache,
             url_cascade: url::UrlCascade::new(),
             query_cascade: query::QueryCascade::new(),
-            negative_cache: Arc::new(RwLock::new(NegativeCache::default())),
-            circuit_breakers: Arc::new(RwLock::new(CircuitBreakerRegistry::default())),
-            routing_memory: Arc::new(RwLock::new(RoutingMemory::default())),
+            negative_cache: Arc::new(RwLock::new(persisted.negative_cache)),
+            circuit_breakers: Arc::new(RwLock::new(persisted.circuit_breakers)),
+            routing_memory: Arc::new(RwLock::new(persisted.routing_memory)),
             rate_limiters,
+        }
+    }
+
+    /// Persist routing state so the next invocation reuses it.
+    ///
+    /// Best-effort: a read-only or missing cache directory must never fail an
+    /// otherwise successful resolve.
+    pub async fn persist_state(&self) {
+        let mut negative_cache = self.negative_cache.read().await.clone();
+        negative_cache.prune_expired();
+        let state = PersistedState {
+            routing_memory: self.routing_memory.read().await.clone(),
+            negative_cache,
+            circuit_breakers: self.circuit_breakers.read().await.clone(),
+        };
+        if let Err(err) = state.save(&self.config.semantic_cache.path) {
+            tracing::debug!("Failed to persist routing state: {}", err);
         }
     }
 
@@ -208,7 +230,7 @@ impl Resolver {
             let model = std::env::var("DO_WDR_SYNTHESIS_MODEL")
                 .unwrap_or_else(|_| "mistral-small-latest".to_string());
             let synthesis_start = Instant::now();
-            let synthesized = synthesize_results(
+            match synthesize_results(
                 query,
                 &results,
                 &api_key,
@@ -217,35 +239,53 @@ impl Resolver {
                 &self.config,
                 &mut metrics,
             )
-            .await?;
-            let synthesis_latency = synthesis_start.elapsed().as_millis() as u64;
+            .await
+            {
+                Ok(synthesized) => {
+                    let synthesis_latency = synthesis_start.elapsed().as_millis() as u64;
 
-            let links = extract_links(&synthesized);
-            let threshold = self.config.quality_threshold.unwrap_or(0.85);
-            let quality = score_content(&synthesized, &links, threshold);
-            metrics.record_gate(quality.score);
+                    let links = extract_links(&synthesized);
+                    let threshold = self.config.quality_threshold.unwrap_or(0.85);
+                    let quality = score_content(&synthesized, &links, threshold);
+                    metrics.record_gate(quality.score);
 
-            let mut res = ResolvedResult::new(
-                results[0].url.clone(),
-                Some(synthesized),
-                "synthesis",
-                quality.score as f64,
-            );
-            metrics.record_provider(ProviderType::MistralWebSearch, synthesis_latency, true);
-            metrics.total_latency_ms = start_time.elapsed().as_millis() as u64;
-            res.metrics = Some(metrics);
+                    let mut res = ResolvedResult::new(
+                        results[0].url.clone(),
+                        Some(synthesized),
+                        "synthesis",
+                        quality.score as f64,
+                    );
+                    metrics.record_provider(
+                        ProviderType::MistralWebSearch,
+                        synthesis_latency,
+                        true,
+                    );
+                    metrics.total_latency_ms = start_time.elapsed().as_millis() as u64;
+                    res.metrics = Some(metrics);
 
-            // Store in semantic cache
-            if self.config.semantic_cache.enabled {
-                if let Some(cache) = self.cache.as_ref() {
-                    let cache_key = format!("aggregated:{}", input);
-                    let _ = cache
-                        .store(&cache_key, std::slice::from_ref(&res), &res.source)
-                        .await;
+                    // Store in semantic cache
+                    if self.config.semantic_cache.enabled {
+                        if let Some(cache) = self.cache.as_ref() {
+                            let cache_key = format!("aggregated:{}", input);
+                            let _ = cache
+                                .store(&cache_key, std::slice::from_ref(&res), &res.source)
+                                .await;
+                        }
+                    }
+
+                    return Ok(res);
+                }
+                Err(err) => {
+                    // A Mistral failure (outage, quota, malformed response)
+                    // must not abort an aggregation that already fetched
+                    // usable provider results: fall through to the
+                    // deterministic merge below.
+                    tracing::warn!(
+                        "Synthesis failed, falling back to deterministic merge: {}",
+                        err
+                    );
                 }
             }
-
-            return Ok(res);
         }
 
         // Fallback to deterministic merge for 2026 standards compliance
