@@ -1,0 +1,169 @@
+---
+name: Wave B automerge (temporary)
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - ci/wave-b-automerge
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+
+env:
+  HEAD_BRANCH: docs/wave-b-plan-668
+  BASE_BRANCH: main
+  PR_TITLE: "docs(plans): record Wave B merge as PR #668"
+  API: https://api.github.com/repos/d-oit/do-web-doc-resolver
+
+jobs:
+  orchestrate:
+    name: Create and merge PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Dispatch required CI workflows on PR head
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for wf in ci.yml ci-ui.yml; do
+            code=$(curl -sS -o "/tmp/dispatch-${wf}.json" -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${API}/actions/workflows/${wf}/dispatches" \
+              -d "{\"ref\":\"${HEAD_BRANCH}\"}")
+            echo "dispatch ${wf}: HTTP ${code}"
+            if [ "${code}" != "204" ]; then
+              cat "/tmp/dispatch-${wf}.json"
+              exit 1
+            fi
+          done
+
+      - name: Create pull request
+        id: pr
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          hdr=(-H "Authorization: Bearer ${TOKEN}" -H "Accept: application/vnd.github+json")
+          number=$(curl -sS "${hdr[@]}" -G \
+            --data-urlencode "state=open" \
+            --data-urlencode "head=${GITHUB_REPOSITORY_OWNER}:${HEAD_BRANCH}" \
+            "${API}/pulls" | jq -r '.[0].number // empty')
+          if [ -z "${number}" ]; then
+            body=$(cat <<'BODY'
+          ## Plan 22 Wave B completion
+
+          Implements the remaining Wave B items from `plans/22-codebase-improvement-2026-10.md`
+          (Python quality relevance, Rust routing-state persistence + provider parity,
+          web history/is-url/provider fixes), with tests updated alongside.
+
+          - Python: query-relevance signal in quality scoring; `MIN_CHARS` aligned with
+            the quality threshold so accepted content is not re-flagged as too short.
+          - Rust CLI: routing memory / negative cache / circuit breakers persist across runs;
+            synthesis falls back when the LLM call errors; `llms_txt` keeps the port;
+            link validator retries with GET on 405/501; compaction truncates by chars;
+            case-insensitive URL extension detection.
+          - Web: history restore shows the stored result instead of re-running; shared
+            `isUrl` helper; correct provider count.
+
+          Verification: `pytest -m "not live"`, `cargo test` (cli), web vitest + lint +
+          typecheck + build + Playwright (desktop/mobile/tablet) and `./scripts/quality_gate.sh`.
+
+          Opened and merged by the temporary `.github/workflows/wave-b-automerge.yml`
+          workflow (dispatches the required CI workflows, waits for the required checks,
+          squash-merges). The workflow itself lives only on the throwaway
+          `ci/wave-b-automerge` branch and is not part of this change set.
+          BODY
+            )
+            payload=$(jq -n --arg t "${PR_TITLE}" --arg h "${HEAD_BRANCH}" --arg b "${BASE_BRANCH}" \
+              --arg body "${body}" '{title: $t, head: $h, base: $b, body: $body}')
+            resp=$(curl -sS -X POST "${hdr[@]}" "${API}/pulls" -d "${payload}")
+            number=$(echo "${resp}" | jq -r '.number // empty')
+            if [ -z "${number}" ]; then
+              echo "${resp}"
+              exit 1
+            fi
+          fi
+          echo "number=${number}" >> "${GITHUB_OUTPUT}"
+          echo "PR #${number}"
+
+      - name: Wait for required status checks
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          hdr=(-H "Authorization: Bearer ${TOKEN}" -H "Accept: application/vnd.github+json")
+          pr="${{ steps.pr.outputs.number }}"
+          required=("Lint" "Sample Run" "Quality Gate" "E2E Tests (web)")
+          all_green=0
+          for attempt in $(seq 1 110); do
+            sha=$(curl -sS "${hdr[@]}" "${API}/pulls/${pr}" | jq -r '.head.sha')
+            runs=$(curl -sS "${hdr[@]}" "${API}/commits/${sha}/check-runs?per_page=100")
+            summary=""
+            pending=0
+            failed=""
+            for ctx in "${required[@]}"; do
+              status=$(echo "${runs}" | jq -r --arg c "${ctx}" \
+                '[.check_runs[] | select(.name == $c)] | last | .status // "missing"')
+              concl=$(echo "${runs}" | jq -r --arg c "${ctx}" \
+                '[.check_runs[] | select(.name == $c)] | last | .conclusion // "none"')
+              summary="${summary}${ctx}=${status}/${concl} "
+              if [ "${status}" != "completed" ]; then
+                pending=$((pending + 1))
+              fi
+              if [ "${status}" = "completed" ] && [ "${concl}" != "success" ] \
+                && [ "${concl}" != "skipped" ] && [ "${concl}" != "neutral" ]; then
+                failed="${failed}${ctx}(${concl}) "
+              fi
+            done
+            echo "attempt ${attempt} @ ${sha}: ${summary}"
+            if [ -n "${failed}" ]; then
+              echo "REQUIRED CHECKS FAILED: ${failed}"
+              exit 1
+            fi
+            if [ "${pending}" -eq 0 ]; then
+              all_green=1
+              break
+            fi
+            sleep 30
+          done
+          if [ "${all_green}" != "1" ]; then
+            echo "Timed out waiting for required checks"
+            exit 1
+          fi
+          echo "All required checks are green"
+
+      - name: Merge pull request
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          hdr=(-H "Authorization: Bearer ${TOKEN}" -H "Accept: application/vnd.github+json")
+          pr="${{ steps.pr.outputs.number }}"
+          for attempt in $(seq 1 20); do
+            payload=$(jq -n --arg t "${PR_TITLE} (#${pr})" \
+              '{merge_method: "squash", commit_title: $t}')
+            resp=$(curl -sS -X PUT "${hdr[@]}" "${API}/pulls/${pr}/merge" -d "${payload}")
+            if [ "$(echo "${resp}" | jq -r '.merged // false')" = "true" ]; then
+              echo "MERGED as $(echo "${resp}" | jq -r '.sha')"
+              exit 0
+            fi
+            echo "merge attempt ${attempt}: $(echo "${resp}" | jq -r '.message')"
+            sleep 15
+          done
+          echo "Merge did not succeed"
+          exit 1
+
+      - name: Delete temporary orchestration branch
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl -sS -X DELETE -H "Authorization: Bearer ${TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${API}/git/refs/heads/ci/wave-b-automerge" > /dev/null
+          echo "deleted ci/wave-b-automerge"
