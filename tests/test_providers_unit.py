@@ -104,6 +104,18 @@ class TestJinaSync:
         assert len(result.content) <= 100
 
     @respx.mock
+    def test_content_below_min_chars_is_rejected(self):
+        """Content under the shared provider/quality floor never gets returned."""
+        from scripts.constants import MIN_CHARS
+        from scripts.providers.jina import resolve_with_jina
+
+        respx.get(f"https://r.jina.ai/{SAFE_URL}").mock(
+            return_value=httpx.Response(200, text="x" * (MIN_CHARS - 1))
+        )
+
+        assert resolve_with_jina(SAFE_URL) is None
+
+    @respx.mock
     def test_rate_limit_response(self):
         from scripts.providers import _is_rate_limited
         from scripts.providers.jina import resolve_with_jina

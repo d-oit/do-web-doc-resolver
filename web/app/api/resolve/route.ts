@@ -281,7 +281,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const quality: QualityScore = scoreContent(markdown);
+    // Match the Python cascade: score against the query for query mode;
+    // a plain URL resolve has no relevance context to score against.
+    const quality: QualityScore = scoreContent(markdown, undefined, urlMode ? undefined : rawInput);
     const budgetState = budget.getState();
 
     const response = {

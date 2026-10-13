@@ -41,6 +41,22 @@ impl Default for LlmsTxtProvider {
     }
 }
 
+/// Build the `llms.txt` URL for a page, preserving scheme, host and port.
+fn build_llms_txt_url(url: &str) -> Result<String, ResolverError> {
+    let parsed_url =
+        Url::parse(url).map_err(|e| ResolverError::Parse(format!("Invalid URL: {}", e)))?;
+
+    Ok(format!(
+        "{}://{}{}/llms.txt",
+        parsed_url.scheme(),
+        parsed_url.host_str().unwrap_or(""),
+        parsed_url
+            .port()
+            .map(|port| format!(":{}", port))
+            .unwrap_or_default()
+    ))
+}
+
 #[async_trait]
 impl crate::providers::UrlProvider for LlmsTxtProvider {
     fn name(&self) -> &str {
@@ -58,15 +74,10 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
             ));
         }
 
-        // Parse the URL and construct llms.txt URL
-        let parsed_url =
-            Url::parse(url).map_err(|e| ResolverError::Parse(format!("Invalid URL: {}", e)))?;
-
-        let llms_txt_url = format!(
-            "{}://{}/llms.txt",
-            parsed_url.scheme(),
-            parsed_url.host_str().unwrap_or("")
-        );
+        // Parse the URL and construct the llms.txt URL. The port must be
+        // preserved: `https://example.com:8443/docs` serves llms.txt on
+        // :8443, not on the scheme default.
+        let llms_txt_url = build_llms_txt_url(url)?;
 
         let client = get_client();
         let response = client
@@ -112,5 +123,26 @@ mod tests {
     fn test_provider_name() {
         let provider = LlmsTxtProvider::new();
         assert_eq!(provider.name(), "llms_txt");
+    }
+
+    #[test]
+    fn test_build_llms_txt_url_preserves_port() {
+        assert_eq!(
+            build_llms_txt_url("https://example.com:8443/docs").unwrap(),
+            "https://example.com:8443/llms.txt"
+        );
+    }
+
+    #[test]
+    fn test_build_llms_txt_url_without_port() {
+        assert_eq!(
+            build_llms_txt_url("https://example.com/docs").unwrap(),
+            "https://example.com/llms.txt"
+        );
+    }
+
+    #[test]
+    fn test_build_llms_txt_url_rejects_invalid_url() {
+        assert!(build_llms_txt_url("not a url").is_err());
     }
 }

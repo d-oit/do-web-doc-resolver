@@ -150,6 +150,10 @@ async fn handle_resolve(
         resolver.resolve(input).await
     };
 
+    // Best-effort: keep routing memory / negative cache / breakers across
+    // invocations (Plan 22 B4). Never fails the command.
+    resolver.persist_state().await;
+
     match result {
         Ok(res) => {
             if let Some(metrics) = &res.metrics {
