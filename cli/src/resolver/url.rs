@@ -51,11 +51,21 @@ impl UrlCascade {
         }
     }
 
-    /// Check for document or image format and return provider type
+    /// Check for document or image format and return provider type.
+    ///
+    /// Matches the path component case-insensitively and ignores query
+    /// strings/fragments so `.PDF`, `file.pdf?v=2` and `file.pdf#page=3`
+    /// all route to the document providers.
     pub fn check_format(url: &str) -> Option<ProviderType> {
-        if url.ends_with(".pdf") || url.ends_with(".docx") || url.ends_with(".pptx") {
+        let path = url
+            .split(['?', '#'])
+            .next()
+            .unwrap_or(url)
+            .to_ascii_lowercase();
+
+        if path.ends_with(".pdf") || path.ends_with(".docx") || path.ends_with(".pptx") {
             Some(ProviderType::Docling)
-        } else if url.ends_with(".png") || url.ends_with(".jpg") || url.ends_with(".jpeg") {
+        } else if path.ends_with(".png") || path.ends_with(".jpg") || path.ends_with(".jpeg") {
             Some(ProviderType::Ocr)
         } else {
             None
@@ -483,6 +493,27 @@ mod tests {
     #[test]
     fn test_url_cascade_new() {
         let _cascade = UrlCascade::new();
+    }
+
+    #[test]
+    fn test_check_format_is_case_insensitive_and_ignores_query() {
+        assert_eq!(
+            UrlCascade::check_format("https://example.com/paper.PDF"),
+            Some(ProviderType::Docling)
+        );
+        assert_eq!(
+            UrlCascade::check_format("https://example.com/paper.pdf?v=2"),
+            Some(ProviderType::Docling)
+        );
+        assert_eq!(
+            UrlCascade::check_format("https://example.com/slides.pptx#slide=3"),
+            Some(ProviderType::Docling)
+        );
+        assert_eq!(
+            UrlCascade::check_format("https://example.com/scan.JPEG"),
+            Some(ProviderType::Ocr)
+        );
+        assert_eq!(UrlCascade::check_format("https://example.com/page"), None);
     }
 
     #[test]

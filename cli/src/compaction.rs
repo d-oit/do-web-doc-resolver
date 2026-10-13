@@ -56,8 +56,10 @@ pub fn compact_content(content: &str, max_chars: usize) -> String {
 
     let joined = compacted.join("\n");
 
-    // Truncate to max_chars safely (avoiding UTF-8 slicing panics)
-    if joined.len() <= max_chars {
+    // `max_chars` is a character budget, matching Python's `content[:max_chars]`
+    // and the CLI contract. Comparing bytes first keeps the common ASCII case
+    // cheap; the character walk only runs when bytes exceed the budget.
+    if joined.len() <= max_chars || joined.chars().count() <= max_chars {
         joined
     } else if let Some((idx, _)) = joined.char_indices().nth(max_chars) {
         let mut result = joined;
@@ -141,5 +143,20 @@ mod tests {
         let input = "Line 1\n\nLine 1\nCookie Policy\nLine 2";
         let compacted = compact_content(input, 100);
         assert_eq!(compacted, "Line 1\n\nLine 2");
+    }
+
+    #[test]
+    fn test_compact_content_budget_is_characters_not_bytes() {
+        // Ten two-byte characters: 20 bytes, 10 chars.
+        let input = "é".repeat(10);
+
+        // Bytes exceed the budget but characters fit: keep everything.
+        assert_eq!(compact_content(&input, 15), input);
+
+        // Characters exceed the budget: truncate to exactly the char budget
+        // without splitting a multi-byte character.
+        let truncated = compact_content(&input, 5);
+        assert_eq!(truncated.chars().count(), 5);
+        assert_eq!(truncated, "é".repeat(5));
     }
 }
