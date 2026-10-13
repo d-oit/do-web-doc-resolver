@@ -38,6 +38,7 @@ def cascade_stream(
     skip_providers: set[str] | None = None,
     content_acceptable: Callable[[Any, ProviderType], bool] | None = None,
     target_key: str = "query",
+    relevance_query: str | None = None,
 ) -> Generator[dict[str, Any]]:
     skip = skip_providers or set()
     cache = _get_cache()
@@ -110,7 +111,7 @@ def cascade_stream(
                         continue
                     if res:
                         content = res.content if isinstance(res, ResolvedResult) else str(res)
-                        q_score = scripts.quality.score_content(content)
+                        q_score = scripts.quality.score_content(content, query=relevance_query)
                         if _accept(q_score, pt_done):
                             circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)

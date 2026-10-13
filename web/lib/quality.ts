@@ -5,7 +5,14 @@ export interface QualityScore {
   duplicateHeavy: boolean;
   noisy: boolean;
   acceptable: boolean;
+  relevance: number;
 }
+
+// Query-relevance blend weight. Mirrors RELEVANCE_WEIGHT in
+// scripts/quality.py so the web and Python runtimes discount irrelevant
+// content identically; changing one without the other skews the accept
+// threshold in only half the runtimes.
+const RELEVANCE_WEIGHT = 0.35;
 
 const NOISY_SIGNALS = ["cookie", "subscribe", "javascript", "log in", "sign up"];
 
@@ -26,7 +33,27 @@ export function extractLinks(markdown: string): string[] {
   ];
 }
 
-export function scoreContent(markdown: string, links?: string[]): QualityScore {
+function tokenizeQuery(query: string): string[] {
+  const tokens: string[] = [];
+  for (const token of query.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []) {
+    if (!tokens.includes(token)) tokens.push(token);
+  }
+  return tokens;
+}
+
+function computeRelevance(lowerText: string, query: string): number {
+  if (typeof query !== "string") return 1;
+  const tokens = tokenizeQuery(query);
+  if (tokens.length === 0) return 1;
+  const matched = tokens.filter((token) => lowerText.includes(token)).length;
+  return matched / tokens.length;
+}
+
+export function scoreContent(
+  markdown: string,
+  links?: string[],
+  query?: string,
+): QualityScore {
   const text = (markdown ?? "").trim();
 
   // Callers score raw provider output and pass no link list, so infer the
@@ -62,6 +89,8 @@ export function scoreContent(markdown: string, links?: string[]): QualityScore {
     "[ANCHOR: CITATIONS]",
   ].every((anchor) => text.includes(anchor));
 
+  const relevance = query ? computeRelevance(lowerText, query) : 1;
+
   // Penalties updated to match 2026 standards
   let score = 1.0;
   if (tooShort) score -= 0.25;
@@ -73,10 +102,15 @@ export function scoreContent(markdown: string, links?: string[]): QualityScore {
   if (hasFrontmatter) score += 0.05;
   if (hasAnchors) score += 0.05;
 
+  // Irrelevance is a proportional discount rather than a penalty flag: a
+  // page sharing none of the query terms keeps (1 - RELEVANCE_WEIGHT) of its
+  // heuristic score. `acceptable` still follows the heuristic gates above.
+  score *= 1 - RELEVANCE_WEIGHT * (1 - relevance);
+
   score = Math.max(0, Math.min(1.0, score));
 
   // Threshold for acceptance: 0.65 and not tooShort
   const acceptable = score >= 0.65 && !tooShort;
 
-  return { score, tooShort, missingLinks, duplicateHeavy, noisy, acceptable };
+  return { score, tooShort, missingLinks, duplicateHeavy, noisy, acceptable, relevance };
 }

@@ -85,11 +85,14 @@ def should_call_llm_synthesis(results: list[ResolvedResult], threshold: float = 
     return should_call
 
 
-def deterministic_merge(results: list[ResolvedResult]) -> str:
+def deterministic_merge(results: list[ResolvedResult], query: str | None = None) -> str:
     """
     Deterministically merge multiple results without an LLM.
     Deduplicates content and merges with source attribution.
     Follows 2026 LLM-ready doc standards (Token-Efficiency & Anchors).
+
+    `query` is optional: when provided, the merged document's quality score
+    is blended with query relevance like every other scorer call site.
     """
     if not results:
         return ""
@@ -141,7 +144,7 @@ def deterministic_merge(results: list[ResolvedResult]) -> str:
         )
 
     # Calculate final quality and token estimate
-    quality = score_content(body, [r.url for r in results if r.url])
+    quality = score_content(body, [r.url for r in results if r.url], query=query)
     current_date = datetime.date.today().isoformat()
     token_est = len(body) // 4
 
@@ -167,7 +170,7 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
         return "No results to synthesize."
 
     if not should_call_llm_synthesis(results):
-        return deterministic_merge(results)
+        return deterministic_merge(results, query)
 
     context = "".join(
         [
@@ -238,4 +241,4 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
         return str(content)
     except Exception as e:
         logger.error("LLM Synthesis failed: %s", e)
-        return deterministic_merge(results)
+        return deterministic_merge(results, query)

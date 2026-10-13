@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProviderStats {
     pub success: usize,
     pub failure: usize,
@@ -10,7 +11,7 @@ pub struct ProviderStats {
     pub last_attempted: Option<DateTime<Utc>>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RoutingMemory {
     domain_stats: HashMap<String, HashMap<String, ProviderStats>>,
 }
@@ -91,6 +92,11 @@ impl RoutingMemory {
         scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         scores.into_iter().map(|(p, _)| p.clone()).collect()
+    }
+
+    /// Number of providers tracked for a domain (used by tests and diagnostics).
+    pub fn provider_count(&self, domain: &str) -> usize {
+        self.domain_stats.get(domain).map(|m| m.len()).unwrap_or(0)
     }
 
     pub fn top_domains(&self, n: usize) -> Vec<String> {

@@ -147,3 +147,61 @@ describe("link inference parity with scripts/quality.py", () => {
     expect(scoreContent(body, []).missingLinks).toBe(true);
   });
 });
+
+function relevantBody(): string {
+  return Array.from(
+    { length: 12 },
+    (_, i) => `Use the Python asyncio event loop to run coroutines and tasks. Section ${i}.`
+  ).join("\n");
+}
+
+function irrelevantBody(): string {
+  return Array.from(
+    { length: 12 },
+    (_, i) => `Kubernetes schedules pods across cluster nodes and services. Section ${i}.`
+  ).join("\n");
+}
+
+describe("scoreContent query relevance", () => {
+  it("scores on-topic content above off-topic content", () => {
+    const relevant = scoreContent(relevantBody(), undefined, "python asyncio");
+    const irrelevant = scoreContent(irrelevantBody(), undefined, "python asyncio");
+
+    expect(relevant.relevance).toBe(1);
+    expect(irrelevant.relevance).toBe(0);
+    expect(irrelevant.score).toBeLessThan(relevant.score);
+    expect(irrelevant.acceptable).toBe(false);
+  });
+
+  it("applies the same proportional discount as Python", () => {
+    const relevant = scoreContent(relevantBody(), undefined, "python asyncio");
+    const irrelevant = scoreContent(irrelevantBody(), undefined, "python asyncio");
+
+    // Mirrors RELEVANCE_WEIGHT = 0.35 in scripts/quality.py.
+    expect(irrelevant.score).toBeCloseTo(relevant.score * (1 - 0.35), 5);
+  });
+
+  it("without a query the heuristic score is unchanged", () => {
+    const baseline = scoreContent(relevantBody());
+
+    expect(scoreContent(relevantBody(), undefined, undefined).score).toBe(baseline.score);
+    expect(baseline.relevance).toBe(1);
+  });
+
+  it("queries without usable terms disable the blend", () => {
+    const scored = scoreContent(irrelevantBody(), undefined, "to be or");
+
+    expect(scored.relevance).toBe(1);
+    expect(scored.score).toBe(scoreContent(irrelevantBody()).score);
+  });
+
+  it("partial overlap sits between the extremes", () => {
+    const relevant = scoreContent(relevantBody(), undefined, "python asyncio");
+    const partial = scoreContent(relevantBody(), undefined, "python kubernetes");
+    const irrelevant = scoreContent(irrelevantBody(), undefined, "python asyncio");
+
+    expect(partial.relevance).toBeCloseTo(0.5, 5);
+    expect(irrelevant.score).toBeLessThan(partial.score);
+    expect(partial.score).toBeLessThan(relevant.score);
+  });
+});
