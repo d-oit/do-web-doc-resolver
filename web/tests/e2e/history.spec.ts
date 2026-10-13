@@ -347,18 +347,21 @@ test.describe("History Delete", () => {
 });
 
 test.describe("History Load", () => {
-  test("clicking entry loads it into form", async ({ page }) => {
-    // Mock resolve API to return consistent content
-    await page.route("**/api/resolve", (route) =>
-      route.fulfill({
+  test("clicking entry loads the stored result without re-running", async ({ page }) => {
+    let resolveCalls = 0;
+    // A history load must not silently re-run the query: show the stored
+    // snapshot and let the user press Resolve explicitly.
+    await page.route("**/api/resolve", (route) => {
+      resolveCalls++;
+      return route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           markdown: "Previously resolved content",
           provider: "jina",
         }),
-      })
-    );
+      });
+    });
 
     await page.route("**/api/history**", async (route) => {
       return route.fulfill({
@@ -388,8 +391,10 @@ test.describe("History Load", () => {
     const input = page.locator("input[placeholder*='URL']");
     await expect(input).toHaveValue("https://previous.com");
 
-    // Result should be loaded
+    // Result should be loaded from the stored entry...
     await expect(page.locator("textarea")).toContainText("Previously resolved");
+    // ...and no resolve request should have been issued.
+    expect(resolveCalls).toBe(0);
   });
 });
 

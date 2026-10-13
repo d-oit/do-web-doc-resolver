@@ -4,16 +4,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { isUrl } from "../../lib/is-url";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe("URL Detection", () => {
-  // Import the isUrl function logic for testing
-  const isUrl = (input: string): boolean => {
-    return /^https?:\/\/\S+$/i.test(input.trim());
-  };
 
   it("detects valid HTTP URLs", () => {
     expect(isUrl("http://example.com")).toBe(true);

@@ -198,7 +198,7 @@ export default function History({ onLoad }: HistoryProps) {
                       </span>
                     ))}
                     {entry.providers && entry.providers.length > 3 && (
-                      <span className="text-[9px] text-text-dim font-bold">+${entry.providers.length - 3}</span>
+                      <span className="text-[9px] text-text-dim font-bold">+{entry.providers.length - 3}</span>
                     )}
                   </div>
                 </div>

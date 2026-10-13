@@ -10,6 +10,7 @@ import { PROVIDERS, PROFILES, ProfileId, UiProvider, toApiProviderId } from "@/a
 import Sidebar from "@/app/components/Sidebar";
 import MainContent from "@/app/components/MainContent";
 import { KeyboardShortcutsModal } from "@/app/components/KeyboardShortcutsModal";
+import { isUrl } from "@/lib/is-url";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -212,7 +213,7 @@ export default function Home() {
     });
   };
 
-  const isUrl = query.trim().startsWith("http");
+  const isUrlMode = isUrl(query);
   const mistralActive = keySource["mistral"] === "local" || keySource["mistral"] === "server";
 
   const isProviderAvailable = useCallback((providerId: string): boolean => {
@@ -264,7 +265,6 @@ export default function Home() {
       deepResearch?: boolean | undefined;
       maxChars?: number | undefined;
       skipCache?: boolean | undefined;
-      isHistoryLoad?: boolean | undefined;
     }
   ) => {
     e?.preventDefault();
@@ -273,10 +273,8 @@ export default function Home() {
 
     setLoading(true);
     setError("");
-    if (!override?.isHistoryLoad) {
-      setParsedResults([]);
-      setResult("");
-    }
+    setParsedResults([]);
+    setResult("");
     setProviderStatus("Fetching...");
     const startTime = performance.now();
 
@@ -370,16 +368,13 @@ export default function Home() {
     setDeepResearch(restoredDeepResearch);
     setMobileMenuOpen(false);
 
-    // Re-run the search to ensure results are fresh and state is synced
-    handleSubmit(undefined, {
-      query: entry.query,
-      profile: restoredProfile,
-      providers: restoredProviders.length > 0 ? restoredProviders.map(toApiProviderId) : undefined,
-      skipCache: restoredSkipCache,
-      deepResearch: restoredDeepResearch,
-      maxChars, // Keep current maxChars or could also store/restore it
-      isHistoryLoad: true,
-    });
+    // Show the stored snapshot; never silently re-run. An implicit re-run
+    // could hit a provider outage and clobber the stored result with an
+    // error while the stale output stayed on screen. Re-running is explicit:
+    // the user presses Resolve (or Enter) after inspecting the entry.
+    setQuery(entry.query);
+    setProviderStatus(null);
+    setQualityScore(null);
 
     inputRef.current?.focus();
   };
@@ -493,7 +488,7 @@ export default function Home() {
         handleCopyResult={handleCopyResult}
         handleCardCopy={handleCardCopy}
         copied={copied}
-        isUrl={isUrl}
+        isUrl={isUrlMode}
         onShowShortcuts={() => { setShowShortcuts(true); }}
       />
 
