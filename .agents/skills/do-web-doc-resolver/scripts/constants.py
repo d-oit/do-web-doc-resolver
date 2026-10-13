@@ -45,7 +45,10 @@ def _env(
 
 
 MAX_CHARS: int = int(_env("WEB_RESOLVER_MAX_CHARS", 8000))
-MIN_CHARS: int = int(_env("WEB_RESOLVER_MIN_CHARS", 200))
+# Minimum accepted provider content length. Kept equal to the quality
+# scorer's THRESHOLD_MIN_CHARS (scripts/quality.py imports this value) so a
+# provider no longer accepts content the scorer is guaranteed to reject.
+MIN_CHARS: int = int(_env("WEB_RESOLVER_MIN_CHARS", 500))
 DEFAULT_TIMEOUT: int = int(_env("WEB_RESOLVER_TIMEOUT", 30))
 EXA_RESULTS: int = int(_env("WEB_RESOLVER_EXA_RESULTS", 5, "exa_results"))
 TAVILY_RESULTS: int = int(_env("WEB_RESOLVER_TAVILY_RESULTS", 5, "tavily_results"))

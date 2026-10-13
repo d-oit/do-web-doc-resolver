@@ -43,6 +43,7 @@ async def cascade_stream_async(
     skip_providers: set[str] | None = None,
     content_acceptable: Callable[[Any, ProviderType], bool] | None = None,
     target_key: str = "query",
+    relevance_query: str | None = None,
 ) -> AsyncGenerator[dict[str, Any]]:
     """Async version of cascade_stream using asyncio tasks with true parallel launch."""
     skip = skip_providers or set()
@@ -156,7 +157,7 @@ async def cascade_stream_async(
                     continue
                 if res:
                     content = res.content if isinstance(res, ResolvedResult) else str(res)
-                    q_score = scripts.quality.score_content(content)
+                    q_score = scripts.quality.score_content(content, query=relevance_query)
                     if _accept(q_score, pt_done):
                         circuit_breakers.record_success(p_name_done)
                         metrics.record_provider(pt_done, latency, True)

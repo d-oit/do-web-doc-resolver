@@ -1559,10 +1559,12 @@ class TestAdditionalEdgeCases:
         assert MAX_CHARS == 8000
 
     def test_min_chars_constant(self):
-        """Test that MIN_CHARS is set correctly."""
+        """Test that MIN_CHARS is set correctly and aligned with the scorer."""
+        from scripts.quality import THRESHOLD_MIN_CHARS
         from scripts.resolve import MIN_CHARS
 
-        assert MIN_CHARS == 200
+        assert MIN_CHARS == 500
+        assert MIN_CHARS == THRESHOLD_MIN_CHARS
 
 
 class TestSkipProviders:
@@ -1699,6 +1701,7 @@ class TestCascadeErrorHandling:
             content=(
                 "# Detailed Documentation\n\n"
                 "This is a unique line to avoid duplication penalties and provide enough length.\n"
+                "Answers the test about the first provider.\n"
                 + "Providing factual information about the system architecture and implementation details.\n"
                 * 30
             ),
@@ -1736,7 +1739,11 @@ class TestCascadeErrorHandling:
         # tavily (third provider) succeeds
         good_result = ResolvedResult(
             source="tavily",
-            content=("# Documentation\n\nDetailed technical content with links. " * 60),
+            content=(
+                "# Documentation\n\n"
+                "Answers the test cb skip query. "
+                "Detailed technical content with links. " * 60
+            ),
             url="https://tavily-result.example.com",
         )
         mock_tav.return_value = good_result
@@ -1775,6 +1782,7 @@ class TestCascadeErrorHandling:
             source="duckduckgo",
             content=(
                 "# Reference Documentation\n\n"
+                "Answers the test quality gate query. "
                 "Complete technical guide with code samples, "
                 "API reference, and comprehensive examples. " * 50
             ),
@@ -1834,7 +1842,10 @@ class TestCascadeErrorHandling:
 
         low_quality = ResolvedResult(
             source="exa_mcp",
-            content="Some basic documentation content that is acceptable but low quality. " * 30,
+            content=(
+                "Answers the test budget exhaust query. "
+                "Some basic documentation content that is acceptable but low quality. " * 30
+            ),
             url="https://example.com",
         )
         mock_mcp.return_value = low_quality
@@ -2004,7 +2015,10 @@ class TestCascadeErrorHandling:
 
         good_result = ResolvedResult(
             source="tavily",
-            content="Tavily documentation content with examples. " * 60,
+            content=(
+                "Answers the test neg cache skip query. "
+                "Tavily documentation content with examples. " * 60
+            ),
             url="https://tavily-result.example.com",
         )
         mock_tav.return_value = good_result
@@ -2043,7 +2057,7 @@ class TestCascadeErrorHandling:
             # exa (hedged provider) succeeds
             good_result = ResolvedResult(
                 source="exa",
-                content="Exa documentation with examples. " * 60,
+                content=("Answers the test hedge query. " "Exa documentation with examples. " * 60),
                 url="https://exa-result.example.com",
             )
             mock_exa.return_value = good_result
@@ -2084,7 +2098,10 @@ class TestCascadeErrorHandling:
         # Now exa_mcp succeeds
         good_result = ResolvedResult(
             source="exa_mcp",
-            content="Excellent documentation content with comprehensive details. " * 60,
+            content=(
+                "Answers the test cb reset query. "
+                "Excellent documentation content with comprehensive details. " * 60
+            ),
             url="https://example.com",
         )
         mock_mcp.return_value = good_result
