@@ -141,22 +141,70 @@ jobs:
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           hdr=(-H "Authorization: Bearer ${TOKEN}" -H "Accept: application/vnd.github+json")
           pr="${{ steps.pr.outputs.number }}"
-          for attempt in $(seq 1 20); do
+          : > /tmp/merge-attempts.txt
+          merged=0
+          for attempt in $(seq 1 30); do
             payload=$(jq -n --arg t "${PR_TITLE} (#${pr})" \
               '{merge_method: "squash", commit_title: $t}')
             resp=$(curl -sS -X PUT "${hdr[@]}" "${API}/pulls/${pr}/merge" -d "${payload}")
+            echo "attempt ${attempt}: ${resp}" >> /tmp/merge-attempts.txt
             if [ "$(echo "${resp}" | jq -r '.merged // false')" = "true" ]; then
               echo "MERGED as $(echo "${resp}" | jq -r '.sha')"
-              exit 0
+              merged=1
+              break
             fi
-            echo "merge attempt ${attempt}: $(echo "${resp}" | jq -r '.message')"
+            echo "merge attempt ${attempt}: $(echo "${resp}" | jq -r '.message // "unknown"')"
             sleep 15
           done
-          echo "Merge did not succeed"
-          exit 1
+          if [ "${merged}" != "1" ]; then
+            echo "Merge did not succeed — diagnostics follow in the next step"
+            exit 1
+          fi
+
+      - name: Publish diagnostics (always)
+        if: always()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          hdr=(-H "Authorization: Bearer ${TOKEN}" -H "Accept: application/vnd.github+json")
+          pr="${{ steps.pr.outputs.number }}"
+          sha=$(curl -sS "${hdr[@]}" "${API}/pulls/${pr}" | jq -r '.head.sha // "unknown"')
+          {
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "run_url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "job_status=${{ job.status }}"
+            echo
+            echo "== PR =="
+            curl -sS "${hdr[@]}" "${API}/pulls/${pr}" \
+              | jq '{number,state,merged,mergeable,mergeable_state,head:.head.sha,review_comments,commits}'
+            echo
+            echo "== required check runs =="
+            curl -sS "${hdr[@]}" "${API}/commits/${sha}/check-runs?per_page=100" \
+              | jq -c '.check_runs[] | select(.name=="Lint" or .name=="Sample Run" or .name=="Quality Gate" or .name=="E2E Tests (web)") | {name,status,conclusion,started_at,app:.app.slug}'
+            echo
+            echo "== reviews =="
+            curl -sS "${hdr[@]}" "${API}/pulls/${pr}/reviews" | jq -c '.[] | {user:.user.login,state}'
+            echo
+            echo "== review comments =="
+            curl -sS "${hdr[@]}" "${API}/pulls/${pr}/comments" \
+              | jq -c '.[] | {user:.user.login,path,line,body:(.body[0:400])}'
+            echo
+            echo "== merge attempts =="
+            cat /tmp/merge-attempts.txt 2>/dev/null || echo "(none captured)"
+          } > /tmp/wave-b-status.txt
+          base64_content=$(base64 -w0 /tmp/wave-b-status.txt)
+          ref="refs/heads/status/wave-b-${GITHUB_RUN_ID}"
+          echo "creating ${ref} at ${sha}"
+          curl -sS -X POST "${hdr[@]}" "${API}/git/refs" \
+            -d "$(jq -n --arg ref "${ref}" --arg sha "${sha}" '{ref:$ref,sha:$sha}')" > /dev/null
+          curl -sS -X PUT "${hdr[@]}" "${API}/contents/status/wave-b.txt" \
+            -d "$(jq -n --arg m "chore: record wave-b orchestration status" \
+              --arg c "${base64_content}" --arg b "status/wave-b-${GITHUB_RUN_ID}" \
+              '{message:$m,content:$c,branch:$b}')" | jq -c '{commit:.commit.sha,path:.content.path}'
 
       - name: Delete temporary orchestration branch
         env:
