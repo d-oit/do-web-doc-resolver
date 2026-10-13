@@ -130,4 +130,5 @@ def resolve_query_stream(
         circuit_breakers=_circuit_breakers,
         semantic_cache_store=_store_in_semantic_cache,
         routing_key=query,
+        relevance_query=query,
     )

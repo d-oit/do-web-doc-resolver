@@ -31,9 +31,7 @@ export interface ProviderKeys {
   MISTRAL_API_KEY?: string;
 }
 
-export function isUrl(input: string): boolean {
-  return /^https?:\/\/\S+$/i.test(input.trim());
-}
+export { isUrl } from "@/lib/is-url";
 
 export const queryProviders: Record<string, ProviderFn> = {
   exa_mcp: async (q, _k, log, maxChars) => searchViaExaMcp(q, log, maxChars),

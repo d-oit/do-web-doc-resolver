@@ -49,7 +49,11 @@ A12 deferred to Wave F9 with the Python retry work so both runtimes land togethe
 | B13 | Py | `scripts/constants.py:48` vs `quality.py:21` | `MIN_CHARS=200` (Jina gate) vs `THRESHOLD_MIN_CHARS=500` (quality) — 300-char results pass then always fail | Align thresholds |
 | B14 | Py | `scripts/providers/*` (all except blocks) | Providers swallow error causes; cascade/negative-cache can't distinguish no-key vs transient vs bot-challenge | Typed `ProviderResult`/error return |
 
-**Wave A + early Wave B items: DONE.** Verified per-item below.
+**Wave A + Wave B (B3–B13): DONE.** Verified per-item below.
+
+B14 (`ProviderResult`/typed provider errors across the provider package) remains
+open. Like A12/F9 (bounded retry parity), it is a cross-cutting provider
+refactor that should land as its own change rather than half-ported.
 
 | ID | Change | Verification |
 |----|--------|--------------|
@@ -66,6 +70,21 @@ A12 deferred to Wave F9 with the Python retry work so both runtimes land togethe
 | A11 | `resolve_with_stealth` returns `None` instead of a truthy empty result | full pytest ✅ |
 | B1 | Semantic-cache check and stores moved off the event loop via `asyncio.to_thread` | full pytest ✅ |
 | B2 | `score_content` infers markdown links when none are passed, removing the systematic -0.10 penalty | `tests/test_quality_links.py` (new, 6 tests) ✅ |
+| B3 | `score_content()` accepts an optional `query` and blends term-overlap relevance (`RELEVANCE_WEIGHT = 0.35`); query-mode cascades and synthesis pass the query, URL-mode callers do not (the optional context query is not expected to appear verbatim in the page). Ported to `web/lib/quality.ts` + `resolve/route.ts` for parity | `tests/test_quality_relevance.py` (9 tests) + 5 vitest cases ✅ |
+| B4 | Routing memory, negative cache and circuit breakers persist to `<cache-dir>/routing_state.json` (`state_store.rs`); `Instant` expiry replaced with `DateTime<Utc>` so entries serialize; loaded in `Resolver::with_config`, saved after every resolve | 5 `state_store` + 3 `negative_cache` + 3 `circuit_breaker` tests ✅ |
+| B5 | Synthesis failure (outage/quota/malformed response, not only a missing key) falls through to the deterministic merge instead of aborting the aggregation | `cargo test` ✅ |
+| B6 | `llms_txt` builds `scheme://host:port/llms.txt`, preserving non-default ports | 3 `llms_txt` tests ✅ |
+| B7 | Link validation retries a 405/501 HEAD with a `Range: bytes=0-0` GET so valid links are not dropped | 5 `link_validator` tests against a mock TCP server ✅ |
+| B8 | Compaction truncation is documented and enforced as a character budget (ASCII fast path, char walk only when bytes exceed the budget) | `compaction` char-budget test ✅ |
+| B9 | Document/image extension detection is case-insensitive and ignores query/fragment (`paper.PDF?v=2` → Docling) | `check_format` test ✅ |
+| B10 | History load renders the stored snapshot; re-running is explicit (no silent POST that could clobber the stored result). E2E spec asserts zero `/api/resolve` calls on load | typecheck + lint + updated `tests/e2e/history.spec.ts`; Playwright **could not run here** (browser needs system libs, no root) — needs CI confirmation |
+| B11 | Shared `web/lib/is-url.ts` predicate used by the page mode label and the resolver; `route.test.ts` now imports production code | `tests/is-url.test.ts` + full vitest ✅ |
+| B12 | History provider-count renders `+{n}` instead of literal `+$` | lint + typecheck ✅ |
+
+Seven `tests/test_resolve.py` cascade fixtures returned content unrelated to
+their query, which relevance scoring now (correctly) rejects; the fixtures were
+made query-relevant so the tests keep asserting cascade control flow rather
+than relevance.
 
 `cargo fmt` and `cargo clippy --all-targets -D warnings` clean. One pre-existing
 failure remains and is unrelated to this work: `semantic_cache::tests::

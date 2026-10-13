@@ -209,4 +209,6 @@ def resolve_url_stream(
         result_builder=_url_result_builder,
         content_acceptable=lambda q, pt: q.acceptable or pt == ProviderType.LLMS_TXT,
         target_key="url",
+        # No relevance query: URL resolution targets the page itself, and the
+        # optional context query is not expected to appear verbatim in it.
     )
