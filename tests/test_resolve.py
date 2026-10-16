@@ -2057,7 +2057,7 @@ class TestCascadeErrorHandling:
             # exa (hedged provider) succeeds
             good_result = ResolvedResult(
                 source="exa",
-                content=("Answers the test hedge query. " "Exa documentation with examples. " * 60),
+                content=("Answers the test hedge query. Exa documentation with examples. " * 60),
                 url="https://exa-result.example.com",
             )
             mock_exa.return_value = good_result
