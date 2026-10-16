@@ -113,14 +113,14 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div id="shortcuts-modal-description" className="space-y-2">
+        <ul id="shortcuts-modal-description" className="space-y-2">
           {SHORTCUTS.map(({ key, action }) => (
-            <div key={key} className="flex justify-between text-[11px]">
+            <li key={key} className="flex justify-between items-center text-[11px]">
               <span className="text-text-muted">{action}</span>
-              <kbd className="bg-[#222] px-2 py-1 text-foreground border border-border-muted">{key}</kbd>
-            </div>
+              <kbd className="bg-[#222] px-2 py-1 text-foreground border border-border-muted font-mono">{key}</kbd>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   );
