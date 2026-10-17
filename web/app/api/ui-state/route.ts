@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { BodyTooLargeError, readJsonWithLimit } from "@/lib/body-limit";
 
 // In-memory store for UI state (sessionId -> UIState with TTL)
 interface StoredState {
@@ -66,9 +67,20 @@ export async function GET(request: NextRequest) {
 
 // POST endpoint: Save UI state
 export async function POST(request: NextRequest) {
+  let body: unknown;
   try {
-    const body = await request.json();
-    
+    body = await readJsonWithLimit(request);
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) {
+      return NextResponse.json(
+        { error: `Request body exceeds ${error.limit} bytes` },
+        { status: 413 }
+      );
+    }
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  try {
     if (!body || typeof body !== "object" || Array.isArray(body)) {
       return NextResponse.json({ error: "Invalid state payload" }, { status: 400 });
     }

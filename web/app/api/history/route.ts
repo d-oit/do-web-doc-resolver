@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { BodyTooLargeError, readJsonWithLimit } from "@/lib/body-limit";
 
 // In-memory store for local development (will be replaced with Vercel KV in production)
 const memoryHistory = new Map<string, HistoryEntry[]>();
@@ -89,22 +90,48 @@ function hasOverlap(a: string[] = [], b: string[] = []): boolean {
 export async function POST(request: NextRequest) {
   const sessionId = getSessionId(request);
 
+  let body: unknown;
   try {
-    const body = await request.json();
+    body = await readJsonWithLimit(request);
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) {
+      return NextResponse.json(
+        { error: `Request body exceeds ${error.limit} bytes` },
+        { status: 413 }
+      );
+    }
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  try {
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const bodyRecord = body as Record<string, unknown>;
     const id = crypto.randomUUID();
-    const normalizedUrlHashes = normalizeHashes(body.normalizedUrlHashes);
+    const normalizedUrlHashes = normalizeHashes(bodyRecord.normalizedUrlHashes);
+    const flagsObj = (bodyRecord.flags && typeof bodyRecord.flags === "object")
+      ? bodyRecord.flags as Record<string, unknown>
+      : null;
+    const flags: HistoryEntry["flags"] | undefined = flagsObj
+      ? {
+          ...(typeof flagsObj.skipCache === "boolean" ? { skipCache: flagsObj.skipCache } : {}),
+          ...(typeof flagsObj.deepResearch === "boolean" ? { deepResearch: flagsObj.deepResearch } : {}),
+        }
+      : undefined;
+
     const entry: HistoryEntry = {
       id,
-      query: body.query || "",
-      url: body.url || null,
-      result: body.result || "",
-      provider: body.provider || "unknown",
+      query: typeof bodyRecord.query === "string" ? bodyRecord.query : "",
+      url: typeof bodyRecord.url === "string" ? bodyRecord.url : null,
+      result: typeof bodyRecord.result === "string" ? bodyRecord.result : "",
+      provider: typeof bodyRecord.provider === "string" ? bodyRecord.provider : "unknown",
       timestamp: Date.now(),
-      charCount: body.charCount || 0,
-      resolveTime: body.resolveTime || 0,
-      profile: body.profile || undefined,
-      flags: body.flags || undefined,
-      providers: Array.isArray(body.providers) ? body.providers : undefined,
+      charCount: typeof bodyRecord.charCount === "number" ? bodyRecord.charCount : 0,
+      resolveTime: typeof bodyRecord.resolveTime === "number" ? bodyRecord.resolveTime : 0,
+      ...(typeof bodyRecord.profile === "string" ? { profile: bodyRecord.profile } : {}),
+      ...(flags ? { flags } : {}),
+      ...(Array.isArray(bodyRecord.providers) ? { providers: bodyRecord.providers.filter((p): p is string => typeof p === "string") } : {}),
       normalizedUrlHashes,
     };
 

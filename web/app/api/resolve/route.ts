@@ -9,6 +9,7 @@ import { Logger } from "@/lib/log";
 import { searchViaExaMcpWithMistral } from "@/lib/resolvers/query";
 import { isUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
 import { validateResolveRequest, validateUrlForFetchAsync } from "@/lib/validation";
+import { BodyTooLargeError, readJsonWithLimit } from "@/lib/body-limit";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -210,7 +211,19 @@ export async function POST(request: NextRequest) {
   // counter twice, halving the effective limit to 15 req/min.
   const log = new Logger();
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await readJsonWithLimit(request);
+    } catch (error) {
+      if (error instanceof BodyTooLargeError) {
+        return NextResponse.json(
+          { error: `Request body exceeds ${error.limit} bytes` },
+          { status: 413 }
+        );
+      }
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
     const validation = validateResolveRequest(body);
     if (!validation.success || !validation.data) {
       return NextResponse.json({ error: validation.error || "Invalid request" }, { status: 400 });
@@ -250,13 +263,13 @@ export async function POST(request: NextRequest) {
     const budget = new ResolutionBudget(profile);
 
     // Extract optional user-provided API keys from request body
-    const userKeys: ProviderKeys = {
-      SERPER_API_KEY: body.serper_api_key,
-      TAVILY_API_KEY: body.tavily_api_key,
-      EXA_API_KEY: body.exa_api_key,
-      FIRECRAWL_API_KEY: body.firecrawl_api_key,
-      MISTRAL_API_KEY: body.mistral_api_key,
-    };
+    const bodyRecord = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+    const userKeys: ProviderKeys = {};
+    if (typeof bodyRecord.serper_api_key === "string") userKeys.SERPER_API_KEY = bodyRecord.serper_api_key;
+    if (typeof bodyRecord.tavily_api_key === "string") userKeys.TAVILY_API_KEY = bodyRecord.tavily_api_key;
+    if (typeof bodyRecord.exa_api_key === "string") userKeys.EXA_API_KEY = bodyRecord.exa_api_key;
+    if (typeof bodyRecord.firecrawl_api_key === "string") userKeys.FIRECRAWL_API_KEY = bodyRecord.firecrawl_api_key;
+    if (typeof bodyRecord.mistral_api_key === "string") userKeys.MISTRAL_API_KEY = bodyRecord.mistral_api_key;
 
     let markdown: string;
     let provider: string;
