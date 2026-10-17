@@ -2,8 +2,22 @@ import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 
 import { GET, POST } from "../../app/api/ui-state/route";
+import { MAX_BODY_BYTES } from "../../lib/body-limit";
 
 describe("/api/ui-state route", () => {
+  it("rejects an oversized body with 413 Payload Too Large", async () => {
+    const postReq = new NextRequest("http://localhost/api/ui-state", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ padding: "x".repeat(MAX_BODY_BYTES + 64) }),
+    });
+
+    const postRes = await POST(postReq);
+    expect(postRes.status).toBe(413);
+    const data = await postRes.json();
+    expect(data.error).toContain("Request body exceeds");
+  });
+
   it("stores and restores custom profile provider selection", async () => {
     const payload = {
       activeProfile: "custom",
