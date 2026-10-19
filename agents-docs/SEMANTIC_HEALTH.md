@@ -10,11 +10,11 @@ Evaluated using `do-wdr resolve <URL> --json` on the compiled release binary (`c
 
 | URL | Cache Hit | Latency (ms) | Target Latency | Quality Score | Target Score | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `https://docs.python.org/3/library/stdtypes.html` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
-| `https://doc.rust-lang.org/std/index.html` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
-| `https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
-| `https://pkg.go.dev/std` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
-| `https://react.dev/learn` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
+| `https://docs.python.org/3/library/os.html` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
+| `https://doc.rust-lang.org/std/fs/index.html` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
+| `https://developer.mozilla.org/en-US/docs/Web/JavaScript` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
+| `https://pkg.go.dev/net/http` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
+| `https://react.dev/reference/react` | True | 1ms | < 200ms | 1.00 | >= 0.85 | ✅ Pass |
 
 ## Python-Rust Bridge & Semantic Cache Analysis
 
