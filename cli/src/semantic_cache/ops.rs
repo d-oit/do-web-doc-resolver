@@ -58,7 +58,12 @@ pub struct CacheKey {
 
 impl CacheKey {
     pub fn to_concept_id(&self) -> String {
-        format!("v2:{}:{}:{}", self.kind.as_str(), self.provider, self.canonical)
+        format!(
+            "v2:{}:{}:{}",
+            self.kind.as_str(),
+            self.provider,
+            self.canonical
+        )
     }
 
     pub fn parse_concept_id(id: &str) -> Option<Self> {
@@ -197,7 +202,11 @@ impl SemanticCache {
             return canonicalize_query(text);
         }
 
-        tokens.into_iter().map(|s| s.to_lowercase()).collect::<Vec<_>>().join(" ")
+        tokens
+            .into_iter()
+            .map(|s| s.to_lowercase())
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 
     #[cfg(feature = "semantic-cache")]
@@ -452,7 +461,9 @@ impl SemanticCache {
                             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
                         if best_score > 0.95 {
-                            let _ = self.store_alias_key(target_key, &results, query_vector).await;
+                            let _ = self
+                                .store_alias_key(target_key, &results, query_vector)
+                                .await;
                         }
                         return Ok(Some(results));
                     }
@@ -550,8 +561,14 @@ impl SemanticCache {
 
         let mut metadata = HashMap::new();
         metadata.insert("version".to_string(), Value::String("2".to_string()));
-        metadata.insert("kind".to_string(), Value::String(key.kind.as_str().to_string()));
-        metadata.insert("canonical".to_string(), Value::String(key.canonical.clone()));
+        metadata.insert(
+            "kind".to_string(),
+            Value::String(key.kind.as_str().to_string()),
+        );
+        metadata.insert(
+            "canonical".to_string(),
+            Value::String(key.canonical.clone()),
+        );
         metadata.insert("query".to_string(), Value::String(key.canonical.clone()));
         metadata.insert(
             "results".to_string(),
@@ -587,8 +604,14 @@ impl SemanticCache {
         let concept_id = key.to_concept_id();
         let mut metadata = HashMap::new();
         metadata.insert("version".to_string(), Value::String("2".to_string()));
-        metadata.insert("kind".to_string(), Value::String(key.kind.as_str().to_string()));
-        metadata.insert("canonical".to_string(), Value::String(key.canonical.clone()));
+        metadata.insert(
+            "kind".to_string(),
+            Value::String(key.kind.as_str().to_string()),
+        );
+        metadata.insert(
+            "canonical".to_string(),
+            Value::String(key.canonical.clone()),
+        );
         metadata.insert("query".to_string(), Value::String(key.canonical.clone()));
         metadata.insert(
             "results".to_string(),
