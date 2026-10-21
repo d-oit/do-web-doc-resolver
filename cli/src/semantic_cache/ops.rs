@@ -58,12 +58,7 @@ pub struct CacheKey {
 
 impl CacheKey {
     pub fn to_concept_id(&self) -> String {
-        format!(
-            "v2:{}:{}:{}",
-            self.kind.as_str(),
-            self.provider,
-            self.canonical
-        )
+        format!("v2:{}:{}:{}", self.kind.as_str(), self.provider, self.canonical)
     }
 
     pub fn parse_concept_id(id: &str) -> Option<Self> {
@@ -80,6 +75,43 @@ impl CacheKey {
             provider,
             canonical,
         })
+    }
+
+    pub fn from_query(query: &str, provider: Option<&str>) -> Self {
+        if let Some(rest) = query.strip_prefix("aggregated:") {
+            CacheKey {
+                kind: RequestKind::Aggregated,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(rest),
+            }
+        } else if crate::resolver::is_url(query) {
+            CacheKey {
+                kind: RequestKind::Url,
+                provider: "none".to_string(),
+                canonical: canonicalize_url(query),
+            }
+        } else if let Some(p) = provider {
+            let prefix = format!("{}:", p);
+            if let Some(rest) = query.strip_prefix(&prefix) {
+                CacheKey {
+                    kind: RequestKind::ProviderQuery,
+                    provider: p.to_lowercase(),
+                    canonical: canonicalize_query(rest),
+                }
+            } else {
+                CacheKey {
+                    kind: RequestKind::Query,
+                    provider: "none".to_string(),
+                    canonical: canonicalize_query(query),
+                }
+            }
+        } else {
+            CacheKey {
+                kind: RequestKind::Query,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(query),
+            }
+        }
     }
 }
 
@@ -165,11 +197,7 @@ impl SemanticCache {
             return canonicalize_query(text);
         }
 
-        tokens
-            .into_iter()
-            .map(|s| s.to_lowercase())
-            .collect::<Vec<_>>()
-            .join(" ")
+        tokens.into_iter().map(|s| s.to_lowercase()).collect::<Vec<_>>().join(" ")
     }
 
     #[cfg(feature = "semantic-cache")]
@@ -243,26 +271,7 @@ impl SemanticCache {
         &self,
         query: &str,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
-        let key = if query.starts_with("aggregated:") {
-            CacheKey {
-                kind: RequestKind::Aggregated,
-                provider: "none".to_string(),
-                canonical: canonicalize_query(&query["aggregated:".len()..]),
-            }
-        } else if crate::resolver::is_url(query) {
-            CacheKey {
-                kind: RequestKind::Url,
-                provider: "none".to_string(),
-                canonical: canonicalize_url(query),
-            }
-        } else {
-            CacheKey {
-                kind: RequestKind::Query,
-                provider: "none".to_string(),
-                canonical: canonicalize_query(query),
-            }
-        };
-
+        let key = CacheKey::from_query(query, None);
         self.query_key(&key).await
     }
 
@@ -443,9 +452,7 @@ impl SemanticCache {
                             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
                         if best_score > 0.95 {
-                            let _ = self
-                                .store_alias_key(target_key, &results, query_vector)
-                                .await;
+                            let _ = self.store_alias_key(target_key, &results, query_vector).await;
                         }
                         return Ok(Some(results));
                     }
@@ -466,32 +473,7 @@ impl SemanticCache {
         results: &[ResolvedResult],
         provider: &str,
     ) -> StdResult<(), ResolverError> {
-        let key = if query.starts_with("aggregated:") {
-            CacheKey {
-                kind: RequestKind::Aggregated,
-                provider: "none".to_string(),
-                canonical: canonicalize_query(&query["aggregated:".len()..]),
-            }
-        } else if crate::resolver::is_url(query) {
-            CacheKey {
-                kind: RequestKind::Url,
-                provider: "none".to_string(),
-                canonical: canonicalize_url(query),
-            }
-        } else if query.starts_with(&format!("{}:", provider)) {
-            CacheKey {
-                kind: RequestKind::ProviderQuery,
-                provider: provider.to_lowercase(),
-                canonical: canonicalize_query(&query[provider.len() + 1..]),
-            }
-        } else {
-            CacheKey {
-                kind: RequestKind::Query,
-                provider: "none".to_string(),
-                canonical: canonicalize_query(query),
-            }
-        };
-
+        let key = CacheKey::from_query(query, Some(provider));
         self.store_key(&key, results, provider).await
     }
 
@@ -568,14 +550,8 @@ impl SemanticCache {
 
         let mut metadata = HashMap::new();
         metadata.insert("version".to_string(), Value::String("2".to_string()));
-        metadata.insert(
-            "kind".to_string(),
-            Value::String(key.kind.as_str().to_string()),
-        );
-        metadata.insert(
-            "canonical".to_string(),
-            Value::String(key.canonical.clone()),
-        );
+        metadata.insert("kind".to_string(), Value::String(key.kind.as_str().to_string()));
+        metadata.insert("canonical".to_string(), Value::String(key.canonical.clone()));
         metadata.insert("query".to_string(), Value::String(key.canonical.clone()));
         metadata.insert(
             "results".to_string(),
@@ -611,14 +587,8 @@ impl SemanticCache {
         let concept_id = key.to_concept_id();
         let mut metadata = HashMap::new();
         metadata.insert("version".to_string(), Value::String("2".to_string()));
-        metadata.insert(
-            "kind".to_string(),
-            Value::String(key.kind.as_str().to_string()),
-        );
-        metadata.insert(
-            "canonical".to_string(),
-            Value::String(key.canonical.clone()),
-        );
+        metadata.insert("kind".to_string(), Value::String(key.kind.as_str().to_string()));
+        metadata.insert("canonical".to_string(), Value::String(key.canonical.clone()));
         metadata.insert("query".to_string(), Value::String(key.canonical.clone()));
         metadata.insert(
             "results".to_string(),
@@ -690,26 +660,7 @@ impl SemanticCache {
 
     #[cfg(feature = "semantic-cache")]
     pub async fn remove(&self, query: &str) -> StdResult<(), ResolverError> {
-        let key = if query.starts_with("aggregated:") {
-            CacheKey {
-                kind: RequestKind::Aggregated,
-                provider: "none".to_string(),
-                canonical: canonicalize_query(&query["aggregated:".len()..]),
-            }
-        } else if crate::resolver::is_url(query) {
-            CacheKey {
-                kind: RequestKind::Url,
-                provider: "none".to_string(),
-                canonical: canonicalize_url(query),
-            }
-        } else {
-            CacheKey {
-                kind: RequestKind::Query,
-                provider: "none".to_string(),
-                canonical: canonicalize_query(query),
-            }
-        };
-
+        let key = CacheKey::from_query(query, None);
         let concept_id = key.to_concept_id();
 
         self.framework
