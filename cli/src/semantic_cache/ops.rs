@@ -15,26 +15,124 @@ use {
 #[cfg(feature = "semantic-cache")]
 static GLOBAL_ENCODER: OnceLock<TextEncoder> = OnceLock::new();
 
+/// Request kind for typed cache scoping
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum RequestKind {
+    Url,
+    Query,
+    ProviderQuery,
+    Aggregated,
+    Synthesis,
+}
+
+impl RequestKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            RequestKind::Url => "url",
+            RequestKind::Query => "query",
+            RequestKind::ProviderQuery => "pquery",
+            RequestKind::Aggregated => "aggregated",
+            RequestKind::Synthesis => "synthesis",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "url" => Some(RequestKind::Url),
+            "query" => Some(RequestKind::Query),
+            "pquery" => Some(RequestKind::ProviderQuery),
+            "aggregated" => Some(RequestKind::Aggregated),
+            "synthesis" => Some(RequestKind::Synthesis),
+            _ => None,
+        }
+    }
+}
+
+/// Typed cache key ensuring identity isolation and provider/kind scoping
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CacheKey {
+    pub kind: RequestKind,
+    pub provider: String,
+    pub canonical: String,
+}
+
+impl CacheKey {
+    pub fn to_concept_id(&self) -> String {
+        format!(
+            "v2:{}:{}:{}",
+            self.kind.as_str(),
+            self.provider,
+            self.canonical
+        )
+    }
+
+    pub fn parse_concept_id(id: &str) -> Option<Self> {
+        let mut parts = id.splitn(4, ':');
+        let version = parts.next()?;
+        if version != "v2" {
+            return None;
+        }
+        let kind = RequestKind::parse(parts.next()?)?;
+        let provider = parts.next()?.to_string();
+        let canonical = parts.next()?.to_string();
+        Some(Self {
+            kind,
+            provider,
+            canonical,
+        })
+    }
+}
+
+/// Canonicalize a URL for exact identity matching
+pub fn canonicalize_url(raw_url: &str) -> String {
+    let trimmed = raw_url.trim();
+    let Ok(mut parsed) = url::Url::parse(trimmed) else {
+        return trimmed.to_string();
+    };
+
+    // Strip client-side UI fragment anchors per fragment policy
+    parsed.set_fragment(None);
+
+    // Sort query parameters deterministically by key, then value
+    if parsed.query().is_some() {
+        let mut pairs: Vec<(String, String)> = parsed
+            .query_pairs()
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect();
+        pairs.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+
+        parsed.query_pairs_mut().clear();
+        for (k, v) in pairs {
+            parsed.query_pairs_mut().append_pair(&k, &v);
+        }
+    }
+
+    parsed.to_string()
+}
+
+/// Canonicalize a natural language query preserving word order
+pub fn canonicalize_query(raw_query: &str) -> String {
+    raw_query
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
+}
+
 impl SemanticCache {
-    /// Internal normalization for cache keys and semantic comparison
+    /// Internal normalization for legacy callers / encoding
+    #[allow(dead_code)]
     pub(crate) fn normalize_text(text: &str, filter_stop_words: bool) -> String {
+        if crate::resolver::is_url(text) {
+            return canonicalize_url(text);
+        }
+
         let mut tokens: Vec<&str> = text
             .split(|c: char| !c.is_alphanumeric())
             .filter(|w| !w.is_empty())
             .collect();
 
-        if crate::resolver::is_url(text) {
-            tokens.retain(|w| {
-                let low = w.to_lowercase();
-                ![
-                    "https", "http", "www", "html", "htm", "php", "asp", "aspx", "jsp", "docs",
-                    "api", "index",
-                ]
-                .contains(&low.as_str())
-            });
-        }
-
-        if filter_stop_words && !crate::resolver::is_url(text) {
+        if filter_stop_words {
             tokens.retain(|w| {
                 let low = w.to_lowercase();
                 ![
@@ -64,16 +162,14 @@ impl SemanticCache {
         }
 
         if tokens.is_empty() {
-            return text
-                .to_lowercase()
-                .split_whitespace()
-                .collect::<Vec<_>>()
-                .join(" ");
+            return canonicalize_query(text);
         }
 
-        let mut lowered: Vec<String> = tokens.into_iter().map(|s| s.to_lowercase()).collect();
-        lowered.sort();
-        lowered.join(" ")
+        tokens
+            .into_iter()
+            .map(|s| s.to_lowercase())
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 
     #[cfg(feature = "semantic-cache")]
@@ -121,9 +217,6 @@ impl SemanticCache {
             .await
             .map_err(|e| ResolverError::Config(e.to_string()))?;
 
-        // Warm up the encoder in a background task to pay the ~1s loading cost upfront
-        // This ensures the first semantic hit in a long-running session is fast,
-        // and for CLI it makes the 'init' phase include model loading.
         tokio::task::spawn_blocking(|| {
             let _ = GLOBAL_ENCODER.get_or_init(|| {
                 tracing::info!("Warming up text encoder in background...");
@@ -150,10 +243,88 @@ impl SemanticCache {
         &self,
         query: &str,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
-        let normalized = Self::normalize_text(query, false);
+        let key = if query.starts_with("aggregated:") {
+            CacheKey {
+                kind: RequestKind::Aggregated,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(&query["aggregated:".len()..]),
+            }
+        } else if crate::resolver::is_url(query) {
+            CacheKey {
+                kind: RequestKind::Url,
+                provider: "none".to_string(),
+                canonical: canonicalize_url(query),
+            }
+        } else {
+            CacheKey {
+                kind: RequestKind::Query,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(query),
+            }
+        };
 
-        if let Ok(Some(concept)) = self.framework.get_concept(&normalized).await {
-            tracing::info!("Semantic cache EXACT HIT for query='{}'", query);
+        self.query_key(&key).await
+    }
+
+    #[cfg(not(feature = "semantic-cache"))]
+    #[allow(dead_code)]
+    pub async fn query(
+        &self,
+        _query: &str,
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
+        Ok(None)
+    }
+
+    #[cfg(feature = "semantic-cache")]
+    pub async fn query_url(&self, url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
+        let key = CacheKey {
+            kind: RequestKind::Url,
+            provider: "none".to_string(),
+            canonical: canonicalize_url(url),
+        };
+        self.query_key(&key)
+            .await
+            .map(|opt| opt.and_then(|vec| vec.into_iter().next()))
+    }
+
+    #[cfg(not(feature = "semantic-cache"))]
+    pub async fn query_url(&self, _url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
+        Ok(None)
+    }
+
+    #[cfg(feature = "semantic-cache")]
+    pub async fn query_provider(
+        &self,
+        query: &str,
+        provider: &str,
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
+        let key = CacheKey {
+            kind: RequestKind::ProviderQuery,
+            provider: provider.to_lowercase(),
+            canonical: canonicalize_query(query),
+        };
+        self.query_key(&key).await
+    }
+
+    #[cfg(not(feature = "semantic-cache"))]
+    pub async fn query_provider(
+        &self,
+        _query: &str,
+        _provider: &str,
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
+        Ok(None)
+    }
+
+    #[cfg(feature = "semantic-cache")]
+    pub async fn query_key(
+        &self,
+        target_key: &CacheKey,
+    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
+        let concept_id = target_key.to_concept_id();
+
+        // 1. Exact lookup using versioned concept ID
+        if let Ok(Some(concept)) = self.framework.get_concept(&concept_id).await {
+            tracing::info!("Semantic cache EXACT HIT for key='{}'", concept_id);
             self.hit_count
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
@@ -166,8 +337,8 @@ impl SemanticCache {
                         let ttl_secs = self.config.get_ttl(provider);
                         let age = chrono::Utc::now().signed_duration_since(ts);
                         if age.num_seconds() > ttl_secs as i64 {
-                            tracing::info!("Semantic cache entry expired for query='{}'", query);
-                            let _ = self.remove(query).await;
+                            tracing::info!("Semantic cache entry expired for key='{}'", concept_id);
+                            let _ = self.framework.delete_concept(&concept_id).await;
                             return Ok(None);
                         }
                     }
@@ -183,7 +354,16 @@ impl SemanticCache {
             }
         }
 
-        let query_vector = self.encode_query(query);
+        // 2. For URLs, approximate hits across different URLs are disabled
+        if target_key.kind == RequestKind::Url {
+            tracing::debug!("Semantic cache miss for URL key='{}'", concept_id);
+            self.miss_count
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            return Ok(None);
+        }
+
+        // 3. Approximate probe for natural language search queries
+        let query_vector = self.encode_query(&target_key.canonical);
 
         let hits = self
             .framework
@@ -192,32 +372,39 @@ impl SemanticCache {
             .map_err(|e| ResolverError::Cache(format!("probe failed: {}", e)))?;
 
         if hits.is_empty() {
-            tracing::debug!("Semantic cache miss for query='{}'", query);
+            tracing::debug!("Semantic cache miss for key='{}'", concept_id);
+            self.miss_count
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             return Ok(None);
         }
 
-        let (best_id, best_score) = &hits[0];
-
-        // Dynamic threshold adjustment: if query is very short, be more strict
-        let effective_threshold = if normalized.len() < 10 {
+        let effective_threshold = if target_key.canonical.len() < 10 {
             self.config.threshold.max(0.92)
         } else {
             self.config.threshold
         };
 
-        if *best_score >= effective_threshold {
-            tracing::info!(
-                "Semantic cache HIT for query='{}' (score: {:.2}, id: {})",
-                query,
-                best_score,
-                best_id
-            );
-            self.hit_count
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        for (best_id, best_score) in hits {
+            if best_score < effective_threshold {
+                break;
+            }
+
+            // Parse candidate ID and enforce version and predicate isolation
+            let Some(candidate_key) = CacheKey::parse_concept_id(&best_id) else {
+                continue;
+            };
+
+            if candidate_key.kind != target_key.kind {
+                continue;
+            }
+
+            if target_key.provider != "none" && candidate_key.provider != target_key.provider {
+                continue;
+            }
 
             if let Some(concept) = self
                 .framework
-                .get_concept(best_id)
+                .get_concept(&best_id)
                 .await
                 .map_err(|e| ResolverError::Cache(format!("get_concept failed: {}", e)))?
             {
@@ -235,8 +422,8 @@ impl SemanticCache {
                                     "Semantic cache entry expired (semantic) for id: {}",
                                     best_id
                                 );
-                                let _ = self.remove(best_id).await;
-                                return Ok(None);
+                                let _ = self.framework.delete_concept(&best_id).await;
+                                continue;
                             }
                         }
                     }
@@ -246,9 +433,19 @@ impl SemanticCache {
                     if let Ok(results) =
                         serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
                     {
-                        // Optimization: Alias this semantic hit as an exact hit for next time.
-                        if *best_score > 0.95 {
-                            let _ = self.store_alias(query, &results, query_vector).await;
+                        tracing::info!(
+                            "Semantic cache HIT for key='{}' (score: {:.2}, candidate: {})",
+                            concept_id,
+                            best_score,
+                            best_id
+                        );
+                        self.hit_count
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+                        if best_score > 0.95 {
+                            let _ = self
+                                .store_alias_key(target_key, &results, query_vector)
+                                .await;
                         }
                         return Ok(Some(results));
                     }
@@ -256,23 +453,9 @@ impl SemanticCache {
             }
         }
 
-        tracing::debug!(
-            "Semantic cache miss for query='{}' (best score: {:.2} < {})",
-            query,
-            best_score,
-            self.config.threshold
-        );
+        tracing::debug!("Semantic cache miss for key='{}'", concept_id);
         self.miss_count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        Ok(None)
-    }
-
-    #[cfg(not(feature = "semantic-cache"))]
-    #[allow(dead_code)]
-    pub async fn query(
-        &self,
-        _query: &str,
-    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
         Ok(None)
     }
 
@@ -283,71 +466,33 @@ impl SemanticCache {
         results: &[ResolvedResult],
         provider: &str,
     ) -> StdResult<(), ResolverError> {
-        let normalized = Self::normalize_text(query, false);
-
-        let query_vector = self.encode_query(query);
-
-        // Redundancy pruning: check if a very similar entry already exists
-        if let Ok(hits) = self.framework.probe(query_vector, 5).await {
-            for (best_id, best_score) in hits {
-                // If score is extremely high (>0.995), always skip to avoid database bloat.
-                // High similarity often indicates near-duplicate normalization results.
-                if best_score > 0.995 {
-                    tracing::info!(
-                        "Skipping store for query='{}': extremely similar entry already exists (id: {}, score: {:.4})",
-                        query,
-                        best_id,
-                        best_score
-                    );
-                    return Ok(());
-                }
-
-                // If similarity is very high (>0.98), check if content is identical
-                if best_score > 0.98 {
-                    if let Ok(Some(existing)) = self.framework.get_concept(&best_id).await {
-                        if let (Some(existing_results), Some(new_results)) = (
-                            existing.metadata.get("results"),
-                            serde_json::to_value(results).ok(),
-                        ) {
-                            if existing_results == &new_results {
-                                tracing::info!(
-                                    "Skipping store for query='{}': identical result already exists (id: {}, score: {:.4})",
-                                    query,
-                                    best_id,
-                                    best_score
-                                );
-                                return Ok(());
-                            }
-                        }
-                    }
-                }
+        let key = if query.starts_with("aggregated:") {
+            CacheKey {
+                kind: RequestKind::Aggregated,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(&query["aggregated:".len()..]),
             }
-        }
+        } else if crate::resolver::is_url(query) {
+            CacheKey {
+                kind: RequestKind::Url,
+                provider: "none".to_string(),
+                canonical: canonicalize_url(query),
+            }
+        } else if query.starts_with(&format!("{}:", provider)) {
+            CacheKey {
+                kind: RequestKind::ProviderQuery,
+                provider: provider.to_lowercase(),
+                canonical: canonicalize_query(&query[provider.len() + 1..]),
+            }
+        } else {
+            CacheKey {
+                kind: RequestKind::Query,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(query),
+            }
+        };
 
-        let mut metadata = HashMap::new();
-        metadata.insert("query".to_string(), Value::String(query.to_string()));
-        metadata.insert(
-            "results".to_string(),
-            serde_json::to_value(results)
-                .map_err(|e| ResolverError::Cache(format!("serialize results: {}", e)))?,
-        );
-        metadata.insert("provider".to_string(), Value::String(provider.to_string()));
-        metadata.insert(
-            "timestamp".to_string(),
-            Value::String(chrono::Utc::now().to_rfc3339()),
-        );
-
-        self.framework
-            .inject_concept_with_metadata(normalized.clone(), query_vector, metadata)
-            .await
-            .map_err(|e| ResolverError::Cache(format!("inject failed: {}", e)))?;
-
-        tracing::info!(
-            "Stored result in semantic cache: provider={}, query='{}'",
-            provider,
-            query
-        );
-        Ok(())
+        self.store_key(&key, results, provider).await
     }
 
     #[cfg(not(feature = "semantic-cache"))]
@@ -362,19 +507,119 @@ impl SemanticCache {
     }
 
     #[cfg(feature = "semantic-cache")]
-    pub async fn store_alias(
+    pub async fn store_key(
         &self,
-        query: &str,
+        key: &CacheKey,
+        results: &[ResolvedResult],
+        provider: &str,
+    ) -> StdResult<(), ResolverError> {
+        let concept_id = key.to_concept_id();
+        let query_vector = self.encode_query(&key.canonical);
+
+        // Redundancy pruning: check if a very similar entry exists IN THE SAME SCOPE
+        if let Ok(hits) = self.framework.probe(query_vector, 5).await {
+            for (best_id, best_score) in hits {
+                if best_id == concept_id {
+                    continue; // Replacing exact concept ID
+                }
+
+                let Some(candidate_key) = CacheKey::parse_concept_id(&best_id) else {
+                    continue;
+                };
+
+                if candidate_key.kind != key.kind || candidate_key.provider != key.provider {
+                    continue;
+                }
+
+                if key.kind == RequestKind::Url && candidate_key.canonical != key.canonical {
+                    continue;
+                }
+
+                if best_score > 0.995 {
+                    tracing::info!(
+                        "Skipping store for key='{}': extremely similar entry in same scope exists (id: {}, score: {:.4})",
+                        concept_id,
+                        best_id,
+                        best_score
+                    );
+                    return Ok(());
+                }
+
+                if best_score > 0.98 {
+                    if let Ok(Some(existing)) = self.framework.get_concept(&best_id).await {
+                        if let (Some(existing_results), Some(new_results)) = (
+                            existing.metadata.get("results"),
+                            serde_json::to_value(results).ok(),
+                        ) {
+                            if existing_results == &new_results {
+                                tracing::info!(
+                                    "Skipping store for key='{}': identical result in same scope exists (id: {}, score: {:.4})",
+                                    concept_id,
+                                    best_id,
+                                    best_score
+                                );
+                                return Ok(());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut metadata = HashMap::new();
+        metadata.insert("version".to_string(), Value::String("2".to_string()));
+        metadata.insert(
+            "kind".to_string(),
+            Value::String(key.kind.as_str().to_string()),
+        );
+        metadata.insert(
+            "canonical".to_string(),
+            Value::String(key.canonical.clone()),
+        );
+        metadata.insert("query".to_string(), Value::String(key.canonical.clone()));
+        metadata.insert(
+            "results".to_string(),
+            serde_json::to_value(results)
+                .map_err(|e| ResolverError::Cache(format!("serialize results: {}", e)))?,
+        );
+        metadata.insert("provider".to_string(), Value::String(provider.to_string()));
+        metadata.insert(
+            "timestamp".to_string(),
+            Value::String(chrono::Utc::now().to_rfc3339()),
+        );
+
+        self.framework
+            .inject_concept_with_metadata(concept_id.clone(), query_vector, metadata)
+            .await
+            .map_err(|e| ResolverError::Cache(format!("inject failed: {}", e)))?;
+
+        tracing::info!(
+            "Stored result in semantic cache: provider={}, key='{}'",
+            provider,
+            concept_id
+        );
+        Ok(())
+    }
+
+    #[cfg(feature = "semantic-cache")]
+    pub async fn store_alias_key(
+        &self,
+        key: &CacheKey,
         results: &[ResolvedResult],
         vector: HVec10240,
     ) -> StdResult<(), ResolverError> {
-        let normalized = Self::normalize_text(query, false);
-
-        let mut metadata = std::collections::HashMap::new();
+        let concept_id = key.to_concept_id();
+        let mut metadata = HashMap::new();
+        metadata.insert("version".to_string(), Value::String("2".to_string()));
         metadata.insert(
-            "query".to_string(),
-            serde_json::Value::String(query.to_string()),
+            "kind".to_string(),
+            Value::String(key.kind.as_str().to_string()),
         );
+        metadata.insert(
+            "canonical".to_string(),
+            Value::String(key.canonical.clone()),
+        );
+        metadata.insert("query".to_string(), Value::String(key.canonical.clone()));
         metadata.insert(
             "results".to_string(),
             serde_json::to_value(results)
@@ -390,24 +635,46 @@ impl SemanticCache {
         );
 
         self.framework
-            .inject_concept_with_metadata(normalized, vector, metadata)
+            .inject_concept_with_metadata(concept_id, vector, metadata)
             .await
             .map_err(|e| ResolverError::Cache(format!("inject alias failed: {}", e)))?;
 
         Ok(())
     }
 
-    #[cfg(feature = "semantic-cache")]
-    pub async fn remove(&self, query: &str) -> StdResult<(), ResolverError> {
-        let normalized = Self::normalize_text(query, false);
-
-        self.framework
-            .delete_concept(&normalized)
-            .await
-            .map_err(|e| ResolverError::Cache(format!("delete failed: {}", e)))?;
-
-        tracing::info!("Removed from semantic cache: query='{}'", query);
+    #[cfg(not(feature = "semantic-cache"))]
+    #[allow(dead_code)]
+    pub async fn store_alias_key(
+        &self,
+        _key: &CacheKey,
+        _results: &[ResolvedResult],
+        _vector: (),
+    ) -> StdResult<(), ResolverError> {
         Ok(())
+    }
+
+    #[cfg(feature = "semantic-cache")]
+    pub async fn store_alias(
+        &self,
+        query: &str,
+        results: &[ResolvedResult],
+        vector: HVec10240,
+    ) -> StdResult<(), ResolverError> {
+        let key = if crate::resolver::is_url(query) {
+            CacheKey {
+                kind: RequestKind::Url,
+                provider: "none".to_string(),
+                canonical: canonicalize_url(query),
+            }
+        } else {
+            CacheKey {
+                kind: RequestKind::Query,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(query),
+            }
+        };
+
+        self.store_alias_key(&key, results, vector).await
     }
 
     #[cfg(not(feature = "semantic-cache"))]
@@ -421,6 +688,39 @@ impl SemanticCache {
         Ok(())
     }
 
+    #[cfg(feature = "semantic-cache")]
+    pub async fn remove(&self, query: &str) -> StdResult<(), ResolverError> {
+        let key = if query.starts_with("aggregated:") {
+            CacheKey {
+                kind: RequestKind::Aggregated,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(&query["aggregated:".len()..]),
+            }
+        } else if crate::resolver::is_url(query) {
+            CacheKey {
+                kind: RequestKind::Url,
+                provider: "none".to_string(),
+                canonical: canonicalize_url(query),
+            }
+        } else {
+            CacheKey {
+                kind: RequestKind::Query,
+                provider: "none".to_string(),
+                canonical: canonicalize_query(query),
+            }
+        };
+
+        let concept_id = key.to_concept_id();
+
+        self.framework
+            .delete_concept(&concept_id)
+            .await
+            .map_err(|e| ResolverError::Cache(format!("delete failed: {}", e)))?;
+
+        tracing::info!("Removed from semantic cache: key='{}'", concept_id);
+        Ok(())
+    }
+
     #[cfg(not(feature = "semantic-cache"))]
     #[allow(dead_code)]
     pub async fn remove(&self, _query: &str) -> StdResult<(), ResolverError> {
@@ -428,53 +728,8 @@ impl SemanticCache {
     }
 
     #[cfg(feature = "semantic-cache")]
-    pub async fn query_url(&self, url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
-        self.query(url)
-            .await
-            .map(|opt| opt.and_then(|vec| vec.into_iter().next()))
-    }
-
-    #[cfg(not(feature = "semantic-cache"))]
-    pub async fn query_url(&self, _url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
-        Ok(None)
-    }
-
-    #[cfg(feature = "semantic-cache")]
-    pub async fn query_provider(
-        &self,
-        query: &str,
-        provider: &str,
-    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
-        let key = format!("{}:{}", provider, query);
-        self.query(&key).await
-    }
-
-    #[cfg(not(feature = "semantic-cache"))]
-    pub async fn query_provider(
-        &self,
-        _query: &str,
-        _provider: &str,
-    ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
-        Ok(None)
-    }
-
-    #[cfg(feature = "semantic-cache")]
     pub async fn has_valid_entry(&self, query: &str) -> bool {
-        let normalized = Self::normalize_text(query, false);
-
-        if let Ok(Some(_)) = self.framework.get_concept(&normalized).await {
-            return true;
-        }
-
-        let query_vector = self.encode_query(query);
-
-        if let Ok(hits) = self.framework.probe(query_vector, 1).await {
-            if let Some((_, score)) = hits.first() {
-                return *score >= self.config.threshold;
-            }
-        }
-
-        false
+        self.query(query).await.ok().flatten().is_some()
     }
 
     #[cfg(not(feature = "semantic-cache"))]
