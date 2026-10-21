@@ -70,6 +70,7 @@ Detailed reference material in `agents-docs/`:
 | `anti-ai-slop` | `.agents/skills/anti-ai-slop/` | Audit and fix UI, UX, and copy that reads as generic "AI slop" |
 | `codacy` | `.agents/skills/codacy/` | Query Codacy analysis, triage issues, suppress false positives |
 | `do-github-pr-sentinel` | `.agents/skills/do-github-pr-sentinel/` | Monitor a PR until merged, green, or blocked; diagnose and retry CI |
+| `do-harness` | `.agents/skills/do-harness/` | Quality loop sensors for Python, Rust, Web/UI, and cross-cutting checks |
 | `do-wdr-assets` | `.agents/skills/do-wdr-assets/` | Capture screenshots and visual assets for documentation |
 | `do-wdr-cli` | `.agents/skills/do-wdr-cli/` | Use the compiled `do-wdr` CLI to resolve URLs and queries |
 | `do-wdr-issue-impl` | `.agents/skills/do-wdr-issue-impl/` | Implement a single GitHub issue through to a merged PR |
@@ -96,6 +97,11 @@ Detailed reference material in `agents-docs/`:
 - Lint clean (`ruff`, `black`, `cargo fmt`, `cargo clippy`, `npm run lint`)
 - No new secrets added
 - `AGENTS.md` updated if repository structure or skills change
+
+### Quality Harness
+
+- **Harness**: `python scripts/harness.py` (uses `do-harness.toml` path filters)
+- **Fallback**: `./scripts/quality_gate.sh`
 
 ### Test Commands
 
