@@ -30,4 +30,4 @@ Evaluated using `do-wdr resolve <URL> --json` on the compiled release binary (`c
 - Background encoder warm-up offloads model initialization, keeping CLI query resolution ultra-fast.
 
 ---
-*Last Updated: October 2026*
+*Last Updated: October 26, 2026*
