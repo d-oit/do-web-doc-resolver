@@ -135,6 +135,8 @@ git push --force-with-lease         # never bare --force; never rewrite main
 
 - The PR title becomes the squash subject: valid `type(scope): description`, allowed scope, ≤ 150 chars — update it with `gh pr edit <number> --title "..."`.
 - PR body ≤ 2000 chars (hard failure); keep lines ≤ 100 chars — longer lines only warn, since the squash commit is generated text.
+- Every PR changes at least one file; a zero-file PR squashes into an empty commit
+  on `main` — report verification-only runs on the issue instead.
 - No new secrets; `AGENTS.md` updated if repository structure or skills change.
 
 ### Test Commands
