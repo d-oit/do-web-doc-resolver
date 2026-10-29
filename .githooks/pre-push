@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+# Pre-push gate: run the CI checks that match the files being pushed.
+#
+# Mirrors the path-based gate documented in AGENTS.md ("Pre-Push Gate") plus
+# commitlint, which ci.yml/commitlint.yml enforce on every PR. Checks that
+# cannot run locally because a tool is missing are reported as SKIP, never as
+# a pass.
+#
+# Install: ./scripts/setup-hooks.sh   (installs pre-commit and pre-push)
+# Bypass:  git push --no-verify        (emergency only; CI will still fail)
+# Base:    PRE_PUSH_BASE=origin/main   (override the comparison ref)
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)" || exit 1
+cd "$REPO_ROOT" || exit 1
+
+# --- Collect pushed heads (skip deletions and tags) -------------------------
+declare -a HEADS=()
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+    [ -n "${local_sha:-}" ] || continue
+    case "$remote_ref" in refs/tags/*) continue ;; esac
+    case "$local_sha" in 0000000000000000000000000000000000000000) continue ;; esac
+    HEADS+=("$local_sha")
+done
+
+if [ "${#HEADS[@]}" -eq 0 ]; then
+    exit 0
+fi
+
+BASE_REF="${PRE_PUSH_BASE:-}"
+if [ -z "$BASE_REF" ]; then
+    for candidate in origin/main main origin/HEAD '@{upstream}'; do
+        if git rev-parse --verify --quiet "$candidate" >/dev/null; then
+            BASE_REF="$candidate"
+            break
+        fi
+    done
+fi
+
+if [ -z "$BASE_REF" ] || ! git rev-parse --verify --quiet "$BASE_REF" >/dev/null; then
+    echo "pre-push: no usable base ref (${BASE_REF:-none}); run 'git fetch origin main' or set PRE_PUSH_BASE." >&2
+    echo "pre-push: skipping CI-parity checks; CI still enforces them on the PR." >&2
+    exit 0
+fi
+
+PYTHON="$(command -v python || command -v python3 || true)"
+declare -a FAILED_NAMES=()
+declare -a SKIPPED_NAMES=()
+PASSED=0
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+run_check() { # run_check <label> <command...>
+    local label="$1"
+    shift
+    printf '\n--- %s\n' "$label"
+    if "$@"; then
+        PASSED=$((PASSED + 1))
+    else
+        echo "FAILED: $label" >&2
+        FAILED_NAMES+=("$label")
+    fi
+}
+
+run_check_in() { # run_check_in <dir> <label> <command...>
+    local dir="$1" label="$2"
+    shift 2
+    printf '\n--- %s\n' "$label"
+    if (cd "$dir" && "$@"); then
+        PASSED=$((PASSED + 1))
+    else
+        echo "FAILED: $label" >&2
+        FAILED_NAMES+=("$label")
+    fi
+}
+
+skip() { # skip <label> <reason>
+    printf '\n--- %s\nSKIP: %s\n' "$1" "$2"
+    SKIPPED_NAMES+=("$1 ($2)")
+}
+
+run_py_module() { # run_py_module <label> <module> <args...>
+    local label="$1" module="$2"
+    shift 2
+    if [ -z "$PYTHON" ]; then
+        skip "$label" "python not found"
+    elif "$PYTHON" -m "$module" --version >/dev/null 2>&1; then
+        run_check "$label" "$PYTHON" -m "$module" "$@"
+    else
+        skip "$label" "$module not installed (pip install -r requirements.txt)"
+    fi
+}
+
+# --- Files changed across every pushed head vs the merge base ---------------
+CHANGED="$(
+    for sha in "${HEADS[@]}"; do
+        base="$(git merge-base "$BASE_REF" "$sha" 2>/dev/null || echo "$BASE_REF")"
+        git diff --name-only "$base" "$sha"
+    done | sort -u
+)"
+
+if [ -z "$CHANGED" ]; then
+    echo "pre-push: no file changes vs $BASE_REF; nothing to check."
+    exit 0
+fi
+
+matches() { grep -Eq -- "$1" <<<"$CHANGED"; }
+
+echo "pre-push: checking $(grep -c . <<<"$CHANGED") changed file(s) vs $BASE_REF"
+
+check_version_regression() {
+    local latest manifest tag_version higher
+    latest="$(git tag -l 'v*.*.*' --sort=-version:refname | head -1)"
+    if [ -z "$latest" ]; then
+        echo "No v* tags fetched locally; cannot compare (CI still runs this check)."
+        return 0
+    fi
+    manifest="$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -1)"
+    tag_version="${latest#v}"
+    higher="$(printf '%s\n%s\n' "$tag_version" "$manifest" | sort -V | tail -1)"
+    printf 'Latest tag: %s | manifest: %s\n' "$latest" "$manifest"
+    if [ "$higher" != "$manifest" ]; then
+        echo "Version regression: run python scripts/sync_versions.py --set $tag_version"
+        return 1
+    fi
+    return 0
+}
+
+run_check "Version: no regression vs latest tag" check_version_regression
+
+# --- Commit messages (commitlint lints the whole PR range) ------------------
+if have npx && npx --no-install commitlint --version >/dev/null 2>&1; then
+    run_check "Commits: commitlint ($BASE_REF..HEAD)" \
+        npx --no-install commitlint --config commitlint.config.cjs \
+        --from "$BASE_REF" --to HEAD
+else
+    skip "Commits: commitlint" \
+        "commitlint not installed (npm i --no-save @commitlint/cli@19 @commitlint/config-conventional@19)"
+fi
+
+# --- Documentation consistency (file refs, CLI flags, npm scripts, tree) ----
+if matches '^(scripts/|cli/|web/package\.json|pyproject\.toml|.*\.md$)'; then
+    if [ -n "$PYTHON" ]; then
+        run_check "Docs: validate_docs" "$PYTHON" scripts/validate_docs.py
+    else
+        skip "Docs: validate_docs" "python not found"
+    fi
+fi
+
+# --- Skill mirror + symlink (scripts/ is mirrored into the skill) -----------
+if matches '^scripts/'; then
+    if [ -n "$PYTHON" ]; then
+        run_check "Skill: symlink" "$PYTHON" scripts/validate_skill_symlink.py
+        run_check "Skill: mirror in sync" "$PYTHON" scripts/sync_skill.py --check
+    else
+        skip "Skill: symlink and mirror" "python not found"
+    fi
+fi
+
+# --- Python lint, types and unit tests -------------------------------------
+if matches '^(scripts/|tests/|pyproject\.toml|requirements\.txt|mypy\.ini)'; then
+    run_py_module "Python: ruff" ruff check .
+    run_py_module "Python: black" black --check .
+    run_py_module "Python: mypy" mypy scripts/ --ignore-missing-imports
+    if [ -n "$PYTHON" ] && "$PYTHON" -m pytest --version >/dev/null 2>&1; then
+        run_check "Python: pytest (not live)" \
+            env DO_WDR_SEMANTIC_CACHE=1 "$PYTHON" -m pytest -m "not live" -q
+    else
+        skip "Python: pytest (not live)" "pytest not installed (pip install -r requirements.txt)"
+    fi
+fi
+
+# --- Markdown ---------------------------------------------------------------
+if matches '\.md$'; then
+    if have npx; then
+        run_check "Markdown: markdownlint" npx --yes markdownlint-cli .
+    else
+        skip "Markdown: markdownlint" "npx not found"
+    fi
+fi
+
+# --- YAML and workflows -----------------------------------------------------
+if matches '\.ya?ml$|^\.github/'; then
+    run_py_module "YAML: yamllint" yamllint .
+    if have actionlint; then
+        run_check "YAML: actionlint" actionlint
+    else
+        skip "YAML: actionlint" "actionlint not installed"
+    fi
+fi
+
+# --- Rust CLI ---------------------------------------------------------------
+if matches '^cli/'; then
+    if have cargo; then
+        run_check_in cli "Rust: fmt" cargo fmt --check
+        # --all-targets compiles benches too, which ci.yml's bench step requires.
+        run_check_in cli "Rust: clippy (all features)" \
+            cargo clippy --all-targets --all-features -- -D warnings
+        run_check_in cli "Rust: tests" cargo test
+    else
+        skip "Rust: fmt, clippy, tests" "cargo not installed"
+    fi
+fi
+
+# --- Web UI -----------------------------------------------------------------
+if matches '^web/'; then
+    if have npm; then
+        if matches '^web/package(-lock)?\.json$' || [ ! -d web/node_modules ]; then
+            run_check_in web "Web: npm ci" npm ci --legacy-peer-deps
+        fi
+        run_check_in web "Web: lint" npm run lint
+        run_check_in web "Web: typecheck" npm run typecheck
+        run_check_in web "Web: tests" npm test
+        run_check_in web "Web: build" npm run build
+    else
+        skip "Web: lint, typecheck, tests, build" "npm not installed"
+    fi
+fi
+
+# --- Summary ----------------------------------------------------------------
+printf '\n=== pre-push summary: %d ok, %d failed, %d skipped ===\n' \
+    "$PASSED" "${#FAILED_NAMES[@]}" "${#SKIPPED_NAMES[@]}"
+
+if [ "${#SKIPPED_NAMES[@]}" -gt 0 ]; then
+    echo "Skipped (CI runs these):"
+    printf '  - %s\n' "${SKIPPED_NAMES[@]}"
+fi
+
+if [ "${#FAILED_NAMES[@]}" -gt 0 ]; then
+    echo "Failed:" >&2
+    printf '  - %s\n' "${FAILED_NAMES[@]}" >&2
+    echo "Fix the failures above before pushing (git push --no-verify bypasses this)." >&2
+    exit 1
+fi
+
+echo "All selected checks passed."

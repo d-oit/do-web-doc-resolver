@@ -1,0 +1,12 @@
+{
+  "name": "do-web-doc-resolver-tooling",
+  "private": true,
+  "description": "Developer tooling only: commitlint for Conventional Commits. The resolver ships from scripts/, cli/ and the skill mirror.",
+  "scripts": {
+    "lint:commits": "commitlint --config commitlint.config.cjs --from origin/main --to HEAD"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1"
+  }
+}
