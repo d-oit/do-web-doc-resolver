@@ -2,12 +2,22 @@ use super::{CacheStats, SemanticCache, StdResult};
 use crate::ResolverError;
 
 #[cfg(feature = "semantic-cache")]
-use std::collections::HashMap;
+use {
+    super::ops::{CacheKey, RequestKind},
+    std::collections::HashMap,
+};
 
 impl SemanticCache {
     #[cfg(feature = "semantic-cache")]
     pub async fn get_synthesis(&self, key: &str) -> StdResult<Option<String>, ResolverError> {
-        if let Ok(Some(concept)) = self.framework.get_concept(key).await {
+        let cache_key = CacheKey {
+            kind: RequestKind::Synthesis,
+            provider: "none".to_string(),
+            canonical: key.to_string(),
+        };
+        let concept_id = cache_key.to_concept_id();
+
+        if let Ok(Some(concept)) = self.framework.get_concept(&concept_id).await {
             if let Some(expires_at_val) = concept.metadata.get("expires_at") {
                 if let Some(expires_at) = expires_at_val.as_i64() {
                     let now = chrono::Utc::now().timestamp();
@@ -18,7 +28,7 @@ impl SemanticCache {
                             }
                         }
                     } else {
-                        let _ = self.framework.delete_concept(key).await;
+                        let _ = self.framework.delete_concept(&concept_id).await;
                     }
                 }
             }
@@ -38,7 +48,18 @@ impl SemanticCache {
         content: &str,
         ttl_secs: u64,
     ) -> StdResult<(), ResolverError> {
+        let cache_key = CacheKey {
+            kind: RequestKind::Synthesis,
+            provider: "none".to_string(),
+            canonical: key.to_string(),
+        };
+        let concept_id = cache_key.to_concept_id();
+
         let mut metadata = HashMap::new();
+        metadata.insert(
+            "version".to_string(),
+            serde_json::Value::String("2".to_string()),
+        );
         metadata.insert(
             "content".to_string(),
             serde_json::Value::String(content.to_string()),
@@ -56,7 +77,7 @@ impl SemanticCache {
         let vector = self.encode_query(key);
 
         self.framework
-            .inject_concept_with_metadata(key.to_string(), vector, metadata)
+            .inject_concept_with_metadata(concept_id, vector, metadata)
             .await
             .map_err(|e| ResolverError::Cache(format!("inject synthesis failed: {}", e)))?;
 

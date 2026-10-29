@@ -26,6 +26,8 @@ use {chaotic_semantic_memory::prelude::*, std::collections::HashMap, std::sync::
 // Use std::result::Result explicitly to avoid conflict with chaotic_semantic_memory::Result
 type StdResult<T, E> = std::result::Result<T, E>;
 
+pub use ops::{CacheKey, RequestKind, canonicalize_query, canonicalize_url};
+
 /// Cache entry stored in semantic memory
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CacheEntry {
