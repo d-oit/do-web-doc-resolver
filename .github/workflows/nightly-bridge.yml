@@ -86,12 +86,12 @@ jobs:
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
             git checkout -b "$BRANCH"
-            git commit -m "chore(nightly): automated format and fixup"
+            git commit -m "chore(ci): automated format and fixup"
             git push origin "$BRANCH"
             gh pr create \
               --base main \
               --head "$BRANCH" \
-              --title "chore(nightly): automated format and fixup" \
+              --title "chore(ci): automated format and fixup" \
               --body "Auto-format fixup from nightly CI run $(date +%Y-%m-%d)." \
               --label automated
           else

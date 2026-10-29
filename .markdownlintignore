@@ -5,6 +5,7 @@
 .blackboxcli/**
 .mimocode/**
 CHANGELOG.md
+node_modules/**
 cli/ui/node_modules/**
 cli/target/**
 web/node_modules/**

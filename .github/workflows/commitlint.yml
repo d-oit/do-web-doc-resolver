@@ -27,10 +27,16 @@ jobs:
         if: github.event_name == 'push'
         uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed  # v6.2.1
         with:
-          configFile: commitlint.config.cjs
+          # Squash commits are generated from the PR title and body, so the
+          # body/footer line-length rules are disabled here (they would fail on
+          # merged history that nobody can edit). Everything else - type, scope,
+          # subject, header length - is still enforced. See commitlint.squash.cjs
+          # and docs/adr/ADR-018-commitlint-enforcement.md.
+          configFile: commitlint.squash.cjs
           # v6 lints the push range (before..after) automatically. Do NOT pass
           # legacy v5 `from`/`to` inputs - they were removed in v6 and now
-          # produce an "Unexpected input(s)" warning. See ADR-008.
+          # produce an "Unexpected input(s)" warning. See
+          # docs/adr/ADR-018-commitlint-enforcement.md.
 
       - name: Lint commit messages (PR)
         if: github.event_name == 'pull_request'
@@ -96,7 +102,7 @@ jobs:
           # Defends against bots (Jules, Dependabot, Copilot) that bypass
           # local commit-msg hooks. The PR title is the squash-merge subject
           # for the merged commit; it MUST be a valid conventional commit.
-          # See ADR-008 (PR #505 run 27086771117).
+          # See docs/adr/ADR-018-commitlint-enforcement.md (PR #505 run 27086771117).
           # Fetch the live title from the API, NOT github.event.pull_request.title:
           # reruns replay the original event payload, so an edited PR title
           # would be checked against a stale value and keep failing forever.
@@ -138,6 +144,6 @@ jobs:
           fi
           if printf '%s' "$PR_BODY" | grep -qE '.{101}'; then
             echo "::warning::PR body has lines exceeding 100 characters."
-            echo "::warning::This may trigger commitlint body-max-line-length on squash merge."
+            echo "::warning::Wrap them: the squash commit body inherits these lines."
           fi
           echo "PR body length check passed (${BODY_LEN} chars)."
