@@ -22,6 +22,9 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history so the branch can be compared to a moving main.
+          fetch-depth: 0
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
@@ -81,19 +84,54 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           git add .
-          if ! git diff --cached --quiet; then
-            BRANCH="chore/nightly-format-$(date +%Y%m%d)"
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git checkout -b "$BRANCH"
-            git commit -m "chore(nightly): automated format and fixup"
-            git push origin "$BRANCH"
-            gh pr create \
-              --base main \
-              --head "$BRANCH" \
-              --title "chore(nightly): automated format and fixup" \
-              --body "Auto-format fixup from nightly CI run $(date +%Y-%m-%d)." \
-              --label automated
-          else
+          if git diff --cached --quiet; then
             echo "No changes to commit"
+            exit 0
           fi
+
+          BRANCH="chore/nightly-format-$(date +%Y%m%d)"
+
+          # A same-day re-run already has a branch and PR; do not duplicate them.
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already tracks $BRANCH; nothing to do."
+            exit 0
+          fi
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -m "chore(nightly): automated format and fixup"
+
+          # Guard against empty PRs: if main already carries this formatting
+          # delta, the PR would have zero changed files and squash into an
+          # empty commit on main.
+          git fetch origin main
+          if git diff --quiet origin/main...HEAD; then
+            echo "Formatting delta is already on main; no PR needed."
+            exit 0
+          fi
+          if ! git cherry origin/main HEAD | grep -q '^+'; then
+            echo "An equivalent change is already on main; no PR needed."
+            exit 0
+          fi
+
+          PATCH_ID=$(git diff origin/main...HEAD | git patch-id --stable | awk '{print $1}')
+
+          # Guard against duplicate PRs: two PRs with the same patch make the
+          # later one empty as soon as the first merges.
+          for PR in $(gh pr list --state open --base main --json number --jq '.[].number'); do
+            PR_PATCH_ID=$(gh pr diff "$PR" | git patch-id --stable | awk '{print $1}')
+            if [ -n "$PATCH_ID" ] && [ "$PR_PATCH_ID" = "$PATCH_ID" ]; then
+              echo "PR #$PR already proposes this exact change; skipping."
+              exit 0
+            fi
+          done
+
+          git push origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(nightly): automated format and fixup" \
+            --body "Auto-format fixup from nightly CI run $(date +%Y-%m-%d)." \
+            --label automated

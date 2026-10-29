@@ -94,6 +94,7 @@ Detailed reference material in `agents-docs/`:
 
 - Quality gate command passes: `./scripts/quality_gate.sh`
 - Lint clean (`ruff`, `black`, `cargo fmt`, `cargo clippy`, `npm run lint`)
+- PR changes at least one file; never open an empty PR (`git diff --quiet origin/main...HEAD` must report a diff)
 - No new secrets added
 - `AGENTS.md` updated if repository structure or skills change
 
