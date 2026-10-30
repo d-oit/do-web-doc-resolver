@@ -40,7 +40,17 @@ jobs:
             tests/test_live_api_integrations.py::test_live_jina_no_api_key
 
       - name: Smoke test CLI (DDG)
-        run: python -m scripts.cli "Rust agent frameworks" --log-level INFO
+        run: |
+          # Live provider call: retry once so a transient timeout does not fail the PR.
+          for attempt in 1 2; do
+            if python -m scripts.cli "Rust agent frameworks" --log-level INFO; then
+              exit 0
+            fi
+            echo "::warning title=DDG smoke test::attempt ${attempt}/2 failed"
+            if [ "${attempt}" -lt 2 ]; then sleep 15; fi
+          done
+          echo "::error title=DDG smoke test::still failing after 2 attempts"
+          exit 1
 
   mistral-integration:
     name: Mistral Integration
@@ -74,7 +84,17 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
 
       - name: Smoke test CLI (Mistral)
-        run: python -m scripts.cli "https://example.com" --log-level INFO
+        run: |
+          # Live provider call: retry once so a transient timeout does not fail the PR.
+          for attempt in 1 2; do
+            if python -m scripts.cli "https://example.com" --log-level INFO; then
+              exit 0
+            fi
+            echo "::warning title=Mistral smoke test::attempt ${attempt}/2 failed"
+            if [ "${attempt}" -lt 2 ]; then sleep 15; fi
+          done
+          echo "::error title=Mistral smoke test::still failing after 2 attempts"
+          exit 1
         env:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
 
@@ -109,7 +129,17 @@ jobs:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
 
       - name: Smoke test CLI (Firecrawl)
-        run: python -m scripts.cli "https://example.com" --log-level INFO
+        run: |
+          # Live provider call: retry once so a transient timeout does not fail the PR.
+          for attempt in 1 2; do
+            if python -m scripts.cli "https://example.com" --log-level INFO; then
+              exit 0
+            fi
+            echo "::warning title=Firecrawl smoke test::attempt ${attempt}/2 failed"
+            if [ "${attempt}" -lt 2 ]; then sleep 15; fi
+          done
+          echo "::error title=Firecrawl smoke test::still failing after 2 attempts"
+          exit 1
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
 
@@ -144,7 +174,17 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
 
       - name: Smoke test CLI (Tavily)
-        run: python -m scripts.cli "Rust agent frameworks" --log-level INFO
+        run: |
+          # Live provider call: retry once so a transient timeout does not fail the PR.
+          for attempt in 1 2; do
+            if python -m scripts.cli "Rust agent frameworks" --log-level INFO; then
+              exit 0
+            fi
+            echo "::warning title=Tavily smoke test::attempt ${attempt}/2 failed"
+            if [ "${attempt}" -lt 2 ]; then sleep 15; fi
+          done
+          echo "::error title=Tavily smoke test::still failing after 2 attempts"
+          exit 1
         env:
           EXA_API_KEY: ""
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
@@ -193,7 +233,17 @@ jobs:
         run: cd cli && cargo build --release
 
       - name: Smoke test CLI (Serper)
-        run: ./cli/target/release/do-wdr resolve "Rust agent frameworks" --provider serper
+        run: |
+          # Live provider call: retry once so a transient 403/timeout does not fail the PR.
+          for attempt in 1 2; do
+            if ./cli/target/release/do-wdr resolve "Rust agent frameworks" --provider serper; then
+              exit 0
+            fi
+            echo "::warning title=Serper smoke test::attempt ${attempt}/2 failed"
+            if [ "${attempt}" -lt 2 ]; then sleep 30; fi
+          done
+          echo "::error title=Serper smoke test::still failing after 2 attempts"
+          exit 1
         env:
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
 
