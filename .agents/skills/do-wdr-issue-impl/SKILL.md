@@ -99,6 +99,19 @@ git commit -m "{type}({scope}): {description} (#{N})
 
 ### 7. Push and create PR
 
+First confirm the branch contains real file changes:
+
+```bash
+git diff --quiet origin/main...HEAD && {
+  echo "No file changes — do not open a PR"
+  exit 1
+}
+```
+
+Verification-only work (builds or test runs with no code change) must not open a PR;
+report the results as an issue comment instead. Never use `--allow-empty` as the only
+content of a new PR — a zero-file PR squashes into an empty commit on `main`.
+
 ```bash
 git push origin {branch}
 gh pr create --title "{type}({scope}): {description}" --body "$(cat <<'EOF'
