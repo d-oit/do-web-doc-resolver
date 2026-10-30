@@ -43,7 +43,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Free provider live tests::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 30; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Free provider live tests**: attempt ${attempt} failed at ${stamp}; retrying in 30s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 30
+            fi
           done
           echo "::error title=Free provider live tests::still failing after 2 attempts"
           exit 1
@@ -56,7 +63,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=DDG smoke test::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 15; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **DDG smoke test**: attempt ${attempt} failed at ${stamp}; retrying in 15s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 15
+            fi
           done
           echo "::error title=DDG smoke test::still failing after 2 attempts"
           exit 1
@@ -94,7 +108,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Mistral live tests::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 30; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Mistral live tests**: attempt ${attempt} failed at ${stamp}; retrying in 30s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 30
+            fi
           done
           echo "::error title=Mistral live tests::still failing after 2 attempts"
           exit 1
@@ -109,7 +130,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Mistral smoke test::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 15; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Mistral smoke test**: attempt ${attempt} failed at ${stamp}; retrying in 15s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 15
+            fi
           done
           echo "::error title=Mistral smoke test::still failing after 2 attempts"
           exit 1
@@ -148,7 +176,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Firecrawl live tests::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 30; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Firecrawl live tests**: attempt ${attempt} failed at ${stamp}; retrying in 30s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 30
+            fi
           done
           echo "::error title=Firecrawl live tests::still failing after 2 attempts"
           exit 1
@@ -163,7 +198,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Firecrawl smoke test::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 15; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Firecrawl smoke test**: attempt ${attempt} failed at ${stamp}; retrying in 15s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 15
+            fi
           done
           echo "::error title=Firecrawl smoke test::still failing after 2 attempts"
           exit 1
@@ -202,7 +244,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Tavily live tests::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 30; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Tavily live tests**: attempt ${attempt} failed at ${stamp}; retrying in 30s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 30
+            fi
           done
           echo "::error title=Tavily live tests::still failing after 2 attempts"
           exit 1
@@ -217,7 +266,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Tavily smoke test::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 15; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Tavily smoke test**: attempt ${attempt} failed at ${stamp}; retrying in 15s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 15
+            fi
           done
           echo "::error title=Tavily smoke test::still failing after 2 attempts"
           exit 1
@@ -257,7 +313,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Serper live tests::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 30; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Serper live tests**: attempt ${attempt} failed at ${stamp}; retrying in 30s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 30
+            fi
           done
           echo "::error title=Serper live tests::still failing after 2 attempts"
           exit 1
@@ -285,7 +348,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Serper smoke test::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 30; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Serper smoke test**: attempt ${attempt} failed at ${stamp}; retrying in 30s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 30
+            fi
           done
           echo "::error title=Serper smoke test::still failing after 2 attempts"
           exit 1
@@ -324,7 +394,14 @@ jobs:
               exit 0
             fi
             echo "::warning title=Exa live tests::attempt ${attempt}/2 failed"
-            if [ "${attempt}" -lt 2 ]; then sleep 30; fi
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Exa live tests**: attempt ${attempt} failed at ${stamp}; retrying in 30s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 30
+            fi
           done
           echo "::error title=Exa live tests::still failing after 2 attempts"
           exit 1
