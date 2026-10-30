@@ -1,13 +1,19 @@
 import os
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 from scripts.monitor_providers import (
+    PROBE_RETRY_DELAY_SECONDS,
     CheckResult,
     check_jina,
     log_issue,
+    main,
     open_github_issue,
+    probe_with_retry,
     update_routing_priority,
+    write_summary,
 )
 
 
@@ -90,6 +96,136 @@ class TestMonitorProviders(unittest.TestCase):
 
         # post (creation) should NOT be called
         mock_post.assert_not_called()
+
+
+class TestProbeRetry(unittest.TestCase):
+    @patch("scripts.monitor_providers.time.sleep")
+    def test_healthy_first_probe_is_not_retried(self, mock_sleep):
+        probe = MagicMock(return_value=(CheckResult.HEALTHY, None))
+
+        result, error, retry_note = probe_with_retry("jina", probe)
+
+        self.assertEqual(result, CheckResult.HEALTHY)
+        self.assertIsNone(error)
+        self.assertIsNone(retry_note)
+        self.assertEqual(probe.call_count, 1)
+        mock_sleep.assert_not_called()
+
+    @patch("scripts.monitor_providers.time.sleep")
+    def test_recovers_on_second_probe(self, mock_sleep):
+        probe = MagicMock(
+            side_effect=[
+                (CheckResult.FAILED, "Status code 503"),
+                (CheckResult.HEALTHY, None),
+            ]
+        )
+
+        result, error, retry_note = probe_with_retry("jina", probe)
+
+        self.assertEqual(result, CheckResult.HEALTHY)
+        self.assertIsNone(error)
+        self.assertEqual(retry_note, "Status code 503")
+        self.assertEqual(probe.call_count, 2)
+        mock_sleep.assert_called_once_with(PROBE_RETRY_DELAY_SECONDS)
+
+    @patch("scripts.monitor_providers.time.sleep")
+    def test_fails_only_after_both_probes(self, mock_sleep):
+        probe = MagicMock(return_value=(CheckResult.FAILED, "Status code 500"))
+
+        result, error, retry_note = probe_with_retry("serper", probe)
+
+        self.assertEqual(result, CheckResult.FAILED)
+        self.assertIn("500", error)
+        self.assertIsNone(retry_note)
+        self.assertEqual(probe.call_count, 2)
+        mock_sleep.assert_called_once()
+
+    @patch("scripts.monitor_providers.write_summary")
+    @patch("scripts.monitor_providers.time.sleep")
+    @patch("scripts.monitor_providers.log_issue")
+    @patch("scripts.monitor_providers.update_routing_priority")
+    def test_main_does_not_deprioritize_when_retry_recovers(
+        self, mock_update, mock_log, mock_sleep, mock_summary
+    ):
+        healthy = MagicMock(return_value=(CheckResult.HEALTHY, None))
+        flaky = MagicMock(
+            side_effect=[
+                (CheckResult.FAILED, "Status code 503"),
+                (CheckResult.HEALTHY, None),
+            ]
+        )
+
+        with patch.multiple(
+            "scripts.monitor_providers",
+            check_jina=flaky,
+            check_firecrawl=healthy,
+            check_tavily=healthy,
+            check_serper=healthy,
+            check_exa=healthy,
+            check_mistral_websearch=healthy,
+            check_mistral_browser=healthy,
+            check_duckduckgo=healthy,
+        ):
+            main()
+
+        mock_update.assert_not_called()
+        mock_log.assert_not_called()
+        self.assertEqual(flaky.call_count, 2)
+        mock_summary.assert_called_once()
+        self.assertEqual(mock_summary.call_args.args[1], [])
+
+    @patch("scripts.monitor_providers.write_summary")
+    @patch("scripts.monitor_providers.time.sleep")
+    @patch("scripts.monitor_providers.log_issue")
+    @patch("scripts.monitor_providers.update_routing_priority")
+    def test_main_deprioritizes_when_both_probes_fail(
+        self, mock_update, mock_log, mock_sleep, mock_summary
+    ):
+        healthy = MagicMock(return_value=(CheckResult.HEALTHY, None))
+        down = MagicMock(return_value=(CheckResult.FAILED, "Status code 500"))
+
+        with patch.multiple(
+            "scripts.monitor_providers",
+            check_jina=down,
+            check_firecrawl=healthy,
+            check_tavily=healthy,
+            check_serper=healthy,
+            check_exa=healthy,
+            check_mistral_websearch=healthy,
+            check_mistral_browser=healthy,
+            check_duckduckgo=healthy,
+        ):
+            main()
+
+        mock_update.assert_called_once_with("jina")
+        mock_log.assert_called_once()
+        self.assertEqual(down.call_count, 2)
+        failed = mock_summary.call_args.args[1]
+        self.assertEqual([name for name, _ in failed], ["jina"])
+
+
+class TestProviderSummary(unittest.TestCase):
+    def test_summary_records_retry_and_failure(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            summary_path = Path(tmp_dir) / "summary.md"
+            summary_path.touch()
+
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}):
+                write_summary(
+                    [("jina", "Status code 503")],
+                    [("serper", "Status code 401: invalid key\nsecond line")],
+                )
+
+            content = summary_path.read_text()
+
+        self.assertIn("Recovered on retry", content)
+        self.assertIn("**jina**: first probe failed (Status code 503)", content)
+        self.assertIn("Failed every probe", content)
+        self.assertIn("**serper**: Status code 401: invalid key second line", content)
+
+    def test_summary_is_a_noop_outside_actions(self):
+        with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}):
+            write_summary([("jina", "Status code 503")], [])
 
 
 if __name__ == "__main__":
