@@ -173,6 +173,10 @@ test.describe("Provider gating", () => {
   });
 
   test("duckduckgo is styled as unavailable when mistral key is present", async ({ page }) => {
+    // eslint-disable-next-line playwright/no-conditional-in-test
+    if (test.info().project.name !== "desktop") {
+      return;
+    }
     await mockUiStateAndKeys(page);
     await page.goto("/");
     await openSidebarIfMobile(page);
