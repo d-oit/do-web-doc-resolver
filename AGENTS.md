@@ -36,8 +36,21 @@ readonly QUALITY_MIN_CHARS=500
 ├── agents-docs/           # Agent-specific reference
 ├── .agents/skills/        # Canonical skill definitions
 ├── assets/                # Visual assets
+├── migrations/            # Database schema migrations
+├── plans/                 # Architecture & execution plans
+├── samples/               # Output samples
 └── config.toml            # Optional configuration
 ```
+
+## Agent Tool Config
+
+Config and symlink directories for AI agent integrations:
+
+- `.agents/skills/` — Canonical skill definitions
+- `.blackbox/skills` -> `../.agents/skills`
+- `.claude/skills` -> `../.agents/skills`
+- `.opencode/` — OpenCode configuration and execution logs
+- Note: No `.jules/`, `.gemini/`, `.qwen/`, `.windsurf/`, or `.cursor/` directories exist in this repository.
 
 ## Project Documentation
 
@@ -87,63 +100,20 @@ Detailed reference material in `agents-docs/`:
 
 ### Branching & Commits
 
-```text
-<type>(<scope>): <subject>
+- **Branch naming**: `feat/`, `fix/`, `chore/`, `docs/`
+- **Commit format**: Conventional Commits `type(scope): description`
+- Allowed types: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`
+- Allowed scopes: `resolver`, `cli`, `web`, `ci`, `docs`, `deps`, `security`, `release`, `agents`, `test`, `ux`
 
-<body: what changed and why>
+### PR Checklist & Limits
 
-<footer: BREAKING CHANGE / Refs: #123>
-```
+- All tests pass, lint is clean, and no new secrets or credentials are introduced.
+- `AGENTS.md` updated if repository structure or skills change.
+- Maximum 500 lines per source file (`MAX_LINES_PER_SOURCE_FILE=500`).
+- Quality gate command: `./scripts/quality_gate.sh`
 
-- `type` ∈ `build` `chore` `ci` `docs` `feat` `fix` `perf` `refactor` `revert` `style` `test`; always include a `scope`: `resolver` `cli` `web` `ci` `docs` `deps` `security` `release` `agents` `test` `ux`
-- `subject`: imperative mood, no trailing period, header ≤ 150 chars; `!` after the scope marks a breaking change; blank lines between sections, body/footer lines ≤ 100 chars
-- Example: `fix(resolver): retry transient 429 from Serper`, with `Refs: #682` in the footer
-- Branch naming `feat/`, `fix/`, `chore/`, `docs/`; squash WIP/fixup commits — commitlint lints every commit in the PR range, so a malformed type, scope, or subject anywhere fails CI
-
-### Keeping an Open PR Green
-
-```bash
-git fetch origin main
-git rebase origin/main              # keep history linear; never merge main into a branch
-git commit --fixup <sha>            # stage review follow-ups as fixups
-git rebase -i --autosquash origin/main
-git push --force-with-lease         # never bare --force; never rewrite main
-```
-
-- Rebase before pushing whenever `main` moved. A release tag landing on `main` fails `validate-version` on a stale branch: rebase, then run `python scripts/sync_versions.py --set <tag-without-v>` if the manifest regressed.
-- Rebasing rewrites SHAs, so push once, then wait for CI on the new head before touching the branch again.
-- gitleaks scans full PR history: rewrite the branch locally to drop a secret. A later removal commit does not clear the failure.
-- Prefer fix-forward commits while checks run; reserve force-pushes for conflict resolution or secret removal.
-
-### Pre-Push Gate
-
-`./scripts/quality_gate.sh` covers Python, Rust and web lint/typecheck, Python/Rust tests, docs, skill symlinks, version sync and PII checks. It does **not** cover every CI gate — run the extras that match your diff. `.githooks/pre-push` automates this table by changed path; install it once with `./scripts/setup-hooks.sh`:
-
-| Diff touches | Also run |
-|---|---|
-| `scripts/**` | `python scripts/sync_skill.py` — the gate's `--check` fails until the skill mirror is refreshed |
-| `*.md` | `npx markdownlint-cli .` — the quality gate ignores markdownlint errors |
-| `*.yml`, `.github/**` | `yamllint .` and actionlint |
-| `cli/**` | `cd cli && cargo clippy --all-targets --all-features -- -D warnings && cargo bench --features semantic-cache --no-run` — the gate lints default features only |
-| `web/**` | `cd web && npm test && npm run build` |
-| `web/package*.json` | `cd web && npm ci --legacy-peer-deps` — `npm ci` fails on a stale lockfile |
-
-- Commit lockfile changes with `package.json`; no opportunistic dependency upgrades in feature PRs.
-- `npm install` once at the repo root to lint messages on every commit; check a whole range with `npm run lint:commits` (or `npx commitlint --config commitlint.config.cjs --from origin/main --to HEAD`).
-
-### PR Metadata
-
-- The PR title becomes the squash subject: valid `type(scope): description`, allowed scope, ≤ 150 chars — update it with `gh pr edit <number> --title "..."`.
-- PR body ≤ 2000 chars (hard failure); keep lines ≤ 100 chars — longer lines only warn, since the squash commit is generated text.
-- No new secrets; `AGENTS.md` updated if repository structure or skills change.
-
-### Test Commands
+### Test Commands per Layer
 
 - **Python**: `pytest -m "not live"`
 - **Rust**: `cd cli && cargo test`
 - **Web**: `cd web && npx playwright test --project=desktop`
-
-### File Limits
-
-- Source files must remain under 500 lines per file (`MAX_LINES_PER_SOURCE_FILE=500`).
-- `AGENTS.md` must stay under 150 lines (`MAX_LINES_AGENTS_MD=150`).
