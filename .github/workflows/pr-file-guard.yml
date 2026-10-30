@@ -1,0 +1,160 @@
+---
+name: PR File Guard
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  workflow_dispatch:
+  schedule:
+    # Weekly backstop: sweep open PRs that predate the guard or slipped past it.
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: pr-file-guard-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  require-file-changes:
+    name: PR must contain file changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check the PR changes at least one file
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const MARKER = '<!-- pr-file-guard -->';
+
+            const message = [
+              'This pull request changes no files, so it has nothing to review or merge.',
+              '',
+              'A zero-file PR squashes into an empty commit on the base branch, so it has',
+              'been closed automatically. Push at least one real file change and reopen it,',
+              'or report verification/test output on the related issue instead.'
+            ].join('\n');
+
+            async function commentOnce(pull_number) {
+              // Fork PRs get a read-only token, so the comment and close may fail.
+              try {
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner,
+                  repo,
+                  issue_number: pull_number,
+                  per_page: 100
+                });
+                const alreadyNotified = comments.some(
+                  (comment) => (comment.body || '').includes(MARKER)
+                );
+
+                if (!alreadyNotified) {
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: pull_number,
+                    body: `${MARKER}\n${message}`
+                  });
+                }
+              } catch (error) {
+                core.warning(`Could not comment on PR #${pull_number}: ${error.message}`);
+              }
+            }
+
+            async function closeEmptyPull(pull) {
+              await commentOnce(pull.number);
+              try {
+                await github.rest.pulls.update({
+                  owner,
+                  repo,
+                  pull_number: pull.number,
+                  state: 'closed'
+                });
+                core.info(`Closed PR #${pull.number} because it changes no files.`);
+                return true;
+              } catch (error) {
+                core.warning(`Could not close PR #${pull.number}: ${error.message}`);
+                return false;
+              }
+            }
+
+            // Paginated; the first page is enough to tell zero from non-zero.
+            async function changedFileCount(pull_number) {
+              const { data: files } = await github.rest.pulls.listFiles({
+                owner,
+                repo,
+                pull_number,
+                per_page: 1
+              });
+              return files.length;
+            }
+
+            if (context.eventName === 'pull_request') {
+              const pull = context.payload.pull_request;
+              const changedFiles = await changedFileCount(pull.number);
+
+              if (changedFiles > 0) {
+                core.info(`PR #${pull.number} changes at least ${changedFiles} file(s).`);
+                return;
+              }
+
+              if (pull.draft) {
+                core.info('Draft PR has no file changes yet; this check runs again when it is ready for review.');
+                return;
+              }
+
+              await closeEmptyPull(pull);
+              core.setFailed(message);
+              return;
+            }
+
+            // Manual or scheduled sweep: close every open empty PR the guard would have caught.
+            const openPulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            let closed = 0;
+            let draftsSkipped = 0;
+            let closeFailed = 0;
+
+            for (const pull of openPulls) {
+              const changedFiles = await changedFileCount(pull.number);
+              if (changedFiles > 0) {
+                continue;
+              }
+
+              if (pull.draft) {
+                draftsSkipped += 1;
+                core.info(`Skipping draft PR #${pull.number} (no file changes).`);
+                continue;
+              }
+
+              if (await closeEmptyPull(pull)) {
+                closed += 1;
+              } else {
+                closeFailed += 1;
+              }
+            }
+
+            const summary = [
+              `Checked ${openPulls.length} open PR(s).`,
+              `Closed ${closed} empty PR(s).`,
+              `Skipped ${draftsSkipped} empty draft(s).`,
+              `Failed to close ${closeFailed} empty PR(s).`
+            ].join('\n');
+
+            await core.summary.addHeading('Empty PR sweep').addRaw(summary).write();
+
+            if (closeFailed > 0) {
+              core.setFailed(summary);
+            } else {
+              core.info(summary);
+            }
