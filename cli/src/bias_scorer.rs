@@ -22,10 +22,14 @@ fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
 /// Substring matching would award trust to hosts like `github.com.evil.example`,
 /// so the boundary has to land on a dot.
 fn is_domain_or_subdomain(host: &str, site: &str) -> bool {
-    let host = host.to_ascii_lowercase();
-    let site = site.to_ascii_lowercase();
-
-    host == site || host.ends_with(&format!(".{site}"))
+    if host.eq_ignore_ascii_case(site) {
+        return true;
+    }
+    if host.len() > site.len() + 1 && host.as_bytes()[host.len() - site.len() - 1] == b'.' {
+        let suffix = &host[host.len() - site.len()..];
+        return suffix.eq_ignore_ascii_case(site);
+    }
+    false
 }
 
 /// Score a result based on domain trust and content quality
