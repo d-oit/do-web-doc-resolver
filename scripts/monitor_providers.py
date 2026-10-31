@@ -24,6 +24,9 @@ ISSUES_FILE = "agents-docs/ISSUES.md"
 ROUTING_FILE = "scripts/routing.py"
 PROBE_ATTEMPTS = 2
 PROBE_RETRY_DELAY_SECONDS = 5
+# Every probed provider failing at once points at runner networking, not provider
+# instability, so that run must not rewrite routing or log issues.
+CIRCUIT_BREAKER_MIN_PROBED = 2
 
 
 class CheckResult(Enum):
@@ -391,13 +394,26 @@ def _summary_value(value: str | None) -> str:
     return " ".join((value or "Unknown error").split())[:200]
 
 
-def write_summary(recovered: list[tuple[str, str]], failing: list[tuple[str, str | None]]) -> None:
+def write_summary(
+    recovered: list[tuple[str, str]],
+    failing: list[tuple[str, str | None]],
+    circuit_breaker: bool = False,
+) -> None:
     """Record retried and failing probes in the GitHub Actions job summary."""
     summary_path = os.getenv("GITHUB_STEP_SUMMARY")
     if not summary_path:
         return
 
     lines = ["## Provider Monitor", ""]
+    if circuit_breaker:
+        lines += [
+            "### Circuit breaker tripped",
+            "",
+            f"All {len(failing)} probed providers failed, so routing was left unchanged. "
+            "This pattern points at runner networking or DNS rather than independent "
+            "provider instability.",
+            "",
+        ]
     if recovered:
         lines += ["### Recovered on retry", ""]
         for name, note in recovered:
@@ -415,7 +431,7 @@ def write_summary(recovered: list[tuple[str, str]], failing: list[tuple[str, str
         f.write("\n".join(lines) + "\n")
 
 
-def main():
+def main() -> int:
     checks = {
         "jina": check_jina,
         "firecrawl": check_firecrawl,
@@ -430,9 +446,12 @@ def main():
 
     failing_providers = []
     recovered_providers = []
+    probed_count = 0
 
     for name, check_func in checks.items():
         result, error, retry_note = probe_with_retry(name, check_func)
+        if result != CheckResult.SKIPPED:
+            probed_count += 1
         if result == CheckResult.FAILED:
             logger.error(f"{name} failed: {error}")
             failing_providers.append((name, error))
@@ -446,14 +465,24 @@ def main():
     if not failing_providers:
         logger.info("No provider failures detected.")
         write_summary(recovered_providers, [])
-        return
+        return 0
+
+    if probed_count >= CIRCUIT_BREAKER_MIN_PROBED and len(failing_providers) == probed_count:
+        logger.error(
+            "All %d probed providers failed; treating this as a runner or network "
+            "outage and leaving routing unchanged.",
+            probed_count,
+        )
+        write_summary(recovered_providers, failing_providers, circuit_breaker=True)
+        return 1
 
     for name, error in failing_providers:
         update_routing_priority(name)
         log_issue(name, error or "Unknown error")
 
     write_summary(recovered_providers, failing_providers)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
