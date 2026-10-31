@@ -24,8 +24,7 @@ ISSUES_FILE = "agents-docs/ISSUES.md"
 ROUTING_FILE = "scripts/routing.py"
 PROBE_ATTEMPTS = 2
 PROBE_RETRY_DELAY_SECONDS = 5
-# Every probed provider failing at once points at runner networking, not provider
-# instability, so that run must not rewrite routing or log issues.
+# A total probe failure points at the runner, not providers; never rewrite routing then.
 CIRCUIT_BREAKER_MIN_PROBED = 2
 
 
@@ -96,6 +95,8 @@ def update_routing_priority(provider_name: str):
 
 def open_github_issue(provider_name: str, issue_desc: str):
     """Open an issue on GitHub if running in CI."""
+    if os.getenv("SIMULATE_OUTAGE", "").strip().lower() in {"1", "true"}:
+        return
     token = os.getenv("GITHUB_TOKEN")
     repo = os.getenv("GITHUB_REPOSITORY")
     if not token or not repo:
@@ -390,7 +391,6 @@ def probe_with_retry(
 
 
 def _simulated_failure() -> tuple[CheckResult, str | None]:
-    """Fail every simulated probe so the circuit breaker can be exercised."""
     return CheckResult.FAILED, "Simulated outage (SIMULATE_OUTAGE)"
 
 
@@ -411,14 +411,12 @@ def write_summary(
 
     lines = ["## Provider Monitor", ""]
     if circuit_breaker:
-        lines += [
-            "### Circuit breaker tripped",
-            "",
+        reason = (
             f"All {len(failing)} probed providers failed, so routing was left unchanged. "
             "This pattern points at runner networking or DNS rather than independent "
-            "provider instability.",
-            "",
-        ]
+            "provider instability."
+        )
+        lines += ["### Circuit breaker tripped", "", reason, ""]
     if recovered:
         lines += ["### Recovered on retry", ""]
         for name, note in recovered:
@@ -450,8 +448,12 @@ def main() -> int:
     }
 
     if os.getenv("SIMULATE_OUTAGE", "").strip().lower() in {"1", "true"}:
-        logger.warning("SIMULATE_OUTAGE set; forcing every provider probe to fail")
-        checks = dict.fromkeys(checks, _simulated_failure)
+        targets = {
+            n.strip().lower() for n in os.getenv("SIMULATE_PROVIDERS", "").split(",") if n.strip()
+        }
+        targets = targets & checks.keys() or set(checks)
+        logger.warning("Simulating outage for: %s", ", ".join(sorted(targets)))
+        checks = {n: _simulated_failure if n in targets else f for n, f in checks.items()}
 
     failing_providers = []
     recovered_providers = []
