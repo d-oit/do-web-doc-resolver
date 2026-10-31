@@ -63,7 +63,28 @@ jobs:
           pip install ruff black
 
       - name: Run Integration Tests
-        run: PYTHONPATH=. pytest tests/integration/
+        run: |
+          # Live provider calls: retry once so a transient failure does not fail the nightly run.
+          for attempt in 1 2; do
+            if PYTHONPATH=. pytest tests/integration/; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                echo "- **Nightly integration tests**: passed on attempt ${attempt}/2." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              exit 0
+            fi
+            echo "::warning title=Nightly integration tests::attempt ${attempt}/2 failed"
+            if [ "${attempt}" -lt 2 ]; then
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                stamp=$(date -u +%H:%M:%SZ)
+                echo "- **Nightly integration tests**: attempt ${attempt} failed at ${stamp}; retrying in 5s." \
+                  >> "$GITHUB_STEP_SUMMARY"
+              fi
+              sleep 5
+            fi
+          done
+          echo "::error title=Nightly integration tests::still failing after 2 attempts"
+          exit 1
         env:
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
