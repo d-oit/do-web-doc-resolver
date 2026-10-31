@@ -389,6 +389,11 @@ def probe_with_retry(
     return result, error, None
 
 
+def _simulated_failure() -> tuple[CheckResult, str | None]:
+    """Fail every simulated probe so the circuit breaker can be exercised."""
+    return CheckResult.FAILED, "Simulated outage (SIMULATE_OUTAGE)"
+
+
 def _summary_value(value: str | None) -> str:
     """Collapse whitespace so provider error bodies cannot break summary markup."""
     return " ".join((value or "Unknown error").split())[:200]
@@ -443,6 +448,10 @@ def main() -> int:
         "mistral_browser": check_mistral_browser,
         "duckduckgo": check_duckduckgo,
     }
+
+    if os.getenv("SIMULATE_OUTAGE", "").strip().lower() in {"1", "true"}:
+        logger.warning("SIMULATE_OUTAGE set; forcing every provider probe to fail")
+        checks = dict.fromkeys(checks, _simulated_failure)
 
     failing_providers = []
     recovered_providers = []

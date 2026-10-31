@@ -289,6 +289,64 @@ class TestCircuitBreaker(unittest.TestCase):
         mock_log.assert_called_once()
 
 
+class TestSimulatedOutage(unittest.TestCase):
+    def test_forced_outage_trips_breaker_without_real_probes(self):
+        real_probe = MagicMock(side_effect=AssertionError("real probe should not run"))
+
+        with (
+            patch.dict(os.environ, {"SIMULATE_OUTAGE": "true"}),
+            patch.multiple(
+                "scripts.monitor_providers",
+                check_jina=real_probe,
+                check_firecrawl=real_probe,
+                check_tavily=real_probe,
+                check_serper=real_probe,
+                check_exa=real_probe,
+                check_mistral_websearch=real_probe,
+                check_mistral_browser=real_probe,
+                check_duckduckgo=real_probe,
+            ),
+            patch("scripts.monitor_providers.time.sleep") as mock_sleep,
+            patch("scripts.monitor_providers.update_routing_priority") as mock_update,
+            patch("scripts.monitor_providers.log_issue") as mock_log,
+            patch("scripts.monitor_providers.write_summary") as mock_summary,
+        ):
+            exit_code = main()
+
+        self.assertEqual(exit_code, 1)
+        real_probe.assert_not_called()
+        mock_update.assert_not_called()
+        mock_log.assert_not_called()
+        self.assertEqual(mock_sleep.call_count, 9)
+        failing = mock_summary.call_args.args[1]
+        self.assertEqual(len(failing), 9)
+        self.assertIn("Simulated outage", failing[0][1])
+        self.assertTrue(mock_summary.call_args.kwargs["circuit_breaker"])
+
+    def test_false_flag_still_probes_normally(self):
+        healthy = MagicMock(return_value=(CheckResult.HEALTHY, None))
+
+        with (
+            patch.dict(os.environ, {"SIMULATE_OUTAGE": "false"}),
+            patch.multiple(
+                "scripts.monitor_providers",
+                check_jina=healthy,
+                check_firecrawl=healthy,
+                check_tavily=healthy,
+                check_serper=healthy,
+                check_exa=healthy,
+                check_mistral_websearch=healthy,
+                check_mistral_browser=healthy,
+                check_duckduckgo=healthy,
+            ),
+            patch("scripts.monitor_providers.write_summary"),
+        ):
+            exit_code = main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(healthy.call_count, 9)
+
+
 class TestProviderSummary(unittest.TestCase):
     def test_summary_records_retry_and_failure(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
