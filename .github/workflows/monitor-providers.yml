@@ -4,6 +4,17 @@ on: # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 0' # Weekly on Sundays at midnight
   workflow_dispatch:
+    inputs:
+      simulate_outage:
+        description: 'Force provider probes to fail and verify the circuit breaker'
+        required: false
+        type: boolean
+        default: false
+      simulate_providers:
+        description: 'Comma-separated providers to fail; empty simulates all'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -35,9 +46,12 @@ jobs:
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIMULATE_OUTAGE: ${{ inputs.simulate_outage }}
+          SIMULATE_PROVIDERS: ${{ inputs.simulate_providers }}
         run: python scripts/monitor_providers.py
 
       - name: Create Pull Request
+        if: ${{ !inputs.simulate_outage }}
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v7.0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

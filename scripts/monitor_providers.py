@@ -24,6 +24,8 @@ ISSUES_FILE = "agents-docs/ISSUES.md"
 ROUTING_FILE = "scripts/routing.py"
 PROBE_ATTEMPTS = 2
 PROBE_RETRY_DELAY_SECONDS = 5
+# A total probe failure points at the runner, not providers; never rewrite routing then.
+CIRCUIT_BREAKER_MIN_PROBED = 2
 
 
 class CheckResult(Enum):
@@ -93,6 +95,8 @@ def update_routing_priority(provider_name: str):
 
 def open_github_issue(provider_name: str, issue_desc: str):
     """Open an issue on GitHub if running in CI."""
+    if os.getenv("SIMULATE_OUTAGE", "").strip().lower() in {"1", "true"}:
+        return
     token = os.getenv("GITHUB_TOKEN")
     repo = os.getenv("GITHUB_REPOSITORY")
     if not token or not repo:
@@ -386,18 +390,33 @@ def probe_with_retry(
     return result, error, None
 
 
+def _simulated_failure() -> tuple[CheckResult, str | None]:
+    return CheckResult.FAILED, "Simulated outage (SIMULATE_OUTAGE)"
+
+
 def _summary_value(value: str | None) -> str:
     """Collapse whitespace so provider error bodies cannot break summary markup."""
     return " ".join((value or "Unknown error").split())[:200]
 
 
-def write_summary(recovered: list[tuple[str, str]], failing: list[tuple[str, str | None]]) -> None:
+def write_summary(
+    recovered: list[tuple[str, str]],
+    failing: list[tuple[str, str | None]],
+    circuit_breaker: bool = False,
+) -> None:
     """Record retried and failing probes in the GitHub Actions job summary."""
     summary_path = os.getenv("GITHUB_STEP_SUMMARY")
     if not summary_path:
         return
 
     lines = ["## Provider Monitor", ""]
+    if circuit_breaker:
+        reason = (
+            f"All {len(failing)} probed providers failed, so routing was left unchanged. "
+            "This pattern points at runner networking or DNS rather than independent "
+            "provider instability."
+        )
+        lines += ["### Circuit breaker tripped", "", reason, ""]
     if recovered:
         lines += ["### Recovered on retry", ""]
         for name, note in recovered:
@@ -415,7 +434,7 @@ def write_summary(recovered: list[tuple[str, str]], failing: list[tuple[str, str
         f.write("\n".join(lines) + "\n")
 
 
-def main():
+def main() -> int:
     checks = {
         "jina": check_jina,
         "firecrawl": check_firecrawl,
@@ -428,11 +447,22 @@ def main():
         "duckduckgo": check_duckduckgo,
     }
 
+    if os.getenv("SIMULATE_OUTAGE", "").strip().lower() in {"1", "true"}:
+        targets = {
+            n.strip().lower() for n in os.getenv("SIMULATE_PROVIDERS", "").split(",") if n.strip()
+        }
+        targets = targets & checks.keys() or set(checks)
+        logger.warning("Simulating outage for: %s", ", ".join(sorted(targets)))
+        checks = {n: _simulated_failure if n in targets else f for n, f in checks.items()}
+
     failing_providers = []
     recovered_providers = []
+    probed_count = 0
 
     for name, check_func in checks.items():
         result, error, retry_note = probe_with_retry(name, check_func)
+        if result != CheckResult.SKIPPED:
+            probed_count += 1
         if result == CheckResult.FAILED:
             logger.error(f"{name} failed: {error}")
             failing_providers.append((name, error))
@@ -446,14 +476,24 @@ def main():
     if not failing_providers:
         logger.info("No provider failures detected.")
         write_summary(recovered_providers, [])
-        return
+        return 0
+
+    if probed_count >= CIRCUIT_BREAKER_MIN_PROBED and len(failing_providers) == probed_count:
+        logger.error(
+            "All %d probed providers failed; treating this as a runner or network "
+            "outage and leaving routing unchanged.",
+            probed_count,
+        )
+        write_summary(recovered_providers, failing_providers, circuit_breaker=True)
+        return 1
 
     for name, error in failing_providers:
         update_routing_priority(name)
         log_issue(name, error or "Unknown error")
 
     write_summary(recovered_providers, failing_providers)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

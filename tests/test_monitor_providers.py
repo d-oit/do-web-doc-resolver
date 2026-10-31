@@ -204,6 +204,198 @@ class TestProbeRetry(unittest.TestCase):
         self.assertEqual([name for name, _ in failed], ["jina"])
 
 
+class TestCircuitBreaker(unittest.TestCase):
+    @patch("scripts.monitor_providers.write_summary")
+    @patch("scripts.monitor_providers.time.sleep")
+    @patch("scripts.monitor_providers.log_issue")
+    @patch("scripts.monitor_providers.update_routing_priority")
+    def test_total_probe_failure_leaves_routing_untouched(
+        self, mock_update, mock_log, mock_sleep, mock_summary
+    ):
+        down = MagicMock(return_value=(CheckResult.FAILED, "Network is unreachable"))
+
+        with patch.multiple(
+            "scripts.monitor_providers",
+            check_jina=down,
+            check_firecrawl=down,
+            check_tavily=down,
+            check_serper=down,
+            check_exa=down,
+            check_mistral_websearch=down,
+            check_mistral_browser=down,
+            check_duckduckgo=down,
+        ):
+            exit_code = main()
+
+        self.assertEqual(exit_code, 1)
+        mock_update.assert_not_called()
+        mock_log.assert_not_called()
+        failing = mock_summary.call_args.args[1]
+        self.assertEqual(len(failing), 9)
+        self.assertTrue(mock_summary.call_args.kwargs["circuit_breaker"])
+
+    @patch("scripts.monitor_providers.write_summary")
+    @patch("scripts.monitor_providers.time.sleep")
+    @patch("scripts.monitor_providers.log_issue")
+    @patch("scripts.monitor_providers.update_routing_priority")
+    def test_one_probed_success_disables_breaker(
+        self, mock_update, mock_log, mock_sleep, mock_summary
+    ):
+        healthy = MagicMock(return_value=(CheckResult.HEALTHY, None))
+        down = MagicMock(return_value=(CheckResult.FAILED, "Network is unreachable"))
+
+        with patch.multiple(
+            "scripts.monitor_providers",
+            check_jina=healthy,
+            check_firecrawl=down,
+            check_tavily=down,
+            check_serper=down,
+            check_exa=down,
+            check_mistral_websearch=down,
+            check_mistral_browser=down,
+            check_duckduckgo=down,
+        ):
+            exit_code = main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(mock_update.call_count, 8)
+        self.assertFalse(mock_summary.call_args.kwargs.get("circuit_breaker", False))
+
+    @patch("scripts.monitor_providers.write_summary")
+    @patch("scripts.monitor_providers.time.sleep")
+    @patch("scripts.monitor_providers.log_issue")
+    @patch("scripts.monitor_providers.update_routing_priority")
+    def test_single_probed_failure_is_still_deprioritized(
+        self, mock_update, mock_log, mock_sleep, mock_summary
+    ):
+        down = MagicMock(return_value=(CheckResult.FAILED, "Network is unreachable"))
+        skipped = MagicMock(return_value=(CheckResult.SKIPPED, "No API Key"))
+
+        with patch.multiple(
+            "scripts.monitor_providers",
+            check_jina=down,
+            check_firecrawl=skipped,
+            check_tavily=skipped,
+            check_serper=skipped,
+            check_exa=skipped,
+            check_mistral_websearch=skipped,
+            check_mistral_browser=skipped,
+            check_duckduckgo=skipped,
+        ):
+            exit_code = main()
+
+        self.assertEqual(exit_code, 0)
+        mock_update.assert_called_once_with("jina")
+        mock_log.assert_called_once()
+
+
+class TestSimulatedOutage(unittest.TestCase):
+    def test_forced_outage_trips_breaker_without_real_probes(self):
+        real_probe = MagicMock(side_effect=AssertionError("real probe should not run"))
+
+        with (
+            patch.dict(os.environ, {"SIMULATE_OUTAGE": "true"}),
+            patch.multiple(
+                "scripts.monitor_providers",
+                check_jina=real_probe,
+                check_firecrawl=real_probe,
+                check_tavily=real_probe,
+                check_serper=real_probe,
+                check_exa=real_probe,
+                check_mistral_websearch=real_probe,
+                check_mistral_browser=real_probe,
+                check_duckduckgo=real_probe,
+            ),
+            patch("scripts.monitor_providers.time.sleep") as mock_sleep,
+            patch("scripts.monitor_providers.update_routing_priority") as mock_update,
+            patch("scripts.monitor_providers.log_issue") as mock_log,
+            patch("scripts.monitor_providers.write_summary") as mock_summary,
+        ):
+            exit_code = main()
+
+        self.assertEqual(exit_code, 1)
+        real_probe.assert_not_called()
+        mock_update.assert_not_called()
+        mock_log.assert_not_called()
+        self.assertEqual(mock_sleep.call_count, 9)
+        failing = mock_summary.call_args.args[1]
+        self.assertEqual(len(failing), 9)
+        self.assertIn("Simulated outage", failing[0][1])
+        self.assertTrue(mock_summary.call_args.kwargs["circuit_breaker"])
+
+    def test_false_flag_still_probes_normally(self):
+        healthy = MagicMock(return_value=(CheckResult.HEALTHY, None))
+
+        with (
+            patch.dict(os.environ, {"SIMULATE_OUTAGE": "false"}),
+            patch.multiple(
+                "scripts.monitor_providers",
+                check_jina=healthy,
+                check_firecrawl=healthy,
+                check_tavily=healthy,
+                check_serper=healthy,
+                check_exa=healthy,
+                check_mistral_websearch=healthy,
+                check_mistral_browser=healthy,
+                check_duckduckgo=healthy,
+            ),
+            patch("scripts.monitor_providers.write_summary"),
+        ):
+            exit_code = main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(healthy.call_count, 9)
+
+    @patch("scripts.monitor_providers.write_summary")
+    @patch("scripts.monitor_providers.time.sleep")
+    @patch("scripts.monitor_providers.log_issue")
+    @patch("scripts.monitor_providers.update_routing_priority")
+    def test_selected_providers_fail_without_tripping_breaker(
+        self, mock_update, mock_log, mock_sleep, mock_summary
+    ):
+        healthy = MagicMock(return_value=(CheckResult.HEALTHY, None))
+        down = MagicMock(return_value=(CheckResult.FAILED, "Simulated outage"))
+
+        with (
+            patch.dict(
+                os.environ,
+                {"SIMULATE_OUTAGE": "true", "SIMULATE_PROVIDERS": "jina, serper"},
+            ),
+            patch.multiple(
+                "scripts.monitor_providers",
+                check_jina=down,
+                check_firecrawl=healthy,
+                check_tavily=healthy,
+                check_serper=down,
+                check_exa=healthy,
+                check_mistral_websearch=healthy,
+                check_mistral_browser=healthy,
+                check_duckduckgo=healthy,
+            ),
+        ):
+            exit_code = main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual({call.args[0] for call in mock_update.call_args_list}, {"jina", "serper"})
+        self.assertEqual(mock_log.call_count, 2)
+        self.assertEqual(mock_sleep.call_count, 2)
+        self.assertFalse(mock_summary.call_args.kwargs.get("circuit_breaker", False))
+
+    @patch.dict(
+        os.environ,
+        {
+            "SIMULATE_OUTAGE": "true",
+            "GITHUB_TOKEN": "test",
+            "GITHUB_REPOSITORY": "owner/repo",
+        },
+    )
+    @patch("scripts.monitor_providers.httpx.Client")
+    def test_open_github_issue_is_skipped_during_simulation(self, mock_client):
+        open_github_issue("jina", "error")
+
+        mock_client.assert_not_called()
+
+
 class TestProviderSummary(unittest.TestCase):
     def test_summary_records_retry_and_failure(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -226,6 +418,24 @@ class TestProviderSummary(unittest.TestCase):
     def test_summary_is_a_noop_outside_actions(self):
         with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}):
             write_summary([("jina", "Status code 503")], [])
+
+    def test_summary_reports_circuit_breaker(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            summary_path = Path(tmp_dir) / "summary.md"
+            summary_path.touch()
+
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}):
+                write_summary(
+                    [],
+                    [("jina", "Network is unreachable"), ("serper", "timeout")],
+                    circuit_breaker=True,
+                )
+
+            content = summary_path.read_text()
+
+        self.assertIn("Circuit breaker tripped", content)
+        self.assertIn("All 2 probed providers failed", content)
+        self.assertIn("routing was left unchanged", content)
 
 
 if __name__ == "__main__":
