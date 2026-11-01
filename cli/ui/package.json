@@ -20,7 +20,7 @@
     "@storybook/blocks": "^8.6.0",
     "@storybook/html": "^8.6.0",
     "@storybook/html-vite": "^8.6.0",
-    "storybook": "^8.6.0",
+    "storybook": "^8.6.19",
     "stylelint": "^16.0.0",
     "stylelint-config-standard": "^36.0.0"
   },
