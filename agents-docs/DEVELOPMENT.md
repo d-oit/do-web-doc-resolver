@@ -266,18 +266,26 @@ To verify the semantic cache performance and quality synthesis:
 - Validates skill symlinks
 - Runs quality gate
 
-### Quality Gate
+### Quality Harness & Quality Gate
+
+The multi-runtime quality workflow uses `do-harness.toml` to map changed files to targeted quality loop sensors:
 
 ```bash
-# Run all checks
-./scripts/quality_gate.sh
+# Inspect triggered sensors for changed files
+python scripts/harness.py --check
 
-# Includes:
-# - Python linting and formatting
-# - Rust clippy and fmt
-# - Python tests
-# - Rust tests
-# - Symlink validation
+# Run active sensors for changed files
+python scripts/harness.py
+
+# Run a specific sensor by ID
+python scripts/harness.py --sensor python-lint
+```
+
+If `do-harness` or a specific runner tool is absent, run the authoritative quality gate shell script:
+
+```bash
+# Run all checks unconditionally
+./scripts/quality_gate.sh
 ```
 
 ## Nightly Bridge
