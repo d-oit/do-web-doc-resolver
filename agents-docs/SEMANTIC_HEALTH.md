@@ -1,4 +1,4 @@
-# Semantic Health Summary - October 2026
+# Semantic Health Summary - November 2026
 
 ## Executive Summary
 
@@ -30,4 +30,4 @@ Evaluated using `do-wdr resolve <URL> --json` on the compiled release binary (`c
 - Background encoder warm-up offloads model initialization, keeping CLI query resolution ultra-fast.
 
 ---
-*Last Updated: October 26, 2026*
+*Last Updated: November 02, 2026*
