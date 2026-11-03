@@ -18,10 +18,19 @@ Declarative multi-runtime quality loop sensor configuration for `do-web-doc-reso
 
 The repository spans Python, Rust, and Node/TypeScript stacks. The `do-harness.toml` configuration maps file paths (`when_changed` / `when-changed`) to quality sensors wrapping exact repository checks.
 
+Each sensor declares `commands`: an array of argv arrays, never shell command
+strings. Executables are resolved to absolute paths, arguments are passed
+literally, and commands in a sensor run in order and stop at the first failure.
+Shell operators, expansion, and redirection are not interpreted.
+
+```toml
+commands = [["python", "-m", "pytest", "-m", "not live"], ["ruff", "check", "."]]
+```
+
 ## Sensor Groups
 
 1. **Python Quality Loop** (`scripts/**`, `tests/**`, `pyproject.toml`):
-   - `python-lint`: `ruff check . && black --check . && mypy scripts/ --ignore-missing-imports`
+   - `python-lint`: `ruff check .`, then `black --check .`, then `mypy scripts/ --ignore-missing-imports`
    - `python-test`: `python -m pytest -m "not live and not benchmark" --tb=short`
 
 2. **Rust CLI Quality Loop** (`cli/src/**`, `cli/tests/**`, `cli/Cargo.toml`):
