@@ -186,6 +186,9 @@ Edit `cli/config.toml` for default settings.
 
 CodeQL uses GitHub's repository-level default setup; do not add an advanced
 CodeQL upload to `security-scan.yml` while default setup is enabled.
+GitHub Actions security analysis is provided by default-setup CodeQL and the
+actionlint workflow. Trivy's IaC scanner does not recognize GitHub workflow YAML;
+the obsolete scan of `.github/workflows/` is removed rather than reporting it clean.
 ShellCheck failures fail CI directly rather than generating empty SARIF reports.
 Gitleaks runs the pinned upstream binary after checksum verification, avoiding
 deprecated JavaScript action dependencies. Trivy and Cargo audit tools are pinned
