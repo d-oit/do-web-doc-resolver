@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { save, get, list, remove, clear, search, size, maxSize, configure, getAnalytics } from "../lib/records";
 
 describe("records", () => {
@@ -93,27 +93,34 @@ describe("records", () => {
   });
 
   describe("TTL expiration", () => {
-    it("expires records after TTL", async () => {
-      // Set very short TTL for testing
-      configure({ ttlMs: 50 }); // 50ms
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("expires records after TTL", () => {
+      configure({ ttlMs: 50 });
 
       const record = save({ query: "expires", url: null, content: "", source: "test", score: 0 });
       
       // Record should exist initially
       expect(get(record.id)).toBeDefined();
       
-      // Wait for TTL to expire
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      vi.advanceTimersByTime(51);
       
       // Record should be expired
       expect(get(record.id)).toBeUndefined();
     });
 
-    it("cleans up expired records on save", async () => {
+    it("cleans up expired records on save", () => {
       configure({ ttlMs: 50 });
 
       save({ query: "expires1", url: null, content: "", source: "test", score: 0 });
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      vi.advanceTimersByTime(51);
       
       // This save should trigger cleanup
       save({ query: "new", url: null, content: "", source: "test", score: 0 });
@@ -121,11 +128,11 @@ describe("records", () => {
       expect(size()).toBe(1);
     });
 
-    it("filters expired records from list", async () => {
+    it("filters expired records from list", () => {
       configure({ ttlMs: 50 });
 
       save({ query: "expires", url: null, content: "", source: "test", score: 0 });
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      vi.advanceTimersByTime(51);
       
       const records = list();
       expect(records.length).toBe(0);

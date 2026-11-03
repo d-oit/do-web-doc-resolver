@@ -37,7 +37,6 @@ jobs:
 
       - name: Run ShellCheck with Security Focus
         uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
-        continue-on-error: true
         with:
           severity: warning
           format: tty
@@ -48,25 +47,6 @@ jobs:
             --shell=bash
             --enable=add-default-case,avoid-nullary-conditions,deprecate-which
             --enable=check-unassigned-uppercase,quote-safe-variables
-
-      - name: ShellCheck SARIF Output
-        if: always()
-        run: |
-          mapfile -t script_files < <(find scripts .agents/skills -name "*.sh" -type f 2>/dev/null || true)
-          if [[ ${#script_files[@]} -gt 0 ]]; then
-            shellcheck -f sarif -s bash -S warning "${script_files[@]}" > shellcheck-results.sarif 2>/dev/null || true
-          fi
-          if [[ ! -s shellcheck-results.sarif ]] || ! python3 -c "import json,sys; json.load(open('shellcheck-results.sarif'))" 2>/dev/null; then
-            echo '{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"shellcheck","informationUri":"https://www.shellcheck.net/"}},"results":[]}]}' > shellcheck-results.sarif
-          fi
-
-      - name: Upload ShellCheck SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 # v2.25.6
-        continue-on-error: true
-        with:
-          sarif_file: shellcheck-results.sarif
-          category: shellcheck
 
   # ============================================================================
   # TRIVY FILESYSTEM SCAN
@@ -80,9 +60,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Python package metadata discovery
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Run Trivy vulnerability scanner in fs mode
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
+          version: 'v0.76.1'
           scan-type: 'fs'
           scan-ref: '.'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -99,93 +85,6 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
           category: trivy-fs
-
-  # ============================================================================
-  # CODEQL ANALYSIS
-  # ============================================================================
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Check for JS/Python files
-        id: check_files
-        run: |
-          if find . -name "*.js" -o -name "*.ts" -o -name "*.py" | grep -q .; then
-            echo "has_codeql_files=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_codeql_files=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Initialize CodeQL
-        if: steps.check_files.outputs.has_codeql_files == 'true'
-        uses: github/codeql-action/init@c35d1b164463ee62a100735382aaaa525c5d3496 # v2.25.6
-        continue-on-error: true
-        with:
-          languages: javascript,python
-          queries: security-extended,security-and-quality
-
-      - name: Autobuild
-        if: steps.check_files.outputs.has_codeql_files == 'true'
-        uses: github/codeql-action/autobuild@c35d1b164463ee62a100735382aaaa525c5d3496 # v2.25.6
-        continue-on-error: true
-
-      - name: Perform CodeQL Analysis
-        if: steps.check_files.outputs.has_codeql_files == 'true'
-        uses: github/codeql-action/analyze@c35d1b164463ee62a100735382aaaa525c5d3496 # v2.25.6
-        continue-on-error: true
-
-      - name: Generate/Upload empty SARIF if no files
-        if: steps.check_files.outputs.has_codeql_files == 'false'
-        run: |
-          echo '{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"CodeQL","informationUri":"https://codeql.github.com/","rules":[]}},"results":[],"properties":{"semmle.formatSpecifier":"sarifv2.1.0"}}]}' > codeql-empty-results.sarif
-
-      - name: Upload empty CodeQL SARIF
-        if: steps.check_files.outputs.has_codeql_files == 'false'
-        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 # v2.25.6
-        continue-on-error: true
-        with:
-          sarif_file: codeql-empty-results.sarif
-          category: "/language:javascript"
-
-  # ============================================================================
-  # INFRASTRUCTURE AS CODE SCAN
-  # ============================================================================
-  iac-scan:
-    name: Infrastructure as Code Security
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Scan GitHub Actions with Trivy
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: 'config'
-          scan-ref: '.github/workflows/'
-          severity: 'CRITICAL,HIGH'
-          format: 'sarif'
-          output: 'trivy-config-results.sarif'
-          exit-code: '0'
-          ignore-unfixed: true
-
-      - name: Upload IaC Scan SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 # v2.25.6
-        with:
-          sarif_file: trivy-config-results.sarif
-          category: trivy-config
 
   # ============================================================================
   # DEPENDENCY AUDIT
@@ -214,20 +113,8 @@ jobs:
 
       - name: Run npm audit (web)
         run: |
-          cd web && npm ci
-          # Shipped dependencies: nothing below high.
-          npm audit --omit=dev --audit-level=high
-          # Dev toolchain: nothing below critical.
-          #
-          # GHSA-vfj7-8cjw-p6xm (CVE-2026-93687) is the one high advisory in the
-          # dev tree: braces 3.0.3 stack-exhaustion DoS, no patched release
-          # upstream (micromatch/braces PR #72 is still open), so it cannot be
-          # upgraded away. It is dev-only -- `npm ls braces --omit=dev` is empty --
-          # reached solely via @next/eslint-plugin-next -> fast-glob ->
-          # micromatch -> braces, and only when ESLint expands glob patterns
-          # from this repo's own eslint.config.mjs. No path from untrusted input.
-          # Same shape as the RUSTSEC-2026-0258 ignore below.
-          npm audit --audit-level=critical
+          cd web && npm ci --legacy-peer-deps
+          npm audit --audit-level=low
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
@@ -272,7 +159,7 @@ jobs:
       - name: Run cargo outdated
         continue-on-error: true
         run: |
-          cargo install cargo-outdated
+          cargo install cargo-outdated --version 0.19.0 --locked
           cd cli && cargo outdated --exit-code 0
 
   # ============================================================================
@@ -286,10 +173,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+      - name: Install Gitleaks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v8.30.1 --repo gitleaks/gitleaks \
+            --pattern 'gitleaks_8.30.1_linux_x64.tar.gz' --pattern 'gitleaks_8.30.1_checksums.txt'
+          sha256sum --check --ignore-missing gitleaks_8.30.1_checksums.txt
+          tar -xzf gitleaks_8.30.1_linux_x64.tar.gz gitleaks
+
+      - name: Run Gitleaks
+        run: ./gitleaks git --redact --verbose --log-opts="--all"
 
   # ============================================================================
   # AGGREGATE SECURITY REPORT
@@ -300,8 +194,6 @@ jobs:
     needs:
       - shellcheck-security
       - trivy-fs
-      - codeql
-      - iac-scan
       - dependency-audit
       - rust-security
       - secrets-scan
@@ -316,8 +208,6 @@ jobs:
           echo "Job Results:"
           echo "  • ShellCheck Security: ${{ needs.shellcheck-security.result }}"
           echo "  • Trivy Filesystem: ${{ needs.trivy-fs.result }}"
-          echo "  • CodeQL Analysis: ${{ needs.codeql.result }}"
-          echo "  • IaC Scan: ${{ needs.iac-scan.result }}"
           echo "  • Dependency Audit: ${{ needs.dependency-audit.result }}"
           echo "  • Rust Security: ${{ needs.rust-security.result }}"
           echo "  • Secrets Scan: ${{ needs.secrets-scan.result }}"

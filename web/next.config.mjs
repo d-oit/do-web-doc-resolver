@@ -1,5 +1,11 @@
+import { fileURLToPath, URL } from "node:url";
+
+const webRoot = fileURLToPath(new URL(".", import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: webRoot,
+  turbopack: { root: webRoot },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
