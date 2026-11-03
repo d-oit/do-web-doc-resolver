@@ -1,5 +1,21 @@
 # Known Issues
 
+## Rust dependency warnings requiring upstream changes
+
+- **Reviewed**: 2026-11-03; `cargo audit` and `cargo deny` exit successfully.
+- **Unmaintained serialization**:
+  [RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141)
+  has no patched bincode release. Both `chaotic_semantic_memory` and `libsql` depend
+  on bincode 1.3.3; even cache library 0.3.8 still requires it.
+- **HTTP/2**: [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258)
+  is fixed only in h2 >=0.4.16. The existing exception covers h2 0.3.27 through
+  `libsql` / `tonic` 0.11 / `hyper` 0.14. It cannot be patched within that API line.
+- **Duplicate versions**: the old libsql HTTP stack and reqwest's modern stack
+  require incompatible major versions. Cargo deny continues reporting these;
+  no broad suppression or forced incompatible dependency unification is added.
+- **Policy cleanup**: removed unused license grants and an unused ring license
+  clarification; ShellCheck no longer encounters dead changelog path assignments.
+
 ## Provider Alert: DuckDuckGo unstable
 
 - **Date**: 2026-04-20
