@@ -18,6 +18,7 @@ env:
   PYTHON_VERSION: '3.12'
   RUST_TOOLCHAIN: '1.85'
   NODE_VERSION: '22'
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
 jobs:
   validate-version:
@@ -123,7 +124,7 @@ jobs:
         run: mypy scripts/ --ignore-missing-imports
 
       - name: Run markdownlint
-        run: npx markdownlint-cli .
+        run: npx --yes markdownlint-cli@0.50.0 .
 
   test:
     name: Test (Python ${{ matrix.python-version }})

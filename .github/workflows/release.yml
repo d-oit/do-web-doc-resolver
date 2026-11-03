@@ -163,8 +163,8 @@ jobs:
             echo ""
             echo "### Install"
             echo '```bash'
-            # yamllint disable-line rule:line-length
-            echo "curl -L https://github.com/d-oit/do-web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/do-wdr-linux-x86_64 -o do-wdr"
+            DOWNLOAD_URL="https://github.com/d-oit/do-web-doc-resolver/releases/download"
+            echo "curl -L $DOWNLOAD_URL/${{ steps.version.outputs.VERSION }}/do-wdr-linux-x86_64 -o do-wdr"
             echo "chmod +x do-wdr"
             echo '```'
             echo ""
