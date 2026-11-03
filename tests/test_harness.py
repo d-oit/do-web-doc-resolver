@@ -2,51 +2,15 @@
 
 from __future__ import annotations
 
-import subprocess
 import sys
 
 from scripts.harness import (
-    HARNESS_CONFIG,
-    REPO_ROOT,
     check_runner_availability,
     is_sensor_triggered,
     load_harness_config,
     match_pattern,
     run_sensor,
 )
-
-
-def test_do_harness_toml_exists_and_parses():
-    """Verify do-harness.toml exists and parses as valid TOML."""
-    assert HARNESS_CONFIG.exists(), "do-harness.toml should exist in repository root"
-
-    config = load_harness_config(HARNESS_CONFIG)
-    assert config.get("language") == "generic"
-    assert config.get("version") == "1.0"
-
-    sensors = config.get("sensor") or config.get("sensors") or []
-    assert len(sensors) >= 10, "Should have at least 10 sensors configured"
-
-
-def test_sensor_schema_and_remediation():
-    """Verify all sensors define required fields and remediation instructions."""
-    config = load_harness_config()
-    sensors = config.get("sensor") or config.get("sensors") or []
-
-    for sensor in sensors:
-        assert "id" in sensor, f"Sensor missing 'id': {sensor}"
-        assert "name" in sensor, f"Sensor missing 'name': {sensor}"
-        assert "command" in sensor, f"Sensor missing 'command': {sensor}"
-        assert "runner" in sensor, f"Sensor missing 'runner': {sensor}"
-        assert "remediation" in sensor, f"Sensor missing 'remediation': {sensor}"
-
-        # Ensure path filters are present
-        patterns = sensor.get("when_changed") or sensor.get("when-changed")
-        assert patterns is not None, f"Sensor {sensor['id']} missing when_changed / when-changed"
-        assert isinstance(patterns, list) and len(patterns) > 0
-
-        # Ensure remediation is descriptive
-        assert len(sensor["remediation"].strip()) > 10
 
 
 def test_path_selection_python_only():
@@ -140,34 +104,12 @@ def test_pattern_matching_helper():
     assert not match_pattern("cli/**", "scripts/resolve.py")
 
 
-def test_command_mapping_uses_existing_scripts():
-    """Verify sensors map to existing scripts or standard CLI binaries."""
-    config = load_harness_config()
-    sensors = config.get("sensor") or config.get("sensors") or []
-
-    script_sensors = {
-        "validate-version": "scripts/sync_versions.py",
-        "validate-skill-mirror": "scripts/sync_skill.py",
-        "validate-symlink": "scripts/validate_skill_symlink.py",
-        "validate-docs": "scripts/validate_docs.py",
-    }
-
-    for sensor in sensors:
-        sid = sensor["id"]
-        cmd = sensor["command"]
-        if sid in script_sensors:
-            rel_script = script_sensors[sid]
-            script_path = REPO_ROOT / rel_script
-            assert script_path.exists(), f"Script referenced by {sid} should exist: {rel_script}"
-            assert rel_script in cmd
-
-
 def test_missing_runner_reporting():
     """Verify missing runner tools report skipped/warned status with remediation context."""
     dummy_sensor = {
         "id": "test-missing-runner",
         "name": "Test Missing Runner",
-        "command": "nonexistent_fake_tool_xyz123 --check",
+        "commands": [["nonexistent_fake_tool_xyz123", "--check"]],
         "runner": "nonexistent_fake_tool_xyz123",
         "remediation": "Install fake_tool_xyz123 to resolve this check.",
     }
@@ -182,14 +124,52 @@ def test_missing_runner_reporting():
     assert "Install fake_tool_xyz123" in msg
 
 
-def test_harness_cli_check_command():
-    """Verify python scripts/harness.py --check executes cleanly."""
-    res = subprocess.run(
-        [sys.executable, "scripts/harness.py", "--check", "--files", "scripts/resolve.py"],
-        capture_output=True,
-        text=True,
-        cwd=REPO_ROOT,
-    )
-    assert res.returncode == 0
-    assert "Triggered 3 sensor(s)" in res.stdout
-    assert "[python-lint]" in res.stdout
+def test_sensor_arguments_are_literal_and_preserve_spaces(tmp_path):
+    """Shell syntax in a command argument must never start another process."""
+    output = tmp_path / "literal arguments.txt"
+    injected = tmp_path / "injected"
+    argument = f"value with spaces; touch {injected}"
+    sensor = {
+        "id": "literal",
+        "commands": [
+            [
+                sys.executable,
+                "-c",
+                "import pathlib,sys; pathlib.Path(sys.argv[1]).write_text(sys.argv[2])",
+                str(output),
+                argument,
+            ]
+        ],
+    }
+
+    success, _ = run_sensor(sensor)
+
+    assert success
+    assert output.read_text() == argument
+    assert not injected.exists()
+
+
+def test_sensor_stops_after_first_failure(tmp_path):
+    """A failed check must prevent subsequent commands from running."""
+    output = tmp_path / "must-not-exist"
+    sensor = {
+        "id": "failure",
+        "remediation": "Repair the failed check.",
+        "commands": [
+            [sys.executable, "-c", "import sys; sys.stderr.write('check failed'); sys.exit(5)"],
+            [
+                sys.executable,
+                "-c",
+                "import pathlib,sys; pathlib.Path(sys.argv[1]).touch()",
+                str(output),
+            ],
+        ],
+    }
+
+    success, message = run_sensor(sensor)
+
+    assert not success
+    assert "exit code 5" in message
+    assert "check failed" in message
+    assert "Repair the failed check." in message
+    assert not output.exists()

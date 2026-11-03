@@ -8,12 +8,13 @@ inspects tool availability, and executes checks with remediation feedback.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import fnmatch
 import shutil
-import subprocess
 import sys
 import tomllib
 from pathlib import Path
+from typing import cast
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HARNESS_CONFIG = REPO_ROOT / "do-harness.toml"
@@ -61,65 +62,73 @@ def is_sensor_triggered(sensor: dict, changed_files: list[str]) -> bool:
 
 
 def get_runner_executable(runner: str) -> str | None:
-    """Resolve the required runner tool executable path."""
-    if runner in ("python", "pytest"):
-        return sys.executable
-    return shutil.which(runner)
+    """Resolve a command's executable to an absolute path."""
+    executable = sys.executable if runner == "python" else shutil.which(runner)
+    return str(Path(executable).resolve()) if executable else None
+
+
+def _sensor_commands(sensor: dict) -> list[list[str]]:
+    """Resolve trusted repository configuration without invoking a shell."""
+    commands = []
+    for arguments in sensor["commands"]:
+        executable = get_runner_executable(arguments[0])
+        if executable is None:
+            raise FileNotFoundError(f"Runner '{arguments[0]}' is not installed or not in PATH")
+        commands.append([executable, *arguments[1:]])
+    return commands
 
 
 def check_runner_availability(sensor: dict) -> tuple[bool, str]:
-    """Check if the sensor's runner tool is available."""
-    runner = sensor.get("runner") or "sh"
-    if runner in ("python", "pytest"):
-        return True, sys.executable
+    """Check every executable used by a sensor, including sequential checks."""
+    try:
+        commands = _sensor_commands(sensor)
+        return True, commands[0][0]
+    except FileNotFoundError as exc:
+        return False, str(exc)
 
-    exe = shutil.which(runner)
-    if exe is not None:
-        return True, exe
 
-    # Fallback: check if first token of command exists in PATH
-    cmd_parts = sensor.get("command", "").split()
-    if cmd_parts:
-        base_cmd = cmd_parts[0]
-        exe = shutil.which(base_cmd)
-        if exe is not None:
-            return True, exe
-
-    return False, f"Runner '{runner}' is not installed or not in PATH"
+async def _run_command(command: list[str]) -> tuple[int, str, str]:
+    """Execute an absolute executable and literal arguments; never a command shell."""
+    process = await asyncio.create_subprocess_exec(
+        *command,
+        cwd=REPO_ROOT,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate()
+    return (
+        cast(int, process.returncode),
+        stdout.decode(errors="replace"),
+        stderr.decode(errors="replace"),
+    )
 
 
 def get_changed_files() -> list[str]:
     """Detect changed files in git repository."""
+    git = get_runner_executable("git")
+    if git is None:
+        return []
     try:
-        res = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True,
-            text=True,
-            cwd=REPO_ROOT,
-            check=True,
-        )
+        returncode, stdout, _ = asyncio.run(_run_command([git, "status", "--porcelain"]))
+        if returncode != 0:
+            return []
         files = []
-        for line in res.stdout.splitlines():
+        for line in stdout.splitlines():
             if line.strip():
                 parts = line.strip().split(maxsplit=1)
                 if len(parts) == 2:
                     files.append(parts[1])
         if not files:
-            res_diff = subprocess.run(
-                ["git", "diff", "--name-only", "HEAD"],
-                capture_output=True,
-                text=True,
-                cwd=REPO_ROOT,
-            )
-            files = [f.strip() for f in res_diff.stdout.splitlines() if f.strip()]
+            _, stdout, _ = asyncio.run(_run_command([git, "diff", "--name-only", "HEAD"]))
+            files = [f.strip() for f in stdout.splitlines() if f.strip()]
         return files
-    except Exception:
+    except OSError:
         return []
 
 
 def run_sensor(sensor: dict, verbose: bool = False) -> tuple[bool, str]:
     """Execute a single sensor command and return status and log output."""
-    cmd = sensor.get("command", "")
+    commands = sensor["commands"]
     sensor_id = sensor.get("id", "unknown")
     remediation = sensor.get("remediation", "No remediation instructions provided.")
 
@@ -129,31 +138,20 @@ def run_sensor(sensor: dict, verbose: bool = False) -> tuple[bool, str]:
 
     print(f"--> Running sensor [{sensor_id}]: {sensor.get('name', '')}")
     if verbose:
-        print(f"    Command: {cmd}")
+        print(f"    Commands: {commands}")
 
-    res = subprocess.run(
-        cmd,
-        shell=True,
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-    )
-
-    output = []
-    if res.stdout:
-        output.append(res.stdout)
-    if res.stderr:
-        output.append(res.stderr)
-
-    full_output = "\n".join(output)
-
-    if res.returncode != 0:
-        err_msg = (
-            f"[FAIL] Sensor [{sensor_id}] failed with exit code {res.returncode}\n"
-            f"=== Output ===\n{full_output}\n"
-            f"=== Remediation ===\n{remediation}\n"
-        )
-        return False, err_msg
+    output: list[str] = []
+    for command in _sensor_commands(sensor):
+        returncode, stdout, stderr = asyncio.run(_run_command(command))
+        output.extend(part for part in (stdout, stderr) if part)
+        if returncode != 0:
+            full_output = "\n".join(output)
+            err_msg = (
+                f"[FAIL] Sensor [{sensor_id}] failed with exit code {returncode}\n"
+                f"=== Output ===\n{full_output}\n"
+                f"=== Remediation ===\n{remediation}\n"
+            )
+            return False, err_msg
 
     return True, f"[PASS] Sensor [{sensor_id}] passed."
 

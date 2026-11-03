@@ -15,7 +15,11 @@ language = "generic"
 id = "python-lint"
 name = "Python Linting & Formatting"
 description = "Runs Ruff, Black format check, and mypy type checker on Python scripts"
-command = "ruff check . && black --check . && mypy scripts/ --ignore-missing-imports"
+commands = [
+    ["ruff", "check", "."],
+    ["black", "--check", "."],
+    ["mypy", "scripts/", "--ignore-missing-imports"],
+]
 runner = "python"
 when_changed = [
     "scripts/**",
@@ -35,7 +39,7 @@ remediation = "Run `ruff check --fix .` and `black .` to fix Python formatting a
 id = "python-test"
 name = "Python Unit Tests"
 description = "Runs non-live pytest unit test suite with coverage"
-command = "python -m pytest -m \"not live and not benchmark\" --tb=short"
+commands = [["python", "-m", "pytest", "-m", "not live and not benchmark", "--tb=short"]]
 runner = "pytest"
 when_changed = [
     "scripts/**",
@@ -59,7 +63,7 @@ remediation = "Run `python -m pytest -m \"not live\"` to debug failing Python te
 id = "rust-fmt"
 name = "Rust Format Check"
 description = "Checks formatting for the Rust CLI crate"
-command = "cargo fmt --manifest-path cli/Cargo.toml --check"
+commands = [["cargo", "fmt", "--manifest-path", "cli/Cargo.toml", "--check"]]
 runner = "cargo"
 when_changed = [
     "cli/src/**",
@@ -81,7 +85,7 @@ remediation = "Run `cargo fmt --manifest-path cli/Cargo.toml` to format Rust sou
 id = "rust-clippy"
 name = "Rust Clippy Linter"
 description = "Runs Clippy linter with warnings denied on Rust CLI crate"
-command = "cargo clippy --manifest-path cli/Cargo.toml -- -D warnings"
+commands = [["cargo", "clippy", "--manifest-path", "cli/Cargo.toml", "--", "-D", "warnings"]]
 runner = "cargo"
 when_changed = [
     "cli/src/**",
@@ -103,7 +107,7 @@ remediation = "Fix reported clippy warnings in `cli/` or run `cargo clippy --fix
 id = "rust-test"
 name = "Rust CLI Unit Tests"
 description = "Runs unit tests for the Rust CLI crate"
-command = "cargo test --manifest-path cli/Cargo.toml"
+commands = [["cargo", "test", "--manifest-path", "cli/Cargo.toml"]]
 runner = "cargo"
 when_changed = [
     "cli/src/**",
@@ -125,7 +129,7 @@ remediation = "Run `cargo test --manifest-path cli/Cargo.toml` to reproduce and 
 id = "rust-build"
 name = "Rust CLI Release Build"
 description = "Builds the Rust CLI binary in release mode"
-command = "cargo build --release --manifest-path cli/Cargo.toml"
+commands = [["cargo", "build", "--release", "--manifest-path", "cli/Cargo.toml"]]
 runner = "cargo"
 when_changed = [
     "cli/src/**",
@@ -151,7 +155,7 @@ remediation = "Run `cargo check --manifest-path cli/Cargo.toml` to inspect Rust 
 id = "web-lint"
 name = "Web Frontend Linting"
 description = "Runs ESLint on Next.js web application"
-command = "npm --prefix web run lint"
+commands = [["npm", "--prefix", "web", "run", "lint"]]
 runner = "npm"
 when_changed = [
     "web/**",
@@ -169,7 +173,7 @@ remediation = "Run `npm --prefix web run lint` to fix ESLint errors in `web/`."
 id = "web-typecheck"
 name = "Web Frontend Type Check"
 description = "Runs TypeScript type checker on Next.js web application"
-command = "npm --prefix web run typecheck"
+commands = [["npm", "--prefix", "web", "run", "typecheck"]]
 runner = "npm"
 when_changed = [
     "web/**",
@@ -187,7 +191,7 @@ remediation = "Run `npm --prefix web run typecheck` to fix TypeScript compilatio
 id = "web-test"
 name = "Web Frontend Unit Tests"
 description = "Runs Vitest unit tests for web application"
-command = "npm --prefix web test"
+commands = [["npm", "--prefix", "web", "test"]]
 runner = "npm"
 when_changed = [
     "web/**",
@@ -205,7 +209,7 @@ remediation = "Run `npm --prefix web test` to debug failing Vitest unit tests in
 id = "cli-ui-lint"
 name = "CLI UI Design System Linting"
 description = "Runs stylelint on CSS files in CLI UI component design system"
-command = "pnpm --dir cli/ui run lint"
+commands = [["pnpm", "--dir", "cli/ui", "run", "lint"]]
 runner = "pnpm"
 when_changed = [
     "cli/ui/**",
@@ -222,7 +226,7 @@ remediation = "Run `pnpm --dir cli/ui run lint` to check and fix stylelint issue
 [[sensor]]
 id = "cli-ui-test"
 name = "CLI UI CSS Validation"
-command = "pnpm --dir cli/ui run test"
+commands = [["pnpm", "--dir", "cli/ui", "run", "test"]]
 runner = "pnpm"
 when_changed = [
     "cli/ui/**",
@@ -244,7 +248,7 @@ remediation = "Run `pnpm --dir cli/ui run test` to debug CSS validation errors i
 id = "validate-version"
 name = "Version Synchronization Check"
 description = "Ensures semver consistency across pyproject.toml, Cargo.toml, and package.json"
-command = "python scripts/sync_versions.py"
+commands = [["python", "scripts/sync_versions.py"]]
 runner = "python"
 when_changed = [
     "pyproject.toml",
@@ -266,7 +270,7 @@ remediation = "Run `python scripts/sync_versions.py` to sync version strings acr
 id = "validate-skill-mirror"
 name = "Skill Shadow Mirror Check"
 description = "Verifies .agents/skills/do-web-doc-resolver/scripts is synchronized with main scripts/"
-command = "python scripts/sync_skill.py --check"
+commands = [["python", "scripts/sync_skill.py", "--check"]]
 runner = "python"
 when_changed = [
     "scripts/**",
@@ -284,7 +288,7 @@ remediation = "Run `python scripts/sync_skill.py` to synchronize shadow skill co
 id = "validate-symlink"
 name = "Skill Symlink Validation"
 description = "Validates integrity of skill symlinks"
-command = "python scripts/validate_skill_symlink.py"
+commands = [["python", "scripts/validate_skill_symlink.py"]]
 runner = "python"
 when_changed = [
     ".agents/skills/**",
@@ -300,7 +304,7 @@ remediation = "Run `python scripts/validate_skill_symlink.py` to verify or resto
 id = "validate-docs"
 name = "Documentation Consistency Check"
 description = "Validates markdown links and document index consistency"
-command = "python scripts/validate_docs.py"
+commands = [["python", "scripts/validate_docs.py"]]
 runner = "python"
 when_changed = [
     "docs/**",

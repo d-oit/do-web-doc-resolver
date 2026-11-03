@@ -299,6 +299,18 @@ python scripts/harness.py
 python scripts/harness.py --sensor python-lint
 ```
 
+Sensor `commands` are arrays of argument arrays, not shell command strings:
+
+```toml
+commands = [["python", "-m", "pytest", "-m", "not live"]]
+```
+
+Each executable is resolved to an absolute path; `python` uses the harness's
+interpreter. Commands run in order and stop at the first failure. Shell operators,
+expansion, and redirection are not interpreted. Treat this repository configuration
+as executable code: argument arrays prevent shell injection, not execution of
+an intentionally configured program. Review custom checks before running them.
+
 If `do-harness` or a specific runner tool is absent, run the authoritative quality gate shell script:
 
 ```bash
