@@ -27,12 +27,6 @@ const meta = {
     loading: false,
     label: 'Resolve URL',
   },
-  render: (args) => `
-    <button class="do-wdr-button do-wdr-button--${args.variant} do-wdr-button--${args.size}${args.loading ? ' do-wdr-button--loading' : ''}"
-            ${args.disabled ? 'disabled' : ''}>
-      ${args.label}
-    </button>
-  `,
 } satisfies Meta;
 
 export default meta;
@@ -66,6 +60,12 @@ export const Disabled: Story = {
 
 export const Loading: Story = {
   args: { loading: true, label: 'Loading' },
+  render: (args) => `
+    <button class="do-wdr-button do-wdr-button--${args.variant} do-wdr-button--${args.size}${args.loading ? ' do-wdr-button--loading' : ''}"
+            ${args.disabled ? 'disabled' : ''}>
+      ${args.label}
+    </button>
+  `,
 };
 
 export const AllVariants: Story = {

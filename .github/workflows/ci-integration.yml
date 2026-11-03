@@ -12,7 +12,6 @@ permissions:
 
 env:
   PYTHON_VERSION: '3.12'
-  HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
 jobs:
   free-providers:

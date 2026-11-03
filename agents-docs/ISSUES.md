@@ -1,21 +1,5 @@
 # Known Issues
 
-## Rust dependency warnings requiring upstream changes
-
-- **Reviewed**: 2026-11-03; `cargo audit` and `cargo deny` exit successfully.
-- **Unmaintained serialization**:
-  [RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141)
-  has no patched bincode release. Both `chaotic_semantic_memory` and `libsql` depend
-  on bincode 1.3.3; even cache library 0.3.8 still requires it.
-- **HTTP/2**: [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258)
-  is fixed only in h2 >=0.4.16. The existing exception covers h2 0.3.27 through
-  `libsql` / `tonic` 0.11 / `hyper` 0.14. It cannot be patched within that API line.
-- **Duplicate versions**: the old libsql HTTP stack and reqwest's modern stack
-  require incompatible major versions. Cargo deny continues reporting these;
-  no broad suppression or forced incompatible dependency unification is added.
-- **Policy cleanup**: removed unused license grants and an unused ring license
-  clarification; ShellCheck no longer encounters dead changelog path assignments.
-
 ## Provider Alert: DuckDuckGo unstable
 
 - **Date**: 2026-04-20
@@ -59,18 +43,16 @@
 - **Action Taken**: Deprioritized serper in the routing logic.
 - **Status**: Monitoring for stability.
 
-## Resolved: npm tooling audit warnings
+## Accepted Risk: braces stack-exhaustion DoS (dev-only, unpatched)
 
-- **Date**: 2026-11-03
-- **Action**: Removed unused legacy ESLint configuration packages, constrained the
-  remaining named-API minimatch consumers to patched 11.0.4, and updated Joi to 18.3.1.
-- **Advisories**: [minimatch amplification](https://github.com/advisories/GHSA-g3hv-75wg-m249)
-  and [Joi quadratic splitting](https://github.com/advisories/GHSA-4528-x5fx-h6hg).
-- **Status**: `npm audit --audit-level=low` reports zero vulnerabilities, including
-  development dependencies. The prior braces exception is obsolete; the existing
-  micromatch-to-picomatch override removes that dependency.
-- **Prevention**: CI audits all dependency severities rather than keeping separate
-  relaxed development and production thresholds.
+- **Date**: 2026-10-03
+- **Advisory**: [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) / CVE-2026-93687, CVSS 8.7 High, EPSS 0.74%
+- **Issue**: `npm audit --audit-level=high` fails on `braces` 3.0.3 — recursive AST walkers have no depth guard, so a deeply nested brace pattern exhausts the call stack. Affects `<= 3.0.3`; **patched versions: None** (`micromatch/braces` PR #72 still open), so it cannot be upgraded away.
+- **Exposure**: dev-only. `npm ls braces --omit=dev` is empty. The chain is `@next/eslint-plugin-next@16.3.6 → fast-glob@3.3.1 → micromatch@4.0.8 → braces@3.0.3`, reached only when ESLint expands glob patterns from this repo's own `eslint.config.mjs`. There is no path from an HTTP request or any untrusted input to `braces()`.
+- **Rejected**: `npm audit fix --force` downgrades `@next/eslint-plugin-next` 16.3.6 → 14.2.35, a breaking major downgrade that drops Next 16 lint rules.
+- **Action Taken**: `.github/workflows/security-scan.yml` gates shipped dependencies with `npm audit --omit=dev --audit-level=high` and dev toolchain with `--audit-level=critical`. Runtime exposure is still fully gated at high; only dev deps are relaxed.
+- **Status**: Accepted until upstream ships a patched `braces`. Re-evaluate when PR #72 releases or when `@next/eslint-plugin-next` drops `fast-glob`.
+- **Prevention**: Revisit this gate whenever a new `high` advisory appears in the dev tree — do not lower the dev threshold again to absorb a second one.
 
 ## Semantic Health Audit: September 2026
 
