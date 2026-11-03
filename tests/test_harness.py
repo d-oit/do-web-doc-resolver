@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
-from pathlib import Path
-from types import SimpleNamespace
-
-from scripts import harness
 
 from scripts.harness import (
     HARNESS_CONFIG,
@@ -14,7 +11,6 @@ from scripts.harness import (
     check_runner_availability,
     is_sensor_triggered,
     load_harness_config,
-    main,
     match_pattern,
     run_sensor,
 )
@@ -186,83 +182,14 @@ def test_missing_runner_reporting():
     assert "Install fake_tool_xyz123" in msg
 
 
-def test_run_sensor_uses_absolute_argv_without_shell(monkeypatch):
-    """Run each command with argv and no shell, preserving supported && chaining."""
-    calls = []
-
-    def fake_run(command, **kwargs):
-        calls.append((command, kwargs))
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-    monkeypatch.setattr(harness.subprocess, "run", fake_run)
-    sensor = {
-        "id": "safe-command",
-        "command": 'python -c "print(1)" && python -c "print(2)"',
-        "runner": "python",
-    }
-
-    success, message = run_sensor(sensor)
-
-    assert success, message
-    assert len(calls) == 2
-    for command, kwargs in calls:
-        assert isinstance(command, list)
-        assert Path(command[0]).is_absolute()
-        assert Path(command[0]).resolve() == Path(sys.executable).resolve()
-        assert "&&" not in command
-        assert kwargs.get("shell", False) is False
-
-
-def test_run_sensor_rejects_unsupported_shell_operators(monkeypatch):
-    """Reject shell syntax instead of passing it to a process."""
-    calls = []
-    monkeypatch.setattr(harness.subprocess, "run", lambda *args, **kwargs: calls.append(args))
-    sensor = {
-        "id": "invalid-command",
-        "command": "python -c 'print(1)' ; python -c 'print(2)'",
-        "runner": "python",
-    }
-
-    success, message = run_sensor(sensor)
-
-    assert not success
-    assert "Unsupported shell operator" in message
-    assert calls == []
-
-
-def test_run_sensor_preserves_output_from_chained_commands(monkeypatch):
-    """Keep earlier output when a later command in the chain fails."""
-    results = iter(
-        [
-            SimpleNamespace(returncode=0, stdout="first step", stderr=""),
-            SimpleNamespace(returncode=1, stdout="", stderr="second step failed"),
-        ]
+def test_harness_cli_check_command():
+    """Verify python scripts/harness.py --check executes cleanly."""
+    res = subprocess.run(
+        [sys.executable, "scripts/harness.py", "--check", "--files", "scripts/resolve.py"],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
     )
-    monkeypatch.setattr(harness.subprocess, "run", lambda *args, **kwargs: next(results))
-    sensor = {
-        "id": "failed-chain",
-        "command": 'python -c "print(1)" && python -c "raise SystemExit(1)"',
-        "runner": "python",
-        "remediation": "Review the failed command.",
-    }
-
-    success, message = run_sensor(sensor)
-
-    assert not success
-    assert "first step" in message
-    assert "second step failed" in message
-
-
-def test_harness_cli_check_command(monkeypatch, capsys):
-    """Verify the CLI check mode reports triggered sensors without executing them."""
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["scripts/harness.py", "--check", "--files", "scripts/resolve.py"],
-    )
-
-    assert main() == 0
-
-    output = capsys.readouterr().out
-    assert "Triggered 3 sensor(s)" in output
-    assert "[python-lint]" in output
+    assert res.returncode == 0
+    assert "Triggered 3 sensor(s)" in res.stdout
+    assert "[python-lint]" in res.stdout

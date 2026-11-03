@@ -4,17 +4,6 @@ on: # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 0' # Weekly on Sundays at midnight
   workflow_dispatch:
-    inputs:
-      simulate_outage:
-        description: 'Force provider probes to fail and verify the circuit breaker'
-        required: false
-        type: boolean
-        default: false
-      simulate_providers:
-        description: 'Comma-separated providers to fail; empty simulates all'
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: write
@@ -30,7 +19,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -46,12 +35,9 @@ jobs:
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SIMULATE_OUTAGE: ${{ inputs.simulate_outage }}
-          SIMULATE_PROVIDERS: ${{ inputs.simulate_providers }}
         run: python scripts/monitor_providers.py
 
       - name: Create Pull Request
-        if: ${{ !inputs.simulate_outage }}
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v7.0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

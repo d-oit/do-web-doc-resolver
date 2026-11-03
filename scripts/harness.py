@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
-import shlex
 import shutil
 import subprocess
 import sys
@@ -64,73 +63,36 @@ def is_sensor_triggered(sensor: dict, changed_files: list[str]) -> bool:
 def get_runner_executable(runner: str) -> str | None:
     """Resolve the required runner tool executable path."""
     if runner in ("python", "pytest"):
-        return str(Path(sys.executable).resolve())
-    executable = shutil.which(runner)
-    return str(Path(executable).resolve()) if executable else None
-
-
-def _resolve_command_executable(command: str) -> str | None:
-    """Resolve a command executable to an absolute path."""
-    if command in ("python", "python3"):
-        return str(Path(sys.executable).resolve())
-    executable = shutil.which(command)
-    return str(Path(executable).resolve()) if executable else None
-
-
-def _parse_sensor_command(command: str) -> list[list[str]]:
-    """Parse commands without allowing shell operators other than ``&&``."""
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>()")
-    lexer.whitespace_split = True
-    lexer.commenters = ""
-    tokens = list(lexer)
-
-    commands: list[list[str]] = []
-    current: list[str] = []
-    for token in tokens:
-        if token == "&&":
-            if not current:
-                raise ValueError("Empty command before '&&'.")
-            commands.append(current)
-            current = []
-        elif token and all(char in ";&|<>()" for char in token):
-            raise ValueError(f"Unsupported shell operator: {token}")
-        else:
-            current.append(token)
-
-    if not current:
-        raise ValueError("Sensor command is empty or ends with '&&'.")
-    commands.append(current)
-    return commands
+        return sys.executable
+    return shutil.which(runner)
 
 
 def check_runner_availability(sensor: dict) -> tuple[bool, str]:
     """Check if the sensor's runner tool is available."""
     runner = sensor.get("runner") or "sh"
-    runner_executable = get_runner_executable(runner)
-    if runner_executable is None:
-        return False, f"Runner '{runner}' is not installed or not in PATH"
+    if runner in ("python", "pytest"):
+        return True, sys.executable
 
-    try:
-        commands = _parse_sensor_command(sensor.get("command", ""))
-    except ValueError as exc:
-        return False, str(exc)
+    exe = shutil.which(runner)
+    if exe is not None:
+        return True, exe
 
-    for arguments in commands:
-        if _resolve_command_executable(arguments[0]) is None:
-            return False, f"Command executable '{arguments[0]}' is not installed or not in PATH"
+    # Fallback: check if first token of command exists in PATH
+    cmd_parts = sensor.get("command", "").split()
+    if cmd_parts:
+        base_cmd = cmd_parts[0]
+        exe = shutil.which(base_cmd)
+        if exe is not None:
+            return True, exe
 
-    return True, runner_executable
+    return False, f"Runner '{runner}' is not installed or not in PATH"
 
 
 def get_changed_files() -> list[str]:
     """Detect changed files in git repository."""
     try:
-        git_executable = _resolve_command_executable("git")
-        if git_executable is None:
-            return []
-
         res = subprocess.run(
-            [git_executable, "status", "--porcelain"],
+            ["git", "status", "--porcelain"],
             capture_output=True,
             text=True,
             cwd=REPO_ROOT,
@@ -144,7 +106,7 @@ def get_changed_files() -> list[str]:
                     files.append(parts[1])
         if not files:
             res_diff = subprocess.run(
-                [git_executable, "diff", "--name-only", "HEAD"],
+                ["git", "diff", "--name-only", "HEAD"],
                 capture_output=True,
                 text=True,
                 cwd=REPO_ROOT,
@@ -161,14 +123,6 @@ def run_sensor(sensor: dict, verbose: bool = False) -> tuple[bool, str]:
     sensor_id = sensor.get("id", "unknown")
     remediation = sensor.get("remediation", "No remediation instructions provided.")
 
-    try:
-        commands = _parse_sensor_command(cmd)
-    except ValueError as exc:
-        return (
-            False,
-            f"[FAIL] Sensor [{sensor_id}] has an invalid command: {exc}\n  Remediation: {remediation}",
-        )
-
     available, reason = check_runner_availability(sensor)
     if not available:
         return False, f"[SKIP/WARN] {sensor_id}: {reason}\n  Remediation: {remediation}"
@@ -177,37 +131,29 @@ def run_sensor(sensor: dict, verbose: bool = False) -> tuple[bool, str]:
     if verbose:
         print(f"    Command: {cmd}")
 
+    res = subprocess.run(
+        cmd,
+        shell=True,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+
     output = []
-    for arguments in commands:
-        executable = _resolve_command_executable(arguments[0])
-        if executable is None:
-            return False, (
-                f"[SKIP/WARN] {sensor_id}: Command executable "
-                f"'{arguments[0]}' is not installed or not in PATH\n"
-                f"  Remediation: {remediation}"
-            )
-        arguments[0] = executable
-        res = subprocess.run(
-            arguments,
-            shell=False,
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
+    if res.stdout:
+        output.append(res.stdout)
+    if res.stderr:
+        output.append(res.stderr)
+
+    full_output = "\n".join(output)
+
+    if res.returncode != 0:
+        err_msg = (
+            f"[FAIL] Sensor [{sensor_id}] failed with exit code {res.returncode}\n"
+            f"=== Output ===\n{full_output}\n"
+            f"=== Remediation ===\n{remediation}\n"
         )
-
-        if res.stdout:
-            output.append(res.stdout)
-        if res.stderr:
-            output.append(res.stderr)
-
-        if res.returncode != 0:
-            full_output = "\n".join(output)
-            err_msg = (
-                f"[FAIL] Sensor [{sensor_id}] failed with exit code {res.returncode}\n"
-                f"=== Output ===\n{full_output}\n"
-                f"=== Remediation ===\n{remediation}\n"
-            )
-            return False, err_msg
+        return False, err_msg
 
     return True, f"[PASS] Sensor [{sensor_id}] passed."
 
