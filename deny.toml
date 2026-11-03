@@ -22,23 +22,13 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
-    "Unicode-DFS-2016",
     "Unicode-3.0",
-    "OpenSSL",
-    "Zlib",
     "MPL-2.0",
     "CDLA-Permissive-2.0",
 ]
 # The confidence level for license detection, 0.0 to 1.0
 confidence-threshold = 0.8
 
-[[licenses.clarify]]
-name = "ring"
-# version = "*"
-expression = "OpenSSL"
-license-files = [
-    { path = "LICENSE", hash = 0xbd0ced23 }
-]
 
 # Options for checking crate bans
 [bans]

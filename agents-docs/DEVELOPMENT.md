@@ -182,6 +182,24 @@ export MISTRAL_API_KEY="your_key"
 
 Edit `cli/config.toml` for default settings.
 
+### CI security checks
+
+CodeQL uses GitHub's repository-level default setup; do not add an advanced
+CodeQL upload to `security-scan.yml` while default setup is enabled.
+GitHub Actions security analysis is provided by default-setup CodeQL and the
+actionlint workflow. Trivy's IaC scanner does not recognize GitHub workflow YAML;
+the obsolete scan of `.github/workflows/` is removed rather than reporting it clean.
+ShellCheck failures fail CI directly rather than generating empty SARIF reports.
+Gitleaks runs the pinned upstream binary after checksum verification, avoiding
+deprecated JavaScript action dependencies. Trivy and Cargo audit tools are pinned
+so upstream runtime changes cannot silently break the security jobs.
+The npm audit gate covers production and development dependencies at every severity;
+there is no longer a separate relaxed development threshold.
+Pytest's asynchronous fixtures use function-scoped event loops explicitly.
+Set the optional `HF_TOKEN` repository secret for authenticated public model
+downloads in CI. Without it, Hugging Face's anonymous rate-limit warning remains;
+the workflows do not suppress that warning.
+
 ## Debugging
 
 ### Python

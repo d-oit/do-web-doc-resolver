@@ -141,6 +141,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+asyncio_default_fixture_loop_scope = "function"
 markers = [
     "live: marks tests as live integration tests requiring real API keys (deselect with '-m not live')",
     "integration: marks integration tests that may require external services or built binaries",
