@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Commit-msg gate: reject a message that commitlint would fail in CI.
+#
+# Uses the root devDependency (npm install once) so the format checked here is
+# identical to ci.yml/commitlint.yml. Install with ./scripts/setup-hooks.sh.
+# Bypass: git commit --no-verify (CI still rejects the PR).
+
+set -uo pipefail
+
+MSG_FILE="${1:-}"
+if [ -z "$MSG_FILE" ] || [ ! -f "$MSG_FILE" ]; then
+    exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)" || exit 1
+cd "$REPO_ROOT" || exit 1
+
+if ! command -v npx >/dev/null 2>&1; then
+    echo "commit-msg: npx not found; skipping commitlint (CI enforces the format)." >&2
+    exit 0
+fi
+
+if ! npx --no-install commitlint --version >/dev/null 2>&1; then
+    echo "commit-msg: commitlint not installed; run 'npm install' once to lint messages locally." >&2
+    exit 0
+fi
+
+if ! npx --no-install commitlint --config commitlint.config.cjs --edit "$MSG_FILE"; then
+    echo "" >&2
+    echo "commit-msg: message rejected. Format (see AGENTS.md):" >&2
+    echo "  <type>(<scope>): <subject>" >&2
+    echo "  types: build chore ci docs feat fix perf refactor revert style test" >&2
+    echo "  scopes: resolver cli web ci docs deps security release agents test ux" >&2
+    exit 1
+fi
