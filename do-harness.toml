@@ -1,0 +1,319 @@
+# do-harness.toml - Quality loop sensor configuration for multi-runtime workspace
+
+version = "1.0"
+language = "generic"
+
+[harness]
+version = "1.0"
+language = "generic"
+
+# ------------------------------------------------------------------------------
+# Python Quality Loop
+# ------------------------------------------------------------------------------
+
+[[sensor]]
+id = "python-lint"
+name = "Python Linting & Formatting"
+description = "Runs Ruff, Black format check, and mypy type checker on Python scripts"
+command = "ruff check . && black --check . && mypy scripts/ --ignore-missing-imports"
+runner = "python"
+when_changed = [
+    "scripts/**",
+    "tests/**",
+    "pyproject.toml",
+    "requirements.txt"
+]
+when-changed = [
+    "scripts/**",
+    "tests/**",
+    "pyproject.toml",
+    "requirements.txt"
+]
+remediation = "Run `ruff check --fix .` and `black .` to fix Python formatting and lint errors."
+
+[[sensor]]
+id = "python-test"
+name = "Python Unit Tests"
+description = "Runs non-live pytest unit test suite with coverage"
+command = "python -m pytest -m \"not live and not benchmark\" --tb=short"
+runner = "pytest"
+when_changed = [
+    "scripts/**",
+    "tests/**",
+    "pyproject.toml",
+    "requirements.txt"
+]
+when-changed = [
+    "scripts/**",
+    "tests/**",
+    "pyproject.toml",
+    "requirements.txt"
+]
+remediation = "Run `python -m pytest -m \"not live\"` to debug failing Python tests locally."
+
+# ------------------------------------------------------------------------------
+# Rust CLI Quality Loop
+# ------------------------------------------------------------------------------
+
+[[sensor]]
+id = "rust-fmt"
+name = "Rust Format Check"
+description = "Checks formatting for the Rust CLI crate"
+command = "cargo fmt --manifest-path cli/Cargo.toml --check"
+runner = "cargo"
+when_changed = [
+    "cli/src/**",
+    "cli/tests/**",
+    "cli/benches/**",
+    "cli/Cargo.toml",
+    "cli/Cargo.lock"
+]
+when-changed = [
+    "cli/src/**",
+    "cli/tests/**",
+    "cli/benches/**",
+    "cli/Cargo.toml",
+    "cli/Cargo.lock"
+]
+remediation = "Run `cargo fmt --manifest-path cli/Cargo.toml` to format Rust source code."
+
+[[sensor]]
+id = "rust-clippy"
+name = "Rust Clippy Linter"
+description = "Runs Clippy linter with warnings denied on Rust CLI crate"
+command = "cargo clippy --manifest-path cli/Cargo.toml -- -D warnings"
+runner = "cargo"
+when_changed = [
+    "cli/src/**",
+    "cli/tests/**",
+    "cli/benches/**",
+    "cli/Cargo.toml",
+    "cli/Cargo.lock"
+]
+when-changed = [
+    "cli/src/**",
+    "cli/tests/**",
+    "cli/benches/**",
+    "cli/Cargo.toml",
+    "cli/Cargo.lock"
+]
+remediation = "Fix reported clippy warnings in `cli/` or run `cargo clippy --fix --manifest-path cli/Cargo.toml`."
+
+[[sensor]]
+id = "rust-test"
+name = "Rust CLI Unit Tests"
+description = "Runs unit tests for the Rust CLI crate"
+command = "cargo test --manifest-path cli/Cargo.toml"
+runner = "cargo"
+when_changed = [
+    "cli/src/**",
+    "cli/tests/**",
+    "cli/benches/**",
+    "cli/Cargo.toml",
+    "cli/Cargo.lock"
+]
+when-changed = [
+    "cli/src/**",
+    "cli/tests/**",
+    "cli/benches/**",
+    "cli/Cargo.toml",
+    "cli/Cargo.lock"
+]
+remediation = "Run `cargo test --manifest-path cli/Cargo.toml` to reproduce and fix failing Rust tests."
+
+[[sensor]]
+id = "rust-build"
+name = "Rust CLI Release Build"
+description = "Builds the Rust CLI binary in release mode"
+command = "cargo build --release --manifest-path cli/Cargo.toml"
+runner = "cargo"
+when_changed = [
+    "cli/src/**",
+    "cli/tests/**",
+    "cli/benches/**",
+    "cli/Cargo.toml",
+    "cli/Cargo.lock"
+]
+when-changed = [
+    "cli/src/**",
+    "cli/tests/**",
+    "cli/benches/**",
+    "cli/Cargo.toml",
+    "cli/Cargo.lock"
+]
+remediation = "Run `cargo check --manifest-path cli/Cargo.toml` to inspect Rust build errors."
+
+# ------------------------------------------------------------------------------
+# Web Frontend & UI Component Quality Loop
+# ------------------------------------------------------------------------------
+
+[[sensor]]
+id = "web-lint"
+name = "Web Frontend Linting"
+description = "Runs ESLint on Next.js web application"
+command = "npm --prefix web run lint"
+runner = "npm"
+when_changed = [
+    "web/**",
+    "web/package.json",
+    "web/package-lock.json"
+]
+when-changed = [
+    "web/**",
+    "web/package.json",
+    "web/package-lock.json"
+]
+remediation = "Run `npm --prefix web run lint` to fix ESLint errors in `web/`."
+
+[[sensor]]
+id = "web-typecheck"
+name = "Web Frontend Type Check"
+description = "Runs TypeScript type checker on Next.js web application"
+command = "npm --prefix web run typecheck"
+runner = "npm"
+when_changed = [
+    "web/**",
+    "web/package.json",
+    "web/package-lock.json"
+]
+when-changed = [
+    "web/**",
+    "web/package.json",
+    "web/package-lock.json"
+]
+remediation = "Run `npm --prefix web run typecheck` to fix TypeScript compilation errors."
+
+[[sensor]]
+id = "web-test"
+name = "Web Frontend Unit Tests"
+description = "Runs Vitest unit tests for web application"
+command = "npm --prefix web test"
+runner = "npm"
+when_changed = [
+    "web/**",
+    "web/package.json",
+    "web/package-lock.json"
+]
+when-changed = [
+    "web/**",
+    "web/package.json",
+    "web/package-lock.json"
+]
+remediation = "Run `npm --prefix web test` to debug failing Vitest unit tests in `web/`."
+
+[[sensor]]
+id = "cli-ui-lint"
+name = "CLI UI Design System Linting"
+description = "Runs stylelint on CSS files in CLI UI component design system"
+command = "pnpm --dir cli/ui run lint"
+runner = "pnpm"
+when_changed = [
+    "cli/ui/**",
+    "cli/ui/package.json",
+    "cli/ui/pnpm-lock.yaml"
+]
+when-changed = [
+    "cli/ui/**",
+    "cli/ui/package.json",
+    "cli/ui/pnpm-lock.yaml"
+]
+remediation = "Run `pnpm --dir cli/ui run lint` to check and fix stylelint issues in `cli/ui/`."
+
+[[sensor]]
+id = "cli-ui-test"
+name = "CLI UI CSS Validation"
+command = "pnpm --dir cli/ui run test"
+runner = "pnpm"
+when_changed = [
+    "cli/ui/**",
+    "cli/ui/package.json",
+    "cli/ui/pnpm-lock.yaml"
+]
+when-changed = [
+    "cli/ui/**",
+    "cli/ui/package.json",
+    "cli/ui/pnpm-lock.yaml"
+]
+remediation = "Run `pnpm --dir cli/ui run test` to debug CSS validation errors in `cli/ui/`."
+
+# ------------------------------------------------------------------------------
+# Cross-Cutting & Mirror Validation Loop
+# ------------------------------------------------------------------------------
+
+[[sensor]]
+id = "validate-version"
+name = "Version Synchronization Check"
+description = "Ensures semver consistency across pyproject.toml, Cargo.toml, and package.json"
+command = "python scripts/sync_versions.py"
+runner = "python"
+when_changed = [
+    "pyproject.toml",
+    "cli/Cargo.toml",
+    "web/package.json",
+    "cli/ui/package.json",
+    "scripts/sync_versions.py"
+]
+when-changed = [
+    "pyproject.toml",
+    "cli/Cargo.toml",
+    "web/package.json",
+    "cli/ui/package.json",
+    "scripts/sync_versions.py"
+]
+remediation = "Run `python scripts/sync_versions.py` to sync version strings across project manifests."
+
+[[sensor]]
+id = "validate-skill-mirror"
+name = "Skill Shadow Mirror Check"
+description = "Verifies .agents/skills/do-web-doc-resolver/scripts is synchronized with main scripts/"
+command = "python scripts/sync_skill.py --check"
+runner = "python"
+when_changed = [
+    "scripts/**",
+    ".agents/skills/do-web-doc-resolver/**",
+    "scripts/sync_skill.py"
+]
+when-changed = [
+    "scripts/**",
+    ".agents/skills/do-web-doc-resolver/**",
+    "scripts/sync_skill.py"
+]
+remediation = "Run `python scripts/sync_skill.py` to synchronize shadow skill copy with root `scripts/`."
+
+[[sensor]]
+id = "validate-symlink"
+name = "Skill Symlink Validation"
+description = "Validates integrity of skill symlinks"
+command = "python scripts/validate_skill_symlink.py"
+runner = "python"
+when_changed = [
+    ".agents/skills/**",
+    "scripts/validate_skill_symlink.py"
+]
+when-changed = [
+    ".agents/skills/**",
+    "scripts/validate_skill_symlink.py"
+]
+remediation = "Run `python scripts/validate_skill_symlink.py` to verify or restore skill symlinks."
+
+[[sensor]]
+id = "validate-docs"
+name = "Documentation Consistency Check"
+description = "Validates markdown links and document index consistency"
+command = "python scripts/validate_docs.py"
+runner = "python"
+when_changed = [
+    "docs/**",
+    "agents-docs/**",
+    "README.md",
+    "AGENTS.md",
+    "scripts/validate_docs.py"
+]
+when-changed = [
+    "docs/**",
+    "agents-docs/**",
+    "README.md",
+    "AGENTS.md",
+    "scripts/validate_docs.py"
+]
+remediation = "Run `python scripts/validate_docs.py` to identify missing or outdated documentation references."
