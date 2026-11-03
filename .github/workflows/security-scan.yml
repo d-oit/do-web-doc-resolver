@@ -87,6 +87,37 @@ jobs:
           category: trivy-fs
 
   # ============================================================================
+  # INFRASTRUCTURE AS CODE SCAN
+  # ============================================================================
+  iac-scan:
+    name: Infrastructure as Code Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Scan GitHub Actions with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: 'config'
+          version: 'v0.76.1'
+          scan-ref: '.github/workflows/'
+          severity: 'CRITICAL,HIGH'
+          format: 'sarif'
+          output: 'trivy-config-results.sarif'
+          exit-code: '0'
+          ignore-unfixed: true
+
+      - name: Upload IaC Scan SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 # v2.25.6
+        with:
+          sarif_file: trivy-config-results.sarif
+          category: trivy-config
+
+  # ============================================================================
   # DEPENDENCY AUDIT
   # ============================================================================
   dependency-audit:
@@ -194,6 +225,7 @@ jobs:
     needs:
       - shellcheck-security
       - trivy-fs
+      - iac-scan
       - dependency-audit
       - rust-security
       - secrets-scan
@@ -208,6 +240,7 @@ jobs:
           echo "Job Results:"
           echo "  • ShellCheck Security: ${{ needs.shellcheck-security.result }}"
           echo "  • Trivy Filesystem: ${{ needs.trivy-fs.result }}"
+          echo "  • IaC Scan: ${{ needs.iac-scan.result }}"
           echo "  • Dependency Audit: ${{ needs.dependency-audit.result }}"
           echo "  • Rust Security: ${{ needs.rust-security.result }}"
           echo "  • Secrets Scan: ${{ needs.secrets-scan.result }}"
@@ -215,6 +248,7 @@ jobs:
 
           if [[ "${{ needs.shellcheck-security.result }}" == "failure" ]] || \
              [[ "${{ needs.trivy-fs.result }}" == "failure" ]] || \
+             [[ "${{ needs.iac-scan.result }}" == "failure" ]] || \
              [[ "${{ needs.dependency-audit.result }}" == "failure" ]] || \
              [[ "${{ needs.rust-security.result }}" == "failure" ]] || \
              [[ "${{ needs.secrets-scan.result }}" == "failure" ]]; then
