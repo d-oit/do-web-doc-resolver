@@ -196,6 +196,8 @@ so upstream runtime changes cannot silently break the security jobs.
 The npm audit gate covers production and development dependencies at every severity;
 there is no longer a separate relaxed development threshold.
 Pytest's asynchronous fixtures use function-scoped event loops explicitly.
+CLI UI jobs install pnpm 9.15.9 directly with npm after setting up Node 22.
+This avoids the action bootstrap's pnpm 11-to-9 layout migration warning.
 Set the optional `HF_TOKEN` repository secret for authenticated public model
 downloads in CI. Without it, Hugging Face's anonymous rate-limit warning remains;
 the workflows do not suppress that warning.
