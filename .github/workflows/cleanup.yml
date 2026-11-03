@@ -23,7 +23,7 @@ permissions:
 jobs:
   detect-unused:
     name: Detect Unused Files
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       unused_files_list: ${{ steps.unused.outputs.unused_files_list }}
       raw_files: ${{ steps.unused.outputs.raw_files }}
@@ -239,7 +239,7 @@ jobs:
 
   report:
     name: Generate Report
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: detect-unused
     if: always()
     steps:

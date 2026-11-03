@@ -28,7 +28,7 @@ jobs:
   # ============================================================================
   shellcheck-security:
     name: Shell Script Security Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,7 +53,7 @@ jobs:
   # ============================================================================
   trivy-fs:
     name: Trivy Filesystem Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,7 +91,7 @@ jobs:
   # ============================================================================
   dependency-audit:
     name: Dependency Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -133,7 +133,7 @@ jobs:
   # ============================================================================
   rust-security:
     name: Rust Security Suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -166,7 +166,7 @@ jobs:
   # ============================================================================
   secrets-scan:
     name: Secret Scanning (Full History)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -189,7 +189,7 @@ jobs:
   # ============================================================================
   security-summary:
     name: Security Scan Summary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - shellcheck-security
       - trivy-fs

@@ -17,7 +17,7 @@ env:
 jobs:
   free-providers:
     name: Free Providers (Exa MCP + Jina + DDG)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: github.actor != 'dependabot[bot]'
     steps:
@@ -45,7 +45,7 @@ jobs:
 
   mistral-integration:
     name: Mistral Integration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: |
       github.actor != 'dependabot[bot]' &&
@@ -81,7 +81,7 @@ jobs:
 
   firecrawl-integration:
     name: Firecrawl Integration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: |
       github.actor != 'dependabot[bot]' &&
@@ -116,7 +116,7 @@ jobs:
 
   tavily-integration:
     name: Tavily Integration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: |
       github.actor != 'dependabot[bot]' &&
@@ -152,7 +152,7 @@ jobs:
 
   serper-integration:
     name: Serper Integration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: |
       github.actor != 'dependabot[bot]' &&
@@ -200,7 +200,7 @@ jobs:
 
   exa-integration:
     name: Exa Integration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: |
       github.actor != 'dependabot[bot]' &&

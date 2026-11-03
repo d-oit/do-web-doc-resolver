@@ -7,6 +7,7 @@
 - **Test**: make record-expiration checks independent of wall-clock timing.
 - **CLI UI**: pin pnpm, synchronize its lockfile, and repair the default button story renderer.
 - **Storybook**: remove the unused story glob; upstream eval and bundle-size warnings remain visible.
+- **CI**: pin Ubuntu runners to 24.04, avoiding the upcoming `ubuntu-latest` migration notice.
 
 ## [0.3.10] - 2026-08-11
 

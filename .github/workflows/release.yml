@@ -16,7 +16,7 @@ env:
 jobs:
   python-test:
     name: Python Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -37,7 +37,7 @@ jobs:
 
   rust-test:
     name: Rust CLI Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -77,7 +77,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             binary: do-wdr
             asset_name: do-wdr-linux-x86_64
@@ -125,7 +125,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: [build-binaries]
     permissions:
