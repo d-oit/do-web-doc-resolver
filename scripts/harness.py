@@ -77,15 +77,24 @@ def check_runner_availability(sensor: dict) -> tuple[bool, str]:
     if exe is not None:
         return True, exe
 
-    # Fallback: check if first token of command exists in PATH
-    cmd_parts = sensor.get("command", "").split()
-    if cmd_parts:
-        base_cmd = cmd_parts[0]
-        exe = shutil.which(base_cmd)
-        if exe is not None:
-            return True, exe
-
-    return False, f"Runner '{runner}' is not installed or not in PATH"
+async def _run_command(command: list[str]) -> tuple[int, str, str]:
+    """Execute an absolute executable and literal arguments; never a command shell."""
+    # Reviewed audit boundary: only repository-configured argv or fixed Git arguments.
+    # No external URL/query data reaches this call; no shell interprets its arguments.
+    # https://docs.python.org/3/library/asyncio-subprocess.html#asyncio.create_subprocess_exec
+    # nosemgrep: python.lang.security.audit.dangerous-asyncio-create-exec-audit.dangerous-asyncio-create-exec-audit
+    process = await asyncio.create_subprocess_exec(
+        *command,
+        cwd=REPO_ROOT,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate()
+    return (
+        cast(int, process.returncode),
+        stdout.decode(errors="replace"),
+        stderr.decode(errors="replace"),
+    )
 
 
 def get_changed_files() -> list[str]:

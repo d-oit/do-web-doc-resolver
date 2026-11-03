@@ -281,6 +281,22 @@ python scripts/harness.py
 python scripts/harness.py --sensor python-lint
 ```
 
+Sensor `commands` are arrays of argument arrays, not shell command strings:
+
+```toml
+commands = [["python", "-m", "pytest", "-m", "not live"]]
+```
+
+Each executable is resolved to an absolute path; `python` uses the harness's
+interpreter. Commands run in order and stop at the first failure. Shell operators,
+expansion, and redirection are not interpreted. Treat this repository configuration
+as executable code: argument arrays prevent shell injection, not execution of
+an intentionally configured program. Review custom checks before running them.
+The [dynamic-exec audit rule](https://github.com/semgrep/semgrep-rules/blob/develop/python/lang/security/audit/dangerous-asyncio-create-exec-audit.yaml)
+requires manual review of non-static arguments. This runner's inputs are limited to
+reviewed repository configuration and fixed Git arguments, never external query or
+URL data. The literal-argument regression exercises shell metacharacters and spaces.
+
 If `do-harness` or a specific runner tool is absent, run the authoritative quality gate shell script:
 
 ```bash
