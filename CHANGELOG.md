@@ -1,3 +1,11 @@
+## [Unreleased]
+
+### Fixed
+
+- **CI**: patch npm audit findings and replace deprecated commitlint dependencies.
+- **Web**: set explicit Next.js workspace roots and use native-compatible Vitest configuration.
+- **Test**: make record-expiration checks independent of wall-clock timing.
+
 ## [0.3.10] - 2026-08-11
 
 ### Added
