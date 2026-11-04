@@ -7,7 +7,9 @@
 - **Test**: make record-expiration checks independent of wall-clock timing.
 - **CLI UI**: pin pnpm, synchronize its lockfile, and repair the default button story renderer.
 - **Storybook**: remove the unused story glob; upstream eval and bundle-size warnings remain visible.
-- **CI**: pin Ubuntu runners to 24.04, avoiding the upcoming `ubuntu-latest` migration notice.
+- **CI**: pin workflow-managed Ubuntu runners to 24.04, avoiding migration notices.
+- **CLI**: update reqwest to 0.13 and use its renamed `rustls` feature.
+- **CI**: set checkout's initial branch to `main` to avoid Git's default-branch warning.
 
 ## [0.3.10] - 2026-08-11
 

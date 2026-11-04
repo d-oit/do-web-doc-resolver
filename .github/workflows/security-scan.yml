@@ -21,6 +21,9 @@ env:
   PYTHON_VERSION: '3.12'
   RUST_TOOLCHAIN: '1.89'
   NODE_VERSION: '22'
+  GIT_CONFIG_COUNT: '1'
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
 
 jobs:
   # ============================================================================

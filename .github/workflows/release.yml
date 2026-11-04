@@ -12,6 +12,9 @@ permissions:
 
 env:
   RUST_TOOLCHAIN: '1.85'
+  GIT_CONFIG_COUNT: '1'
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
 
 jobs:
   python-test:
