@@ -19,6 +19,9 @@ env:
   RUST_TOOLCHAIN: '1.85'
   NODE_VERSION: '22'
   HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  GIT_CONFIG_COUNT: '1'
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
 
 jobs:
   validate-version:
