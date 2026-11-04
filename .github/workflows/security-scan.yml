@@ -141,6 +141,12 @@ jobs:
           cd web && npm ci --legacy-peer-deps
           npm audit --audit-level=low
 
+      - name: Run npm audit (OpenCode)
+        working-directory: .opencode
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=low
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
