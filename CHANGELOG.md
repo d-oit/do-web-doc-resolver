@@ -10,6 +10,7 @@
 - **CI**: pin workflow-managed Ubuntu runners to 24.04, avoiding migration notices.
 - **CLI**: update reqwest to 0.13 and use its renamed `rustls` feature.
 - **CI**: set checkout's initial branch to `main` to avoid Git's default-branch warning.
+- **CI**: install Trivy from its checksummed GitHub release assets to bypass the unresolved `get.trivy.dev` host.
 
 ## [0.3.10] - 2026-08-11
 
