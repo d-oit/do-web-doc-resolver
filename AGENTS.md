@@ -70,6 +70,7 @@ Detailed reference material in `agents-docs/`:
 | `anti-ai-slop` | `.agents/skills/anti-ai-slop/` | Audit and fix UI, UX, and copy that reads as generic "AI slop" |
 | `codacy` | `.agents/skills/codacy/` | Query Codacy analysis, triage issues, suppress false positives |
 | `do-github-pr-sentinel` | `.agents/skills/do-github-pr-sentinel/` | Monitor a PR until merged, green, or blocked; diagnose and retry CI |
+| `do-harness` | `.agents/skills/do-harness/` | Quality loop sensors for Python, Rust, Web/UI, and cross-cutting checks |
 | `do-wdr-assets` | `.agents/skills/do-wdr-assets/` | Capture screenshots and visual assets for documentation |
 | `do-wdr-cli` | `.agents/skills/do-wdr-cli/` | Use the compiled `do-wdr` CLI to resolve URLs and queries |
 | `do-wdr-issue-impl` | `.agents/skills/do-wdr-issue-impl/` | Implement a single GitHub issue through to a merged PR |
@@ -87,57 +88,20 @@ Detailed reference material in `agents-docs/`:
 
 ### Branching & Commits
 
-```text
-<type>(<scope>): <subject>
+- Branch naming: `feat/`, `fix/`, `chore/`, `docs/`
+- Commit format: Conventional Commits (`type(scope): description`)
 
-<body: what changed and why>
+### PR Checklist
 
-<footer: BREAKING CHANGE / Refs: #123>
-```
+- Quality gate command passes: `./scripts/quality_gate.sh`
+- Lint clean (`ruff`, `black`, `cargo fmt`, `cargo clippy`, `npm run lint`)
+- No new secrets added
+- `AGENTS.md` updated if repository structure or skills change
 
-- `type` ∈ `build` `chore` `ci` `docs` `feat` `fix` `perf` `refactor` `revert` `style` `test`; always include a `scope`: `resolver` `cli` `web` `ci` `docs` `deps` `security` `release` `agents` `test` `ux`
-- `subject`: imperative mood, no trailing period, header ≤ 150 chars; `!` after the scope marks a breaking change; blank lines between sections, body/footer lines ≤ 100 chars
-- Example: `fix(resolver): retry transient 429 from Serper`, with `Refs: #682` in the footer
-- Branch naming `feat/`, `fix/`, `chore/`, `docs/`; squash WIP/fixup commits — commitlint lints every commit in the PR range, so a malformed type, scope, or subject anywhere fails CI
+### Quality Harness
 
-### Keeping an Open PR Green
-
-```bash
-git fetch origin main
-git rebase origin/main              # keep history linear; never merge main into a branch
-git commit --fixup <sha>            # stage review follow-ups as fixups
-git rebase -i --autosquash origin/main
-git push --force-with-lease         # never bare --force; never rewrite main
-```
-
-- Rebase before pushing whenever `main` moved. A release tag landing on `main` fails `validate-version` on a stale branch: rebase, then run `python scripts/sync_versions.py --set <tag-without-v>` if the manifest regressed.
-- Rebasing rewrites SHAs, so push once, then wait for CI on the new head before touching the branch again.
-- gitleaks scans full PR history: rewrite the branch locally to drop a secret. A later removal commit does not clear the failure.
-- Prefer fix-forward commits while checks run; reserve force-pushes for conflict resolution or secret removal.
-
-### Pre-Push Gate
-
-`./scripts/quality_gate.sh` covers Python, Rust and web lint/typecheck, Python/Rust tests, docs, skill symlinks, version sync and PII checks. It does **not** cover every CI gate — run the extras that match your diff. `.githooks/pre-push` automates this table by changed path; install it once with `./scripts/setup-hooks.sh`:
-
-| Diff touches | Also run |
-|---|---|
-| `scripts/**` | `python scripts/sync_skill.py` — the gate's `--check` fails until the skill mirror is refreshed |
-| `*.md` | `npx markdownlint-cli .` — the quality gate ignores markdownlint errors |
-| `*.yml`, `.github/**` | `yamllint .` and actionlint |
-| `cli/**` | `cd cli && cargo clippy --all-targets --all-features -- -D warnings && cargo bench --features semantic-cache --no-run` — the gate lints default features only |
-| `web/**` | `cd web && npm test && npm run build` |
-| `web/package*.json` | `cd web && npm ci --legacy-peer-deps` — `npm ci` fails on a stale lockfile |
-
-- Commit lockfile changes with `package.json`; no opportunistic dependency upgrades in feature PRs.
-- `npm install` once at the repo root to lint messages on every commit; check a whole range with `npm run lint:commits` (or `npx commitlint --config commitlint.config.cjs --from origin/main --to HEAD`).
-
-### PR Metadata
-
-- The PR title becomes the squash subject: valid `type(scope): description`, allowed scope, ≤ 150 chars — update it with `gh pr edit <number> --title "..."`.
-- PR body ≤ 2000 chars (hard failure); keep lines ≤ 100 chars — longer lines only warn, since the squash commit is generated text.
-- Every PR changes at least one file; a zero-file PR squashes into an empty commit
-  on `main` — report verification-only runs on the issue instead.
-- No new secrets; `AGENTS.md` updated if repository structure or skills change.
+- **Harness**: `python scripts/harness.py` (uses `do-harness.toml` path filters)
+- **Fallback**: `./scripts/quality_gate.sh`
 
 ### Test Commands
 
@@ -148,4 +112,3 @@ git push --force-with-lease         # never bare --force; never rewrite main
 ### File Limits
 
 - Source files must remain under 500 lines per file (`MAX_LINES_PER_SOURCE_FILE=500`).
-- `AGENTS.md` must stay under 150 lines (`MAX_LINES_AGENTS_MD=150`).

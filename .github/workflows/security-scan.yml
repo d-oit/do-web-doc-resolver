@@ -28,7 +28,7 @@ jobs:
   # ============================================================================
   shellcheck-security:
     name: Shell Script Security Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,7 +53,7 @@ jobs:
   # ============================================================================
   trivy-fs:
     name: Trivy Filesystem Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,12 +91,12 @@ jobs:
   # ============================================================================
   dependency-audit:
     name: Dependency Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -133,7 +133,7 @@ jobs:
   # ============================================================================
   rust-security:
     name: Rust Security Suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -144,7 +144,7 @@ jobs:
           components: clippy
 
       - name: Cache cargo
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: cli
 
@@ -157,7 +157,6 @@ jobs:
           manifest-path: ./cli/Cargo.toml
 
       - name: Run cargo outdated
-        continue-on-error: true
         run: |
           cargo install cargo-outdated --version 0.19.0 --locked
           cd cli && cargo outdated --exit-code 0
@@ -167,7 +166,7 @@ jobs:
   # ============================================================================
   secrets-scan:
     name: Secret Scanning (Full History)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -190,7 +189,7 @@ jobs:
   # ============================================================================
   security-summary:
     name: Security Scan Summary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - shellcheck-security
       - trivy-fs

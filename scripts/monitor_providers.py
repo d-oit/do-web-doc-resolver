@@ -3,8 +3,6 @@ import logging
 import os
 import re
 import sys
-import time
-from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 
@@ -22,10 +20,6 @@ TEST_URL = "https://docs.python.org/3/"
 TEST_QUERY = "Latest Python 3.13 features"
 ISSUES_FILE = "agents-docs/ISSUES.md"
 ROUTING_FILE = "scripts/routing.py"
-PROBE_ATTEMPTS = 2
-PROBE_RETRY_DELAY_SECONDS = 5
-# A total probe failure points at the runner, not providers; never rewrite routing then.
-CIRCUIT_BREAKER_MIN_PROBED = 2
 
 
 class CheckResult(Enum):
@@ -95,8 +89,6 @@ def update_routing_priority(provider_name: str):
 
 def open_github_issue(provider_name: str, issue_desc: str):
     """Open an issue on GitHub if running in CI."""
-    if os.getenv("SIMULATE_OUTAGE", "").strip().lower() in {"1", "true"}:
-        return
     token = os.getenv("GITHUB_TOKEN")
     repo = os.getenv("GITHUB_REPOSITORY")
     if not token or not repo:
@@ -356,85 +348,7 @@ def check_duckduckgo() -> tuple[CheckResult, str | None]:
         return CheckResult.FAILED, str(e)
 
 
-def probe_with_retry(
-    name: str, check_func: Callable[[], tuple[CheckResult, str | None]]
-) -> tuple[CheckResult, str | None, str | None]:
-    """Probe a provider, retrying once before declaring it failed.
-
-    A single failed request is usually transient (429, 5xx, timeout) and must not
-    deprioritize a provider. Returns the final result and error, plus the first
-    attempt's error when only a retry succeeded.
-    """
-    result, error = check_func()
-    if result != CheckResult.FAILED:
-        return result, error, None
-
-    first_error = error or "Unknown error"
-    for attempt in range(2, PROBE_ATTEMPTS + 1):
-        delay = PROBE_RETRY_DELAY_SECONDS * (attempt - 1)
-        logger.warning(
-            "%s failed on attempt %d/%d: %s; retrying in %ds",
-            name,
-            attempt - 1,
-            PROBE_ATTEMPTS,
-            first_error,
-            delay,
-        )
-        time.sleep(delay)
-        result, error = check_func()
-        if result != CheckResult.FAILED:
-            logger.info("%s recovered on attempt %d/%d", name, attempt, PROBE_ATTEMPTS)
-            return result, error, first_error
-        first_error = error or "Unknown error"
-
-    return result, error, None
-
-
-def _simulated_failure() -> tuple[CheckResult, str | None]:
-    return CheckResult.FAILED, "Simulated outage (SIMULATE_OUTAGE)"
-
-
-def _summary_value(value: str | None) -> str:
-    """Collapse whitespace so provider error bodies cannot break summary markup."""
-    return " ".join((value or "Unknown error").split())[:200]
-
-
-def write_summary(
-    recovered: list[tuple[str, str]],
-    failing: list[tuple[str, str | None]],
-    circuit_breaker: bool = False,
-) -> None:
-    """Record retried and failing probes in the GitHub Actions job summary."""
-    summary_path = os.getenv("GITHUB_STEP_SUMMARY")
-    if not summary_path:
-        return
-
-    lines = ["## Provider Monitor", ""]
-    if circuit_breaker:
-        reason = (
-            f"All {len(failing)} probed providers failed, so routing was left unchanged. "
-            "This pattern points at runner networking or DNS rather than independent "
-            "provider instability."
-        )
-        lines += ["### Circuit breaker tripped", "", reason, ""]
-    if recovered:
-        lines += ["### Recovered on retry", ""]
-        for name, note in recovered:
-            lines.append(f"- **{name}**: first probe failed ({_summary_value(note)}).")
-        lines.append("")
-    if failing:
-        lines += ["### Failed every probe", ""]
-        for name, error in failing:
-            lines.append(f"- **{name}**: {_summary_value(error)}.")
-        lines.append("")
-    if not recovered and not failing:
-        lines += ["All providers responded on the first probe.", ""]
-
-    with open(summary_path, "a") as f:
-        f.write("\n".join(lines) + "\n")
-
-
-def main() -> int:
+def main():
     checks = {
         "jina": check_jina,
         "firecrawl": check_firecrawl,
@@ -447,22 +361,10 @@ def main() -> int:
         "duckduckgo": check_duckduckgo,
     }
 
-    if os.getenv("SIMULATE_OUTAGE", "").strip().lower() in {"1", "true"}:
-        targets = {
-            n.strip().lower() for n in os.getenv("SIMULATE_PROVIDERS", "").split(",") if n.strip()
-        }
-        targets = targets & checks.keys() or set(checks)
-        logger.warning("Simulating outage for: %s", ", ".join(sorted(targets)))
-        checks = {n: _simulated_failure if n in targets else f for n, f in checks.items()}
-
     failing_providers = []
-    recovered_providers = []
-    probed_count = 0
 
     for name, check_func in checks.items():
-        result, error, retry_note = probe_with_retry(name, check_func)
-        if result != CheckResult.SKIPPED:
-            probed_count += 1
+        result, error = check_func()
         if result == CheckResult.FAILED:
             logger.error(f"{name} failed: {error}")
             failing_providers.append((name, error))
@@ -470,30 +372,15 @@ def main() -> int:
             logger.warning(f"{name} skipped: {error}")
         else:
             logger.info(f"{name} is healthy")
-        if retry_note:
-            recovered_providers.append((name, retry_note))
 
     if not failing_providers:
         logger.info("No provider failures detected.")
-        write_summary(recovered_providers, [])
-        return 0
-
-    if probed_count >= CIRCUIT_BREAKER_MIN_PROBED and len(failing_providers) == probed_count:
-        logger.error(
-            "All %d probed providers failed; treating this as a runner or network "
-            "outage and leaving routing unchanged.",
-            probed_count,
-        )
-        write_summary(recovered_providers, failing_providers, circuit_breaker=True)
-        return 1
+        return
 
     for name, error in failing_providers:
         update_routing_priority(name)
         log_issue(name, error or "Unknown error")
 
-    write_summary(recovered_providers, failing_providers)
-    return 0
-
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

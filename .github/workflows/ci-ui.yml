@@ -21,18 +21,17 @@ env:
 jobs:
   lint:
     name: Lint (cli/ui)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pinned pnpm without the self-switching bootstrap
+        run: npm install --global "pnpm@$PNPM_VERSION"
 
       - run: pnpm install --ignore-workspace
         working-directory: cli/ui
@@ -42,18 +41,17 @@ jobs:
 
   test:
     name: Unit Tests (cli/ui)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pinned pnpm without the self-switching bootstrap
+        run: npm install --global "pnpm@$PNPM_VERSION"
 
       - run: pnpm install --ignore-workspace
         working-directory: cli/ui
@@ -63,7 +61,7 @@ jobs:
 
   web-lint:
     name: Lint (web)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -82,7 +80,7 @@ jobs:
 
   web-typecheck:
     name: Typecheck (web)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -101,7 +99,7 @@ jobs:
 
   web-test:
     name: Unit Tests (web)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -120,7 +118,7 @@ jobs:
 
   web-build:
     name: Build (web)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -139,7 +137,7 @@ jobs:
 
   web-e2e:
     name: E2E Tests (web)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     needs: [web-build]
     if: github.actor != 'dependabot[bot]'
@@ -180,7 +178,7 @@ jobs:
 
   quality-gate:
     name: Quality Gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: always()
     needs: [lint, test, web-lint, web-typecheck, web-test, web-build, web-e2e]

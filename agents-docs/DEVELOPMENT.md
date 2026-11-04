@@ -196,6 +196,8 @@ so upstream runtime changes cannot silently break the security jobs.
 The npm audit gate covers production and development dependencies at every severity;
 there is no longer a separate relaxed development threshold.
 Pytest's asynchronous fixtures use function-scoped event loops explicitly.
+CLI UI jobs install pnpm 9.15.9 directly with npm after setting up Node 22.
+This avoids the action bootstrap's pnpm 11-to-9 layout migration warning.
 Set the optional `HF_TOKEN` repository secret for authenticated public model
 downloads in CI. Without it, Hugging Face's anonymous rate-limit warning remains;
 the workflows do not suppress that warning.
@@ -284,18 +286,42 @@ To verify the semantic cache performance and quality synthesis:
 - Validates skill symlinks
 - Runs quality gate
 
-### Quality Gate
+### Quality Harness & Quality Gate
+
+The multi-runtime quality workflow uses `do-harness.toml` to map changed files to targeted quality loop sensors:
 
 ```bash
-# Run all checks
-./scripts/quality_gate.sh
+# Inspect triggered sensors for changed files
+python scripts/harness.py --check
 
-# Includes:
-# - Python linting and formatting
-# - Rust clippy and fmt
-# - Python tests
-# - Rust tests
-# - Symlink validation
+# Run active sensors for changed files
+python scripts/harness.py
+
+# Run a specific sensor by ID
+python scripts/harness.py --sensor python-lint
+```
+
+Sensor `commands` are arrays of argument arrays, not shell command strings:
+
+```toml
+commands = [["python", "-m", "pytest", "-m", "not live"]]
+```
+
+Each executable is resolved to an absolute path; `python` uses the harness's
+interpreter. Commands run in order and stop at the first failure. Shell operators,
+expansion, and redirection are not interpreted. Treat this repository configuration
+as executable code: argument arrays prevent shell injection, not execution of
+an intentionally configured program. Review custom checks before running them.
+The [dynamic-exec audit rule](https://github.com/semgrep/semgrep-rules/blob/develop/python/lang/security/audit/dangerous-asyncio-create-exec-audit.yaml)
+requires manual review of non-static arguments. This runner's inputs are limited to
+reviewed repository configuration and fixed Git arguments, never external query or
+URL data. The literal-argument regression exercises shell metacharacters and spaces.
+
+If `do-harness` or a specific runner tool is absent, run the authoritative quality gate shell script:
+
+```bash
+# Run all checks unconditionally
+./scripts/quality_gate.sh
 ```
 
 ## Nightly Bridge
