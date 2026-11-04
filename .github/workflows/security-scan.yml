@@ -21,6 +21,7 @@ env:
   PYTHON_VERSION: '3.12'
   RUST_TOOLCHAIN: '1.89'
   NODE_VERSION: '22'
+  TRIVY_VERSION: 'v0.76.1'
 
 jobs:
   # ============================================================================
@@ -65,10 +66,33 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install Trivy from GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${TRIVY_VERSION#v}"
+          archive="trivy_${version}_Linux-64bit.tar.gz"
+          checksums="trivy_${version}_checksums.txt"
+          download_dir="$RUNNER_TEMP/trivy-release"
+          install_dir="$RUNNER_TEMP/trivy"
+          mkdir -p "$download_dir" "$install_dir"
+          gh release download "$TRIVY_VERSION" \
+            --repo aquasecurity/trivy \
+            --pattern "$archive" \
+            --pattern "$checksums" \
+            --dir "$download_dir"
+          (
+            cd "$download_dir"
+            sha256sum --check --ignore-missing "$checksums"
+          )
+          tar -xzf "$download_dir/$archive" -C "$install_dir" trivy
+          echo "$install_dir" >> "$GITHUB_PATH"
+
       - name: Run Trivy vulnerability scanner in fs mode
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          version: 'v0.76.1'
+          version: ${{ env.TRIVY_VERSION }}
+          skip-setup-trivy: true
           scan-type: 'fs'
           scan-ref: '.'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -114,6 +138,12 @@ jobs:
       - name: Run npm audit (web)
         run: |
           cd web && npm ci --legacy-peer-deps
+          npm audit --audit-level=low
+
+      - name: Run npm audit (OpenCode)
+        working-directory: .opencode
+        run: |
+          npm ci --ignore-scripts
           npm audit --audit-level=low
 
       - name: Set up Rust
