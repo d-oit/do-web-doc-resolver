@@ -1,0 +1,12 @@
+{
+  "name": "do-web-doc-resolver-opencode",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@opencode-ai/plugin": "1.14.48"
+  },
+  "overrides": {
+    "toml": "5.0.1",
+    "zod": "4.6.6"
+  }
+}
