@@ -21,6 +21,7 @@ env:
   PYTHON_VERSION: '3.12'
   RUST_TOOLCHAIN: '1.89'
   NODE_VERSION: '22'
+  TRIVY_VERSION: 'v0.76.1'
 
 jobs:
   # ============================================================================
@@ -54,8 +55,6 @@ jobs:
   trivy-fs:
     name: Trivy Filesystem Security Scan
     runs-on: ubuntu-24.04
-    env:
-      TRIVY_VERSION: v0.76.1
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -67,33 +66,33 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # Work around the upstream get.trivy.dev DNS failure:
-      # https://github.com/aquasecurity/trivy/discussions/11533
-      - name: Install Trivy from GitHub releases
+      - name: Install Trivy from GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          trivy_version="${TRIVY_VERSION#v}"
-          archive="trivy_${trivy_version}_Linux-64bit.tar.gz"
-          checksums="trivy_${trivy_version}_checksums.txt"
-          release_url="https://github.com/aquasecurity/trivy/releases/download"
-          curl --fail --location --silent --show-error \
-            "${release_url}/${TRIVY_VERSION}/${archive}" \
-            --output "$RUNNER_TEMP/$archive"
-          curl --fail --location --silent --show-error \
-            "${release_url}/${TRIVY_VERSION}/${checksums}" \
-            --output "$RUNNER_TEMP/$checksums"
-          cd "$RUNNER_TEMP"
-          grep -F "  ${archive}" "$checksums" | sha256sum --check --status
-          mkdir -p "$RUNNER_TEMP/trivy-bin"
-          tar -xzf "$archive" -C "$RUNNER_TEMP/trivy-bin" trivy
-          chmod +x "$RUNNER_TEMP/trivy-bin/trivy"
-          "$RUNNER_TEMP/trivy-bin/trivy" --version
-          echo "$RUNNER_TEMP/trivy-bin" >> "$GITHUB_PATH"
+          version="${TRIVY_VERSION#v}"
+          archive="trivy_${version}_Linux-64bit.tar.gz"
+          checksums="trivy_${version}_checksums.txt"
+          download_dir="$RUNNER_TEMP/trivy-release"
+          install_dir="$RUNNER_TEMP/trivy"
+          mkdir -p "$download_dir" "$install_dir"
+          gh release download "$TRIVY_VERSION" \
+            --repo aquasecurity/trivy \
+            --pattern "$archive" \
+            --pattern "$checksums" \
+            --dir "$download_dir"
+          (
+            cd "$download_dir"
+            sha256sum --check --ignore-missing "$checksums"
+          )
+          tar -xzf "$download_dir/$archive" -C "$install_dir" trivy
+          echo "$install_dir" >> "$GITHUB_PATH"
 
       - name: Run Trivy vulnerability scanner in fs mode
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: ${{ env.TRIVY_VERSION }}
-          skip-setup-trivy: 'true'
+          skip-setup-trivy: true
           scan-type: 'fs'
           scan-ref: '.'
           severity: 'CRITICAL,HIGH,MEDIUM'

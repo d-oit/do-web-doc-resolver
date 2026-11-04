@@ -2,16 +2,14 @@
 
 ### Fixed
 
+- **Security**: add a reproducible OpenCode npm manifest with patched `zod` and `toml` overrides.
+- **CI**: audit the OpenCode npm lockfile in the security workflow.
 - **CI**: patch npm audit findings and replace deprecated commitlint dependencies.
 - **Web**: set explicit Next.js workspace roots and use native-compatible Vitest configuration.
 - **Test**: make record-expiration checks independent of wall-clock timing.
 - **CLI UI**: pin pnpm, synchronize its lockfile, and repair the default button story renderer.
 - **Storybook**: remove the unused story glob; upstream eval and bundle-size warnings remain visible.
 - **CI**: pin Ubuntu runners to 24.04, avoiding the upcoming `ubuntu-latest` migration notice.
-- **Security**: add a reproducible OpenCode npm manifest with patched `zod` and `toml` overrides.
-- **CI**: fetch Trivy from checksum-verified GitHub release assets;
-  the upstream `get.trivy.dev` installer endpoint is unavailable.
-- **CI**: audit the OpenCode npm lockfile in the security workflow.
 
 ## [0.3.10] - 2026-08-11
 
