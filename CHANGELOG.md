@@ -2,6 +2,8 @@
 
 ### Fixed
 
+- **Security**: add a reproducible OpenCode npm manifest with patched `zod` and `toml` overrides.
+- **CI**: audit the OpenCode npm lockfile in the security workflow.
 - **CI**: patch npm audit findings and replace deprecated commitlint dependencies.
 - **Web**: set explicit Next.js workspace roots and use native-compatible Vitest configuration.
 - **Test**: make record-expiration checks independent of wall-clock timing.

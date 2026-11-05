@@ -95,6 +95,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: ${{ env.TRIVY_VERSION }}
+          skip-setup-trivy: true
           scan-type: 'fs'
           scan-ref: '.'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -104,7 +105,6 @@ jobs:
           ignore-unfixed: true
           trivyignores: '.trivyignore'
           skip-dirs: '.cache,.opencode'
-          skip-setup-trivy: true
 
       - name: Upload Trivy SARIF
         if: always()
@@ -141,6 +141,12 @@ jobs:
       - name: Run npm audit (web)
         run: |
           cd web && npm ci --legacy-peer-deps
+          npm audit --audit-level=low
+
+      - name: Run npm audit (OpenCode)
+        working-directory: .opencode
+        run: |
+          npm ci --ignore-scripts
           npm audit --audit-level=low
 
       - name: Set up Rust
