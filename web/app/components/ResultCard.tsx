@@ -16,15 +16,19 @@ interface ResultCardProps {
 const ResultHeader = ({ id, title, url, normalizedUrl }: { id: string; title: string; url?: string | null; normalizedUrl?: string | null }) => (
   <header className="flex flex-col gap-1">
     {url ? (
-      <a
-        id={id}
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        className="text-accent text-[15px] hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
-      >
-        {title}
-      </a>
+      <h3 className="text-[15px]">
+        <a
+          id={id}
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`${title} (opens in new tab)`}
+          className="text-accent hover:underline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+        >
+          {title}
+          <span className="sr-only"> (opens in new tab)</span>
+        </a>
+      </h3>
     ) : (
       <h3 id={id} className="text-[15px] text-foreground">
         {title}
@@ -88,9 +92,11 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
             href={safeUrl}
             target="_blank"
             rel="noreferrer"
+            aria-label={`Open ${result.title} (opens in new tab)`}
             className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
           >
             Open
+            <span className="sr-only"> (opens in new tab)</span>
           </a>
         )}
         {onHelpfulToggle && (
