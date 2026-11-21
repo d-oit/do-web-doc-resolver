@@ -1,5 +1,29 @@
 ## [Unreleased]
 
+### Added
+
+- **Harness**: adopt the native `do-harness` v0.4.7 contract with signal sets,
+  strict evidence CI, and a real-CLI dogfood regression (#715).
+- **Resolver**: context-aware query routing keys, structured attempt outcomes,
+  evidence-gated ranking, versioned persistence, and a shared evaluation
+  fixture set (#716).
+- **Resolver**: bounded alternative-source discovery with four observable
+  strategy families, provenance, verification, deduplication, and an offline
+  benchmark (#717).
+- **Docs**: ADR-019 records the Scrim security gate and the upstream proxy
+  capability required before an adapter can be enabled (#718).
+- **Ops**: `scripts/verify_state.py` checks every routing-memory and cache
+  entry, including sqlite-vec linkage.
+
+### Changed
+
+- **Harness**: remove the repository-specific Python harness runner; the
+  native CLI is authoritative and `quality_gate.sh` remains the fallback.
+- **Resolver**: routing memory persists schema v2 and migrates legacy flat
+  files and the old aggregate `query` bucket.
+- **Resolver**: discovery runs only after a failed or low-quality primary, so
+  successful resolutions pay no additional cost.
+
 ### Fixed
 
 - **Security**: add a reproducible OpenCode npm manifest with patched `zod` and `toml` overrides.

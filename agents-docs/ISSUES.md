@@ -93,6 +93,20 @@
 - **Results**: Semantic cache hit rate = 100% (5/5), Cache hit latency = 1ms (well within the < 200ms threshold), Quality synthesis score = 1.0 (exceeds the >= 0.85 threshold).
 - **Status**: Healthy. Python-Rust bridge integration operating with zero bottlenecks; embedding retrieval logic and cache redundancy pruning remain fully optimized.
 
+## Blocked: Scrim local rendering provider
+
+- **Date**: 2026-11-21
+- **Issue**: #718 proposes Scrim as an optional local JavaScript-rendering provider.
+- **Blocker**: The upstream `ureq` client uses direct HTTP/HTTPS agents, follows
+  redirects manually, and reuses the same path for subresources with no
+  documented fail-closed proxy or request-policy hook. The resolver's existing
+  SSRF checks cannot observe page-initiated subrequests in a separate process.
+- **Decision**: No subprocess adapter is added until upstream proxy enforcement
+  exists and is proven for redirects and subresources, then wrapped in an
+  isolated egress boundary.
+- **Status**: Open and blocked on upstream capability. See
+  [ADR-019](../docs/adr/ADR-019-scrim-deferred.md).
+
 ## Known Gap: session cookie is not authorization
 
 - **Date**: 2026-10-03

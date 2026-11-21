@@ -1,5 +1,7 @@
 use do_wdr_lib::routing::{ResolutionBudget, plan_provider_order};
-use do_wdr_lib::routing_memory::RoutingMemory;
+use do_wdr_lib::routing_memory::{Outcome, RoutingMemory, RoutingMode};
+
+const ROUTING_EVAL: &str = include_str!("../../tests/fixtures/routing_eval.json");
 
 #[test]
 fn test_budget_enforcement() {
@@ -138,7 +140,54 @@ fn test_volume_builds_confidence() {
 }
 
 #[test]
-fn test_latency_jitter_stability() {
+fn shared_evaluation_fixture_matches_rust() {
+    let fixture: serde_json::Value = serde_json::from_str(ROUTING_EVAL).expect("fixture");
+    let providers: Vec<String> = fixture["providers"]
+        .as_array()
+        .expect("providers")
+        .iter()
+        .map(|value| value.as_str().unwrap().to_string())
+        .collect();
+
+    for case in fixture["cases"].as_array().expect("cases") {
+        let key = case["routing_key"].as_str().expect("routing_key");
+        let mut memory = RoutingMemory::default();
+        for (provider, attempts) in case["attempts"].as_object().expect("attempts") {
+            for attempt in attempts.as_array().expect("attempt list") {
+                let outcome = match attempt[0].as_str().expect("outcome") {
+                    "success" => Outcome::Success,
+                    "low_quality" => Outcome::LowQuality,
+                    "no_result" => Outcome::NoResult,
+                    "blocked" => Outcome::Blocked,
+                    "rate_limited" => Outcome::RateLimited,
+                    "timeout" => Outcome::Timeout,
+                    "auth_error" => Outcome::AuthError,
+                    "server_error" => Outcome::ServerError,
+                    "transport_error" => Outcome::TransportError,
+                    _ => Outcome::Unknown,
+                };
+                memory.record_outcome(
+                    key,
+                    provider,
+                    outcome,
+                    attempt[2].as_u64().expect("latency"),
+                    attempt[1].as_f64().expect("quality") as f32,
+                    outcome == Outcome::Success,
+                );
+            }
+        }
+        let ranked = memory.rank_providers_mode(key, &providers, RoutingMode::Active);
+        assert_eq!(
+            ranked[0],
+            case["expected_learned_first"].as_str().unwrap(),
+            "{}",
+            case["name"].as_str().unwrap()
+        );
+    }
+}
+
+#[test]
+fn latency_jitter_stability() {
     let mut memory = RoutingMemory::default();
     let providers: Vec<String> = vec!["stable".into(), "jittery".into()];
 

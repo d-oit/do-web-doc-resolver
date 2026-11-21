@@ -1,0 +1,100 @@
+name: Do Harness
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: '3.12'
+  RUST_TOOLCHAIN: '1.85'
+  NODE_VERSION: '22'
+  PNPM_VERSION: '9.15.9'
+  DO_HARNESS_VERSION: 'v0.4.7'
+  GIT_CONFIG_COUNT: '1'
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+
+jobs:
+  verify:
+    name: Native harness verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: cli
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install web dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: web
+
+      - name: Install CLI UI dependencies
+        run: |
+          npm install --global "pnpm@$PNPM_VERSION"
+          pnpm install --ignore-workspace
+        working-directory: cli/ui
+
+      - name: Install pinned do-harness
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/d-o-hub/do-harness/${DO_HARNESS_VERSION}/scripts/install.sh" \
+            | sh -s -- --version "${DO_HARNESS_VERSION}"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Initialize harness state
+        run: do-harness init-db
+
+      - name: Run diagnostics
+        run: do-harness doctor
+
+      - name: Run native verification
+        run: |
+          mkdir -p .do-harness
+          do-harness verify --set verification --strict --format json \
+            --evidence .do-harness/evidence.json | tee .do-harness/verify-output.json
+
+      - name: Check evidence freshness
+        run: do-harness status --set verification --strict --format json \
+          --evidence .do-harness/evidence.json
+
+      - name: Upload harness evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: do-harness-evidence
+          path: .do-harness/
+          retention-days: 14

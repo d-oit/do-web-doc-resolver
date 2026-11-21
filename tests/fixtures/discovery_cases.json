@@ -1,0 +1,252 @@
+{
+  "schema_version": 2,
+  "cases": [
+    {
+      "name": "missing-llms-txt",
+      "primary_url": "https://docs.example.com/guide",
+      "final_url": null,
+      "html": "<html><head><link rel=\"canonical\" href=\"https://docs.example.com/guide/\"></head><body><a href=\"/reference/api\">API</a></body></html>",
+      "llms_txt": null,
+      "search_results": [],
+      "query": "Example async guide",
+      "validator": {
+        "https://docs.example.com/guide/": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/guide/",
+          "redirect_chain": [
+            "https://docs.example.com/guide/"
+          ]
+        },
+        "https://docs.example.com/reference/api": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/reference/api",
+          "redirect_chain": []
+        }
+      },
+      "expected_selected": "https://docs.example.com/guide",
+      "expected_relationship": "canonical",
+      "expected_nonzero_strategies": [
+        "publisher_metadata"
+      ]
+    },
+    {
+      "name": "dead-primary",
+      "primary_url": "https://docs.example.com/dead",
+      "final_url": null,
+      "html": "",
+      "llms_txt": null,
+      "search_results": [
+        {
+          "url": "https://docs.example.com/reference",
+          "title": "Official reference",
+          "snippet": "Official documentation",
+          "provider": "duckduckgo"
+        },
+        {
+          "url": "https://mirror.unknown.dev/docs",
+          "title": "Unofficial mirror",
+          "snippet": "Mirror copy",
+          "provider": "duckduckgo"
+        }
+      ],
+      "query": "Example reference",
+      "validator": {
+        "https://docs.example.com/reference": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/reference",
+          "redirect_chain": []
+        },
+        "https://mirror.unknown.dev/docs": {
+          "is_valid": true,
+          "final_url": "https://mirror.unknown.dev/docs",
+          "redirect_chain": []
+        }
+      },
+      "expected_selected": "https://docs.example.com/reference",
+      "expected_relationship": "same-publisher",
+      "expected_nonzero_strategies": [
+        "search_provider"
+      ]
+    },
+    {
+      "name": "redirect-versioned-host",
+      "primary_url": "https://docs.example.com/v1.2/api",
+      "final_url": "https://docs.example.com/stable/api",
+      "html": "<link rel=\"canonical\" href=\"https://docs.example.com/stable/api\">",
+      "llms_txt": null,
+      "search_results": [],
+      "query": "Example API",
+      "validator": {
+        "https://docs.example.com/stable/api": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/stable/api",
+          "redirect_chain": [
+            "https://docs.example.com/v1.2/api",
+            "https://docs.example.com/stable/api"
+          ]
+        }
+      },
+      "expected_selected": "https://docs.example.com/stable/api",
+      "expected_relationship": "canonical",
+      "expected_nonzero_strategies": [
+        "publisher_metadata",
+        "versioned_docs"
+      ]
+    },
+    {
+      "name": "stale-version",
+      "primary_url": "https://docs.example.com/docs/1.4/guide",
+      "final_url": null,
+      "html": "<link rel=\"canonical\" href=\"https://docs.example.com/docs/1.4/guide\">",
+      "llms_txt": null,
+      "search_results": [],
+      "query": "Example guide",
+      "validator": {
+        "https://docs.example.com/docs/1.4/guide": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/docs/1.4/guide",
+          "redirect_chain": []
+        },
+        "https://docs.example.com/docs/stable/guide": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/docs/stable/guide",
+          "redirect_chain": []
+        },
+        "https://docs.example.com/docs/latest/guide": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/docs/latest/guide",
+          "redirect_chain": []
+        },
+        "https://docs.example.com/docs/guide": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/docs/guide",
+          "redirect_chain": []
+        }
+      },
+      "expected_selected": "https://docs.example.com/docs/stable/guide",
+      "expected_relationship": "canonical",
+      "expected_nonzero_strategies": [
+        "publisher_metadata",
+        "versioned_docs"
+      ]
+    },
+    {
+      "name": "js-rendered",
+      "primary_url": "https://docs.example.com/app",
+      "final_url": null,
+      "html": "<html><body><div id=\"root\"></div><script src=\"/app.js\"></script></body></html>",
+      "llms_txt": null,
+      "search_results": [
+        {
+          "url": "https://docs.example.com/app/guide",
+          "title": "Example guide",
+          "snippet": "Rendered guide",
+          "provider": "duckduckgo"
+        }
+      ],
+      "query": "Example app guide",
+      "validator": {
+        "https://docs.example.com/app/guide": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/app/guide",
+          "redirect_chain": []
+        }
+      },
+      "expected_selected": "https://docs.example.com/app/guide",
+      "expected_relationship": "same-publisher",
+      "expected_nonzero_strategies": [
+        "search_provider"
+      ]
+    },
+    {
+      "name": "official-repository",
+      "primary_url": "https://docs.example.com/lib",
+      "final_url": null,
+      "html": "<a href=\"https://github.com/example/lib\">Source</a><a href=\"https://crates.io/crates/example-lib\">Crate</a>",
+      "llms_txt": null,
+      "search_results": [],
+      "query": "example lib source",
+      "validator": {
+        "https://github.com/example/lib": {
+          "is_valid": true,
+          "final_url": "https://github.com/example/lib",
+          "redirect_chain": []
+        },
+        "https://crates.io/crates/example-lib": {
+          "is_valid": true,
+          "final_url": "https://crates.io/crates/example-lib",
+          "redirect_chain": []
+        }
+      },
+      "expected_selected": "https://github.com/example/lib",
+      "expected_relationship": "official-repository",
+      "expected_nonzero_strategies": [
+        "official_repository"
+      ]
+    },
+    {
+      "name": "unofficial-mirror",
+      "primary_url": "https://docs.example.com/api",
+      "final_url": null,
+      "html": "<link rel=\"canonical\" href=\"https://docs.example.com/api\">",
+      "llms_txt": null,
+      "search_results": [
+        {
+          "url": "https://mirror.unknown.dev/api",
+          "title": "Example API mirror",
+          "snippet": "Fast mirror",
+          "provider": "duckduckgo"
+        }
+      ],
+      "query": "Example API reference",
+      "validator": {
+        "https://docs.example.com/api": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/api",
+          "redirect_chain": []
+        },
+        "https://mirror.unknown.dev/api": {
+          "is_valid": true,
+          "final_url": "https://mirror.unknown.dev/api",
+          "redirect_chain": []
+        }
+      },
+      "expected_selected": "https://docs.example.com/api",
+      "expected_relationship": "canonical",
+      "expected_nonzero_strategies": [
+        "publisher_metadata",
+        "search_provider"
+      ]
+    },
+    {
+      "name": "duplicates",
+      "primary_url": "https://docs.example.com/start",
+      "final_url": null,
+      "html": "<link rel=\"canonical\" href=\"https://docs.example.com/start\"><link rel=\"alternate\" href=\"https://docs.example.com/start\">",
+      "llms_txt": "[Guide](https://docs.example.com/start)\n[Guide again](https://docs.example.com/start)",
+      "search_results": [
+        {
+          "url": "https://docs.example.com/start",
+          "title": "Start",
+          "snippet": "Start",
+          "provider": "duckduckgo"
+        }
+      ],
+      "query": "example start",
+      "validator": {
+        "https://docs.example.com/start": {
+          "is_valid": true,
+          "final_url": "https://docs.example.com/start",
+          "redirect_chain": []
+        }
+      },
+      "expected_selected": "https://docs.example.com/start",
+      "expected_relationship": "canonical",
+      "expected_nonzero_strategies": [
+        "publisher_metadata",
+        "search_provider"
+      ],
+      "minimum_duplicates": 2
+    }
+  ]
+}

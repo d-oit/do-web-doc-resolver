@@ -8,6 +8,7 @@ from typing import Any
 
 import scripts.routing
 from scripts._cascade_async import cascade_stream_async
+from scripts._url_resolve import _try_discovery
 from scripts.constants import PROVIDER_TIERS
 from scripts.models import FetchTier, Profile, ProviderType, ResolvedResult, ResolveMetrics
 from scripts.providers.jina import resolve_with_jina_async
@@ -150,6 +151,7 @@ async def resolve_url_stream_async(
                 "score": score,
             }
 
+    final_result: dict[str, Any] | None = None
     async for result in cascade_stream_async(
         target=url,
         cascade_map=cascade_map,
@@ -166,7 +168,19 @@ async def resolve_url_stream_async(
         # No relevance query: URL resolution targets the page itself, and the
         # optional context query is not expected to appear verbatim in it.
     ):
-        yield result
+        if final_result is not None:
+            yield final_result
+        final_result = result
+
+    if final_result is None:
+        final_result = {
+            "source": "none",
+            "url": url,
+            "content": "Failed",
+            "error": f"No resolution method available. Stop reason: {budget.stop_reason}",
+        }
+    discovered = await asyncio.to_thread(_try_discovery, url, query, max_chars, final_result)
+    yield discovered or final_result
 
 
 def _check_semantic_cache(query_or_url: str) -> dict[str, Any] | None:

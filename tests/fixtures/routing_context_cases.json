@@ -1,0 +1,149 @@
+{
+  "schema_version": 2,
+  "cases": [
+    {
+      "query": "Rust API reference for tokio::spawn",
+      "intent": "api_reference",
+      "topic": "rust",
+      "language": "rust",
+      "platform": "none",
+      "routing_key": "q:v2:api_reference:rust:rust:none"
+    },
+    {
+      "query": "Fix Kubernetes CrashLoopBackOff error",
+      "intent": "troubleshooting",
+      "topic": "kubernetes",
+      "language": "na",
+      "platform": "none",
+      "routing_key": "q:v2:troubleshooting:kubernetes:na:none"
+    },
+    {
+      "query": "Next.js 15 migration guide",
+      "intent": "release",
+      "topic": "nextjs",
+      "language": "typescript",
+      "platform": "none",
+      "routing_key": "q:v2:release:nextjs:typescript:none"
+    },
+    {
+      "query": "npm install express",
+      "intent": "package",
+      "topic": "nodejs",
+      "language": "javascript",
+      "platform": "npm",
+      "routing_key": "q:v2:package:nodejs:javascript:npm"
+    },
+    {
+      "query": "compare React vs Vue performance",
+      "intent": "comparison",
+      "topic": "react",
+      "language": "typescript",
+      "platform": "none",
+      "routing_key": "q:v2:comparison:react:typescript:none"
+    },
+    {
+      "query": "PostgreSQL 17 release notes",
+      "intent": "release",
+      "topic": "postgresql",
+      "language": "na",
+      "platform": "none",
+      "routing_key": "q:v2:release:postgresql:na:none"
+    },
+    {
+      "query": "GitHub Actions workflow syntax",
+      "intent": "general",
+      "topic": "github",
+      "language": "na",
+      "platform": "github",
+      "routing_key": "q:v2:general:github:na:github"
+    },
+    {
+      "query": "Stack Overflow Python list comprehension",
+      "intent": "general",
+      "topic": "python",
+      "language": "python",
+      "platform": "stackoverflow",
+      "routing_key": "q:v2:general:python:python:stackoverflow"
+    },
+    {
+      "query": "How to debug Rust async timeout",
+      "intent": "troubleshooting",
+      "topic": "rust",
+      "language": "rust",
+      "platform": "none",
+      "routing_key": "q:v2:troubleshooting:rust:rust:none"
+    },
+    {
+      "query": "docs.rs tokio",
+      "intent": "general",
+      "topic": "rust",
+      "language": "rust",
+      "platform": "docsrs",
+      "routing_key": "q:v2:general:rust:rust:docsrs"
+    },
+    {
+      "query": "crates.io serde version",
+      "intent": "release",
+      "topic": "rust",
+      "language": "rust",
+      "platform": "cratesio",
+      "routing_key": "q:v2:release:rust:rust:cratesio"
+    },
+    {
+      "query": "AWS S3 presigned URL example",
+      "intent": "documentation",
+      "topic": "aws",
+      "language": "na",
+      "platform": "none",
+      "routing_key": "q:v2:documentation:aws:na:none"
+    },
+    {
+      "query": "TypeScript generic function signature",
+      "intent": "api_reference",
+      "topic": "typescript",
+      "language": "typescript",
+      "platform": "none",
+      "routing_key": "q:v2:api_reference:typescript:typescript:none"
+    },
+    {
+      "query": "Docker compose vs Kubernetes",
+      "intent": "comparison",
+      "topic": "docker",
+      "language": "na",
+      "platform": "none",
+      "routing_key": "q:v2:comparison:docker:na:none"
+    },
+    {
+      "query": "OpenAI API rate limit error",
+      "intent": "troubleshooting",
+      "topic": "llm",
+      "language": "na",
+      "platform": "none",
+      "routing_key": "q:v2:troubleshooting:llm:na:none"
+    },
+    {
+      "query": "how to install python package",
+      "intent": "package",
+      "topic": "python",
+      "language": "python",
+      "platform": "none",
+      "routing_key": "q:v2:package:python:python:none"
+    },
+    {
+      "query": "React documentation",
+      "intent": "documentation",
+      "topic": "react",
+      "language": "typescript",
+      "platform": "none",
+      "routing_key": "q:v2:documentation:react:typescript:none"
+    },
+    {
+      "query": "Python dataclasses tutorial",
+      "intent": "documentation",
+      "topic": "python",
+      "language": "python",
+      "platform": "none",
+      "routing_key": "q:v2:documentation:python:python:none"
+    }
+  ]
+}

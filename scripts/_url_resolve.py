@@ -8,6 +8,8 @@ from typing import Any
 import scripts.routing
 from scripts._cascade import cascade_stream
 from scripts.constants import PROVIDER_TIERS
+from scripts.discovery import should_discover
+from scripts.discovery_live import fallback_result
 from scripts.models import (
     FetchTier,
     Profile,
@@ -96,6 +98,25 @@ def resolve_url(
         if result.get("source") != "partial":
             return result
     return {"source": "none", "url": url, "content": "Failed"}
+
+
+def _try_discovery(
+    url: str,
+    query: str | None,
+    max_chars: int,
+    primary: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Run bounded discovery only after a failed/low-quality primary."""
+    if not should_discover(primary):
+        return None
+    try:
+        fallback = fallback_result(url, query=query, max_chars=max_chars)
+    except Exception as error:  # noqa: BLE001 - discovery must not break resolution
+        logger.warning("Discovery fallback failed for %s: %s", url, error)
+        return None
+    if fallback and float(fallback.get("score") or 0.0) > float(primary.get("score") or 0.0):
+        return fallback
+    return None
 
 
 def resolve_url_stream(
@@ -196,7 +217,8 @@ def resolve_url_stream(
                 "score": score,
             }
 
-    yield from cascade_stream(
+    final_result: dict[str, Any] | None = None
+    for result in cascade_stream(
         target=url,
         cascade_map=cascade_map,
         eligible=eligible,
@@ -211,4 +233,19 @@ def resolve_url_stream(
         target_key="url",
         # No relevance query: URL resolution targets the page itself, and the
         # optional context query is not expected to appear verbatim in it.
-    )
+    ):
+        # Preserve streaming semantics: only the final result can be replaced
+        # by discovery, so earlier partials are emitted as they arrive.
+        if final_result is not None:
+            yield final_result
+        final_result = result
+
+    if final_result is None:
+        final_result = {
+            "source": "none",
+            "url": url,
+            "content": "Failed",
+            "error": f"No resolution method available. Stop reason: {budget.stop_reason}",
+        }
+    discovered = _try_discovery(url, query, max_chars, final_result)
+    yield discovered or final_result

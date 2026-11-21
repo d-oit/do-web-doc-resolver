@@ -9,6 +9,7 @@ from scripts._query_resolve import (
     resolve_query_stream,
 )
 from scripts.models import Profile
+from scripts.routing_context import query_routing_key
 
 
 class TestCheckSemanticCache:
@@ -132,7 +133,7 @@ class TestResolveQueryStream:
         mock_cascade.assert_called_once()
         call_kwargs = mock_cascade.call_args.kwargs
         assert call_kwargs["target"] == "python async"
-        assert call_kwargs["routing_key"] == "python async"
+        assert call_kwargs["routing_key"] == query_routing_key("python async")
         assert len(results) == 1
         assert results[0]["source"] == "exa"
 
@@ -399,7 +400,7 @@ class TestResolveQueryEdgeCases:
         mock_cascade.assert_called_once()
         call_kwargs = mock_cascade.call_args.kwargs
         assert call_kwargs["target"] == "python async"
-        assert call_kwargs["routing_key"] == "python async"
+        assert call_kwargs["routing_key"] == query_routing_key("python async")
 
     @patch("scripts._query_resolve._store_in_semantic_cache", return_value=False)
     @patch("scripts._query_resolve._check_semantic_cache", return_value=None)

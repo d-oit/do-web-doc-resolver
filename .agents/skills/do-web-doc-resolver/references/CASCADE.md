@@ -78,15 +78,29 @@ The resolver uses adaptive hedging to minimize latency:
 
 1. **P75 Latency Threshold**: If a provider hasn't responded within its learned P75 latency, the next provider is started in parallel.
 
-2. **Routing Memory**: Per-domain provider performance is tracked:
-   - Success rate
-   - Average latency
-   - Average quality score
+2. **Routing Memory**: URL/domain performance is tracked per provider, while
+   queries use bounded context keys such as
+   `q:v2:api_reference:rust:rust:none`.
+   - Success rate, average latency, and average quality are recorded.
+   - Transport outcomes (`blocked`, `rate_limited`, `timeout`, `auth_error`,
+     `server_error`) are separate from `low_quality` content.
+   - Query learning is `shadow` by default; `DO_WDR_ROUTING_MODE=active`
+     enables the evidence-gated ranking after at least three content attempts.
 
-3. **Provider Ranking**: Providers are ranked by:
-   - Success rate (higher is better)
-   - Quality score (higher is better)
-   - Latency (lower is better)
+3. **Provider Ranking**: URL providers are ranked by success rate, quality,
+   latency, and recency. Query providers blend the learned component with a
+   small static prior and an availability discount, so cold start preserves
+   the static order.
+
+## Alternative-Source Discovery
+
+When the primary URL fails or scores below the acceptance threshold, a bounded
+discovery phase can propose alternatives from publisher metadata,
+official repositories, versioned documentation paths, and normalized search
+results. Each candidate carries provenance, a verification state, and separate
+authority/relevance/freshness scores. Discovery is skipped for successful
+primaries and capped at two extractions by default. Use
+`DO_WDR_DISCOVERY=0` to disable it.
 
 ## Skip Providers
 
