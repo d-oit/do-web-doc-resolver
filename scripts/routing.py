@@ -8,6 +8,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
+from scripts.routing_context import routing_key_for
 from scripts.routing_memory import RoutingMemory
 
 logger = logging.getLogger(__name__)
@@ -238,8 +239,9 @@ def plan_provider_order(
 
     skip_providers = skip_providers or set()
 
-    domain = extract_domain(target) if is_url else "query"
+    domain = routing_key_for(target, is_url=is_url)
     if domain and routing_memory:
         base = routing_memory.rank_providers(domain, base)
+        logger.debug("Routing key %s -> %s", domain, base)
 
     return [p for p in base if p not in skip_providers]

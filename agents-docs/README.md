@@ -11,6 +11,8 @@ For a high-level guide on integrating the resolver as an agent skill, please ref
 - **[DEVELOPMENT.md](DEVELOPMENT.md)**: Local setup, quality gate instructions, and maintenance tasks.
 - **[DEPLOYMENT.md](DEPLOYMENT.md)**: Deployment strategies and CI/CD pipelines.
 - **[RELEASES.md](RELEASES.md)**: Versioning policy and release procedures.
+- **[ROUTING.md](ROUTING.md)**: Context-aware query routing, outcome semantics, migration, and evaluation.
+- **[DISCOVERY.md](DISCOVERY.md)**: Alternative-source strategies, provenance, verification, and benchmark.
 - **[SEMANTIC_HEALTH.md](SEMANTIC_HEALTH.md)**: Metrics and standards for LLM-ready output quality.
 - **[ASSETS.md](ASSETS.md)**: Management of screenshots and visual documentation.
 - **[ISSUES.md](ISSUES.md)**: Known issues and technical debt tracking.

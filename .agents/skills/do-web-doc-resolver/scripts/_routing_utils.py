@@ -1,17 +1,14 @@
 import logging
 
-logger = logging.getLogger(__name__)
+from scripts.routing_outcomes import DEFAULT_PROVIDER_STATS
 
-DEFAULT_PROVIDER_STATS = {
-    "success": 0,
-    "failure": 0,
-    "avg_latency_ms": 0.0,
-    "avg_quality": 0.0,
-    "last_attempted": None,
-}
+logger = logging.getLogger(__name__)
 
 
 def compute_p75_latency(avg_latency_ms: float, default: int = 3000) -> int:
     if avg_latency_ms == 0:
         return default
     return int(avg_latency_ms * 1.5)
+
+
+__all__ = ["DEFAULT_PROVIDER_STATS", "compute_p75_latency", "logger"]

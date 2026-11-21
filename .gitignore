@@ -230,6 +230,7 @@ test-results/
 
 # Runtime state
 .do_wdr_state.toml
+.do-harness/
 videos/
 
 # Semantic Cache

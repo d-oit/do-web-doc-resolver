@@ -28,7 +28,10 @@ class MemoryCache:
 
 
 @pytest.fixture(autouse=True)
-def setup_test_env():
+def setup_test_env(monkeypatch):
+    # Discovery performs live HTTP on failed primaries; unit tests opt in only
+    # in tests/test_discovery.py where it is exercised with injected fakes.
+    monkeypatch.setenv("DO_WDR_DISCOVERY", "0")
     # Fresh cache for every test to avoid cross-test contamination
     cache = MemoryCache()
 

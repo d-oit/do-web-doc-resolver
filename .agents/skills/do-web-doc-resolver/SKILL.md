@@ -23,6 +23,7 @@ Activate this skill when you need to:
 - Access quality scoring and content validation features
 - Use circuit breaker patterns for provider reliability
 - Leverage routing memory for learned provider preferences
+- Recover failed or low-quality URLs through bounded alternative-source discovery
 - Run as a CLI tool or import as a Python module
 
 ## Prerequisites

@@ -17,7 +17,8 @@ use crate::providers::{
 };
 use crate::quality::score_content;
 use crate::routing::plan_provider_order;
-use crate::routing_memory::RoutingMemory;
+use crate::routing_context::query_routing_key;
+use crate::routing_memory::{Outcome, RoutingMemory};
 use crate::semantic_cache::SemanticCache;
 use crate::types::{ProviderType, ResolvedResult, RoutingDecision};
 use std::collections::HashMap;
@@ -124,6 +125,7 @@ impl QueryCascade {
         let mut budget = build_budget(config, &profile_defaults);
         let mut routing_decisions = Vec::new();
         let mut best_free_result: Option<ResolvedResult> = None;
+        let routing_key = query_routing_key(query);
 
         let planned = {
             let routing_memory = routing_memory.read().await;
@@ -339,7 +341,14 @@ impl QueryCascade {
                         }
                         if !config.disable_routing_memory {
                             let mut rm = routing_memory.write().await;
-                            rm.record("", &provider.name, true, latency, quality.score);
+                            rm.record_outcome(
+                                &routing_key,
+                                &provider.name,
+                                Outcome::Success,
+                                latency,
+                                quality.score,
+                                true,
+                            );
                         }
                         if let Some(cache) = cache {
                             let _ = cache.store(query, &results, &first.source).await;
@@ -376,7 +385,14 @@ impl QueryCascade {
                         .await;
                         if !config.disable_routing_memory {
                             let mut rm = routing_memory.write().await;
-                            rm.record("", &provider.name, false, latency, quality.score);
+                            rm.record_outcome(
+                                &routing_key,
+                                &provider.name,
+                                Outcome::LowQuality,
+                                latency,
+                                quality.score,
+                                false,
+                            );
                         }
                     }
                 }
@@ -404,6 +420,17 @@ impl QueryCascade {
                         circuit_open: false,
                         paid_provider: provider.is_paid,
                     });
+                    if !config.disable_routing_memory {
+                        let mut rm = routing_memory.write().await;
+                        rm.record_outcome(
+                            &routing_key,
+                            &provider.name,
+                            Outcome::NoResult,
+                            latency,
+                            0.0,
+                            false,
+                        );
+                    }
                 }
                 Err(err) => {
                     let reason = classify_error(&err);
@@ -430,6 +457,18 @@ impl QueryCascade {
                         circuit_open: false,
                         paid_provider: provider.is_paid,
                     });
+
+                    if !config.disable_routing_memory {
+                        let mut rm = routing_memory.write().await;
+                        rm.record_outcome(
+                            &routing_key,
+                            &provider.name,
+                            Outcome::from_reason(&reason),
+                            latency,
+                            0.0,
+                            false,
+                        );
+                    }
 
                     if matches!(reason.as_str(), "timeout" | "provider_5xx" | "rate_limited") {
                         let mut cb = circuit_breakers.write().await;

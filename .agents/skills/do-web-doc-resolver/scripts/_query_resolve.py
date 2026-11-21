@@ -129,6 +129,6 @@ def resolve_query_stream(
         routing_memory=_routing_memory,
         circuit_breakers=_circuit_breakers,
         semantic_cache_store=_store_in_semantic_cache,
-        routing_key=query,
+        routing_key=scripts.routing.routing_key_for(query, is_url=False),
         relevance_query=query,
     )

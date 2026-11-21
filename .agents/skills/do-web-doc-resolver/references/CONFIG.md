@@ -11,6 +11,10 @@
 | `WEB_RESOLVER_TIMEOUT` | `30` | HTTP request timeout in seconds |
 | `WEB_RESOLVER_CACHE_DIR` | `~/.cache/do-web-doc-resolver` | Cache directory path |
 | `WEB_RESOLVER_CACHE_TTL` | `86400` | Cache TTL in seconds (default: 24h) |
+| `DO_WDR_ROUTING_MEMORY_PATH` | unset | Persist routing memory to this JSON file |
+| `DO_WDR_ROUTING_MODE` | `shadow` | Query routing: `shadow`, `active`, or `off` |
+| `DO_WDR_DISCOVERY` | `1` | Enable bounded alternative-source fallback |
+| `DO_WDR_DISCOVERY_SEARCH` | `1` | Allow the live search discovery strategy |
 
 ### Provider Limits
 

@@ -1,323 +1,281 @@
-# do-harness.toml - Quality loop sensor configuration for multi-runtime workspace
-
-version = "1.0"
+# do-harness.toml — native do-harness v0.4.x contract for the mixed
+# Python / Rust / Node workspace. The compiled CLI is authoritative; see
+# AGENTS.md and .agents/skills/do-harness/SKILL.md.
 language = "generic"
+# Sequential by default: clippy/test/build share one Cargo target directory,
+# and concurrent Python/Node sensors make failure evidence harder to attribute.
+jobs = 1
 
-[harness]
-version = "1.0"
-language = "generic"
-
-# ------------------------------------------------------------------------------
-# Python Quality Loop
-# ------------------------------------------------------------------------------
-
-[[sensor]]
-id = "python-lint"
-name = "Python Linting & Formatting"
-description = "Runs Ruff, Black format check, and mypy type checker on Python scripts"
-commands = [
-    ["ruff", "check", "."],
-    ["black", "--check", "."],
-    ["mypy", "scripts/", "--ignore-missing-imports"],
+[hooks]
+pre-commit = [
+  "python-lint",
+  "python-format",
+  "rust-fmt",
+  "web-lint",
+  "validate-version",
+  "validate-skill-mirror",
+  "validate-symlink",
 ]
-runner = "python"
-when_changed = [
-    "scripts/**",
-    "tests/**",
-    "pyproject.toml",
-    "requirements.txt"
+pre-push = [
+  "python-lint",
+  "python-format",
+  "python-typecheck",
+  "python-test",
+  "rust-fmt",
+  "rust-clippy",
+  "rust-test",
+  "web-lint",
+  "web-typecheck",
+  "web-test",
+  "cli-ui-lint",
+  "cli-ui-test",
+  "validate-version",
+  "validate-skill-mirror",
+  "validate-symlink",
+  "validate-docs",
+]
+
+# Decision-oriented signal sets. A set names sensors; it never embeds a
+# command line. `feedback` is the fast local loop, `verification` is the full
+# pre-merge gate, and `release` is the heavier packaging gate.
+[signal-sets]
+feedback = [
+  "python-lint",
+  "python-format",
+  "rust-fmt",
+  "web-lint",
+  "web-typecheck",
+  "validate-version",
+  "validate-skill-mirror",
+  "validate-symlink",
+  "validate-docs",
+]
+verification = [
+  "python-lint",
+  "python-format",
+  "python-typecheck",
+  "python-test",
+  "rust-fmt",
+  "rust-clippy",
+  "rust-test",
+  "rust-build",
+  "web-lint",
+  "web-typecheck",
+  "web-test",
+  "web-build",
+  "cli-ui-lint",
+  "cli-ui-test",
+  "validate-version",
+  "validate-skill-mirror",
+  "validate-symlink",
+  "validate-docs",
+]
+release = [
+  "python-test",
+  "rust-test",
+  "rust-build",
+  "web-test",
+  "web-build",
+  "validate-version",
+  "validate-skill-mirror",
+]
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+
+[[sensors]]
+name = "python-lint"
+argv = ["python", "-m", "ruff", "check", "."]
+when-changed = ["scripts/**", "tests/**", "pyproject.toml", "requirements.txt"]
+inputs = ["scripts/**/*.py", "tests/**/*.py", "tests/fixtures/**", "pyproject.toml", "requirements.txt"]
+timeout = 600
+fix = "Run `python -m ruff check . --fix` and review the remaining findings."
+
+[[sensors]]
+name = "python-format"
+argv = ["python", "-m", "black", "--check", "."]
+when-changed = ["scripts/**", "tests/**", "pyproject.toml"]
+inputs = ["scripts/**/*.py", "tests/**/*.py", "pyproject.toml"]
+timeout = 600
+fix = "Run `python -m black .`."
+
+[[sensors]]
+name = "python-typecheck"
+argv = ["python", "-m", "mypy", "scripts/", "--ignore-missing-imports"]
+when-changed = ["scripts/**", "mypy.ini", "pyproject.toml"]
+inputs = ["scripts/**/*.py", "mypy.ini", "pyproject.toml"]
+timeout = 900
+fix = "Add or correct type annotations; do not replace real types with `Any`."
+
+[[sensors]]
+name = "python-test"
+argv = ["python", "-m", "pytest", "-m", "not live and not benchmark", "--tb=short"]
+when-changed = ["scripts/**", "tests/**", "pyproject.toml", "requirements.txt"]
+inputs = ["scripts/**/*.py", "tests/**/*.py", "tests/fixtures/**", "pyproject.toml", "requirements.txt"]
+timeout = 1800
+fix = "Run the failing test directly with `python -m pytest tests/test_<name>.py -x`."
+
+# ---------------------------------------------------------------------------
+# Rust CLI
+# ---------------------------------------------------------------------------
+
+[[sensors]]
+name = "rust-fmt"
+argv = ["cargo", "fmt", "--manifest-path", "cli/Cargo.toml", "--check"]
+when-changed = [
+  "cli/src/**",
+  "cli/tests/**",
+  "cli/benches/**",
+  "cli/Cargo.toml",
+  "cli/Cargo.lock",
+]
+inputs = ["cli/src/**", "cli/tests/**", "cli/benches/**", "cli/Cargo.toml", "cli/Cargo.lock"]
+timeout = 600
+fix = "Run `cargo fmt --manifest-path cli/Cargo.toml`."
+
+[[sensors]]
+name = "rust-clippy"
+argv = [
+  "cargo",
+  "clippy",
+  "--manifest-path",
+  "cli/Cargo.toml",
+  "--all-targets",
+  "--all-features",
+  "--",
+  "-D",
+  "warnings",
 ]
 when-changed = [
-    "scripts/**",
-    "tests/**",
-    "pyproject.toml",
-    "requirements.txt"
+  "cli/src/**",
+  "cli/tests/**",
+  "cli/benches/**",
+  "cli/Cargo.toml",
+  "cli/Cargo.lock",
 ]
-remediation = "Run `ruff check --fix .` and `black .` to fix Python formatting and lint errors."
+inputs = ["cli/src/**", "cli/tests/**", "cli/benches/**", "cli/Cargo.toml", "cli/Cargo.lock"]
+timeout = 1800
+fix = "Fix the reported Clippy diagnostic; do not add blanket `allow` attributes."
 
-[[sensor]]
-id = "python-test"
-name = "Python Unit Tests"
-description = "Runs non-live pytest unit test suite with coverage"
-commands = [["python", "-m", "pytest", "-m", "not live and not benchmark", "--tb=short"]]
-runner = "pytest"
-when_changed = [
-    "scripts/**",
-    "tests/**",
-    "pyproject.toml",
-    "requirements.txt"
-]
+[[sensors]]
+name = "rust-test"
+argv = ["cargo", "test", "--manifest-path", "cli/Cargo.toml"]
 when-changed = [
-    "scripts/**",
-    "tests/**",
-    "pyproject.toml",
-    "requirements.txt"
+  "cli/src/**",
+  "cli/tests/**",
+  "cli/benches/**",
+  "cli/Cargo.toml",
+  "cli/Cargo.lock",
 ]
-remediation = "Run `python -m pytest -m \"not live\"` to debug failing Python tests locally."
+inputs = ["cli/src/**", "cli/tests/**", "cli/benches/**", "cli/Cargo.toml", "cli/Cargo.lock"]
+timeout = 1800
+fix = "Run `cargo test --manifest-path cli/Cargo.toml` to reproduce the failure."
 
-# ------------------------------------------------------------------------------
-# Rust CLI Quality Loop
-# ------------------------------------------------------------------------------
+[[sensors]]
+name = "rust-build"
+argv = ["cargo", "build", "--release", "--manifest-path", "cli/Cargo.toml"]
+when-changed = ["cli/src/**", "cli/Cargo.toml", "cli/Cargo.lock"]
+inputs = ["cli/src/**", "cli/Cargo.toml", "cli/Cargo.lock"]
+timeout = 1800
+fix = "Run `cargo check --manifest-path cli/Cargo.toml` and fix the compiler error."
 
-[[sensor]]
-id = "rust-fmt"
-name = "Rust Format Check"
-description = "Checks formatting for the Rust CLI crate"
-commands = [["cargo", "fmt", "--manifest-path", "cli/Cargo.toml", "--check"]]
-runner = "cargo"
-when_changed = [
-    "cli/src/**",
-    "cli/tests/**",
-    "cli/benches/**",
-    "cli/Cargo.toml",
-    "cli/Cargo.lock"
-]
+# ---------------------------------------------------------------------------
+# Web and CLI UI
+# ---------------------------------------------------------------------------
+
+[[sensors]]
+name = "web-lint"
+argv = ["npm", "--prefix", "web", "run", "lint"]
+when-changed = ["web/**", "web/package.json", "web/package-lock.json"]
+inputs = ["web/app/**", "web/lib/**", "web/tests/**", "web/public/**", "web/*.json", "web/*.mjs", "web/*.ts"]
+timeout = 900
+fix = "Run `npm --prefix web run lint` and resolve each ESLint finding."
+
+[[sensors]]
+name = "web-typecheck"
+argv = ["npm", "--prefix", "web", "run", "typecheck"]
+when-changed = ["web/**", "web/package.json", "web/package-lock.json", "web/tsconfig.json"]
+inputs = ["web/app/**", "web/lib/**", "web/tests/**", "web/*.json", "web/*.mjs", "web/*.ts"]
+timeout = 900
+fix = "Run `npm --prefix web run typecheck`."
+
+[[sensors]]
+name = "web-test"
+argv = ["npm", "--prefix", "web", "test"]
+when-changed = ["web/**", "web/package.json", "web/package-lock.json"]
+inputs = ["web/app/**", "web/lib/**", "web/tests/**", "web/*.json", "web/*.mjs", "web/*.ts"]
+timeout = 1200
+fix = "Run `npm --prefix web test -- --reporter=verbose` for the failing Vitest case."
+
+[[sensors]]
+name = "web-build"
+argv = ["npm", "--prefix", "web", "run", "build"]
+when-changed = ["web/**", "web/package.json", "web/package-lock.json", "web/next.config.mjs"]
+inputs = ["web/app/**", "web/lib/**", "web/public/**", "web/*.json", "web/*.mjs", "web/*.ts"]
+timeout = 1800
+fix = "Run `npm --prefix web run build` and fix the production build error."
+
+[[sensors]]
+name = "cli-ui-lint"
+argv = ["pnpm", "--dir", "cli/ui", "run", "lint"]
+when-changed = ["cli/ui/**", "cli/ui/package.json", "cli/ui/pnpm-lock.yaml"]
+inputs = ["cli/ui/components/**", "cli/ui/tokens/**", "cli/ui/layouts/**", "cli/ui/*.json", "cli/ui/*.yaml"]
+timeout = 600
+fix = "Run `pnpm --dir cli/ui run lint:fix` and review the remaining stylelint findings."
+
+[[sensors]]
+name = "cli-ui-test"
+argv = ["pnpm", "--dir", "cli/ui", "run", "test"]
+when-changed = ["cli/ui/**", "cli/ui/package.json", "cli/ui/pnpm-lock.yaml"]
+inputs = ["cli/ui/components/**", "cli/ui/tokens/**", "cli/ui/layouts/**", "cli/ui/*.json", "cli/ui/*.yaml"]
+timeout = 600
+fix = "Run `pnpm --dir cli/ui run test` to reproduce the CSS validation failure."
+
+# ---------------------------------------------------------------------------
+# Cross-cutting repository contracts
+# ---------------------------------------------------------------------------
+
+[[sensors]]
+name = "validate-version"
+argv = ["python", "scripts/sync_versions.py"]
 when-changed = [
-    "cli/src/**",
-    "cli/tests/**",
-    "cli/benches/**",
-    "cli/Cargo.toml",
-    "cli/Cargo.lock"
+  "pyproject.toml",
+  "cli/Cargo.toml",
+  "web/package.json",
+  "cli/ui/package.json",
+  "scripts/sync_versions.py",
 ]
-remediation = "Run `cargo fmt --manifest-path cli/Cargo.toml` to format Rust source code."
+inputs = ["pyproject.toml", "cli/Cargo.toml", "web/package.json", "cli/ui/package.json", "scripts/sync_versions.py"]
+timeout = 300
+fix = "Run `python scripts/sync_versions.py --set <tag-without-v>`."
 
-[[sensor]]
-id = "rust-clippy"
-name = "Rust Clippy Linter"
-description = "Runs Clippy linter with warnings denied on Rust CLI crate"
-commands = [["cargo", "clippy", "--manifest-path", "cli/Cargo.toml", "--", "-D", "warnings"]]
-runner = "cargo"
-when_changed = [
-    "cli/src/**",
-    "cli/tests/**",
-    "cli/benches/**",
-    "cli/Cargo.toml",
-    "cli/Cargo.lock"
-]
+[[sensors]]
+name = "validate-skill-mirror"
+argv = ["python", "scripts/sync_skill.py", "--check"]
+when-changed = ["scripts/**", ".agents/skills/do-web-doc-resolver/**", "scripts/sync_skill.py"]
+inputs = ["scripts/**/*.py", ".agents/skills/do-web-doc-resolver/scripts/**/*.py", "scripts/sync_skill.py"]
+timeout = 300
+fix = "Run `python scripts/sync_skill.py` to refresh the embedded skill mirror."
+
+[[sensors]]
+name = "validate-symlink"
+argv = ["python", "scripts/validate_skill_symlink.py"]
+when-changed = [".agents/skills/**", "scripts/validate_skill_symlink.py"]
+inputs = [".agents/skills/**/*.md", ".agents/skills/**/*.py", "scripts/validate_skill_symlink.py"]
+timeout = 300
+fix = "Restore the broken skill symlink or remove the dangling entry."
+
+[[sensors]]
+name = "validate-docs"
+argv = ["python", "scripts/validate_docs.py"]
 when-changed = [
-    "cli/src/**",
-    "cli/tests/**",
-    "cli/benches/**",
-    "cli/Cargo.toml",
-    "cli/Cargo.lock"
+  "docs/**",
+  "agents-docs/**",
+  "README.md",
+  "AGENTS.md",
+  "scripts/validate_docs.py",
 ]
-remediation = "Fix reported clippy warnings in `cli/` or run `cargo clippy --fix --manifest-path cli/Cargo.toml`."
-
-[[sensor]]
-id = "rust-test"
-name = "Rust CLI Unit Tests"
-description = "Runs unit tests for the Rust CLI crate"
-commands = [["cargo", "test", "--manifest-path", "cli/Cargo.toml"]]
-runner = "cargo"
-when_changed = [
-    "cli/src/**",
-    "cli/tests/**",
-    "cli/benches/**",
-    "cli/Cargo.toml",
-    "cli/Cargo.lock"
-]
-when-changed = [
-    "cli/src/**",
-    "cli/tests/**",
-    "cli/benches/**",
-    "cli/Cargo.toml",
-    "cli/Cargo.lock"
-]
-remediation = "Run `cargo test --manifest-path cli/Cargo.toml` to reproduce and fix failing Rust tests."
-
-[[sensor]]
-id = "rust-build"
-name = "Rust CLI Release Build"
-description = "Builds the Rust CLI binary in release mode"
-commands = [["cargo", "build", "--release", "--manifest-path", "cli/Cargo.toml"]]
-runner = "cargo"
-when_changed = [
-    "cli/src/**",
-    "cli/tests/**",
-    "cli/benches/**",
-    "cli/Cargo.toml",
-    "cli/Cargo.lock"
-]
-when-changed = [
-    "cli/src/**",
-    "cli/tests/**",
-    "cli/benches/**",
-    "cli/Cargo.toml",
-    "cli/Cargo.lock"
-]
-remediation = "Run `cargo check --manifest-path cli/Cargo.toml` to inspect Rust build errors."
-
-# ------------------------------------------------------------------------------
-# Web Frontend & UI Component Quality Loop
-# ------------------------------------------------------------------------------
-
-[[sensor]]
-id = "web-lint"
-name = "Web Frontend Linting"
-description = "Runs ESLint on Next.js web application"
-commands = [["npm", "--prefix", "web", "run", "lint"]]
-runner = "npm"
-when_changed = [
-    "web/**",
-    "web/package.json",
-    "web/package-lock.json"
-]
-when-changed = [
-    "web/**",
-    "web/package.json",
-    "web/package-lock.json"
-]
-remediation = "Run `npm --prefix web run lint` to fix ESLint errors in `web/`."
-
-[[sensor]]
-id = "web-typecheck"
-name = "Web Frontend Type Check"
-description = "Runs TypeScript type checker on Next.js web application"
-commands = [["npm", "--prefix", "web", "run", "typecheck"]]
-runner = "npm"
-when_changed = [
-    "web/**",
-    "web/package.json",
-    "web/package-lock.json"
-]
-when-changed = [
-    "web/**",
-    "web/package.json",
-    "web/package-lock.json"
-]
-remediation = "Run `npm --prefix web run typecheck` to fix TypeScript compilation errors."
-
-[[sensor]]
-id = "web-test"
-name = "Web Frontend Unit Tests"
-description = "Runs Vitest unit tests for web application"
-commands = [["npm", "--prefix", "web", "test"]]
-runner = "npm"
-when_changed = [
-    "web/**",
-    "web/package.json",
-    "web/package-lock.json"
-]
-when-changed = [
-    "web/**",
-    "web/package.json",
-    "web/package-lock.json"
-]
-remediation = "Run `npm --prefix web test` to debug failing Vitest unit tests in `web/`."
-
-[[sensor]]
-id = "cli-ui-lint"
-name = "CLI UI Design System Linting"
-description = "Runs stylelint on CSS files in CLI UI component design system"
-commands = [["pnpm", "--dir", "cli/ui", "run", "lint"]]
-runner = "pnpm"
-when_changed = [
-    "cli/ui/**",
-    "cli/ui/package.json",
-    "cli/ui/pnpm-lock.yaml"
-]
-when-changed = [
-    "cli/ui/**",
-    "cli/ui/package.json",
-    "cli/ui/pnpm-lock.yaml"
-]
-remediation = "Run `pnpm --dir cli/ui run lint` to check and fix stylelint issues in `cli/ui/`."
-
-[[sensor]]
-id = "cli-ui-test"
-name = "CLI UI CSS Validation"
-commands = [["pnpm", "--dir", "cli/ui", "run", "test"]]
-runner = "pnpm"
-when_changed = [
-    "cli/ui/**",
-    "cli/ui/package.json",
-    "cli/ui/pnpm-lock.yaml"
-]
-when-changed = [
-    "cli/ui/**",
-    "cli/ui/package.json",
-    "cli/ui/pnpm-lock.yaml"
-]
-remediation = "Run `pnpm --dir cli/ui run test` to debug CSS validation errors in `cli/ui/`."
-
-# ------------------------------------------------------------------------------
-# Cross-Cutting & Mirror Validation Loop
-# ------------------------------------------------------------------------------
-
-[[sensor]]
-id = "validate-version"
-name = "Version Synchronization Check"
-description = "Ensures semver consistency across pyproject.toml, Cargo.toml, and package.json"
-commands = [["python", "scripts/sync_versions.py"]]
-runner = "python"
-when_changed = [
-    "pyproject.toml",
-    "cli/Cargo.toml",
-    "web/package.json",
-    "cli/ui/package.json",
-    "scripts/sync_versions.py"
-]
-when-changed = [
-    "pyproject.toml",
-    "cli/Cargo.toml",
-    "web/package.json",
-    "cli/ui/package.json",
-    "scripts/sync_versions.py"
-]
-remediation = "Run `python scripts/sync_versions.py` to sync version strings across project manifests."
-
-[[sensor]]
-id = "validate-skill-mirror"
-name = "Skill Shadow Mirror Check"
-description = "Verifies .agents/skills/do-web-doc-resolver/scripts is synchronized with main scripts/"
-commands = [["python", "scripts/sync_skill.py", "--check"]]
-runner = "python"
-when_changed = [
-    "scripts/**",
-    ".agents/skills/do-web-doc-resolver/**",
-    "scripts/sync_skill.py"
-]
-when-changed = [
-    "scripts/**",
-    ".agents/skills/do-web-doc-resolver/**",
-    "scripts/sync_skill.py"
-]
-remediation = "Run `python scripts/sync_skill.py` to synchronize shadow skill copy with root `scripts/`."
-
-[[sensor]]
-id = "validate-symlink"
-name = "Skill Symlink Validation"
-description = "Validates integrity of skill symlinks"
-commands = [["python", "scripts/validate_skill_symlink.py"]]
-runner = "python"
-when_changed = [
-    ".agents/skills/**",
-    "scripts/validate_skill_symlink.py"
-]
-when-changed = [
-    ".agents/skills/**",
-    "scripts/validate_skill_symlink.py"
-]
-remediation = "Run `python scripts/validate_skill_symlink.py` to verify or restore skill symlinks."
-
-[[sensor]]
-id = "validate-docs"
-name = "Documentation Consistency Check"
-description = "Validates markdown links and document index consistency"
-commands = [["python", "scripts/validate_docs.py"]]
-runner = "python"
-when_changed = [
-    "docs/**",
-    "agents-docs/**",
-    "README.md",
-    "AGENTS.md",
-    "scripts/validate_docs.py"
-]
-when-changed = [
-    "docs/**",
-    "agents-docs/**",
-    "README.md",
-    "AGENTS.md",
-    "scripts/validate_docs.py"
-]
-remediation = "Run `python scripts/validate_docs.py` to identify missing or outdated documentation references."
+inputs = ["docs/**/*.md", "agents-docs/**/*.md", "README.md", "AGENTS.md", "scripts/validate_docs.py"]
+timeout = 300
+fix = "Fix the reported broken link or missing document index entry."

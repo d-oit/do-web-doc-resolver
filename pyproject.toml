@@ -84,6 +84,7 @@ exclude = '''
     | dist
     | __pycache__
     | web/node_modules
+    | cli/ui/node_modules
     | \.agents/skills
     | \.blackbox/skills
     | \.claude/skills

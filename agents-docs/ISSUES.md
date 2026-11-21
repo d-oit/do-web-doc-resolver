@@ -7,6 +7,11 @@
   [RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141)
   has no patched bincode release. Both `chaotic_semantic_memory` and `libsql` depend
   on bincode 1.3.3; even cache library 0.3.8 still requires it.
+- **Chrono unmaintained**: [RUSTSEC-2026-0543](https://rustsec.org/advisories/RUSTSEC-2026-0543)
+  flags `chrono 0.4.45` as unmaintained. The CLI uses it only for timestamp
+  formatting on routing-memory entries; no maintained in-range replacement
+  exists. The advisory is ignored in `deny.toml` and the dependency should be
+  revisited with a migration to `time`.
 - **HTTP/2**: [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258)
   is fixed only in h2 >=0.4.16. The existing exception covers h2 0.3.27 through
   `libsql` / `tonic` 0.11 / `hyper` 0.14. It cannot be patched within that API line.
@@ -92,6 +97,20 @@
 - **Summary**: Executed `do-wdr` CLI benchmark audit across 5 standard documentation URLs (`docs.python.org/3/library/os.html`, `doc.rust-lang.org/std/fs/index.html`, `developer.mozilla.org/en-US/docs/Web/JavaScript`, `pkg.go.dev/net/http`, `react.dev/reference/react`).
 - **Results**: Semantic cache hit rate = 100% (5/5), Cache hit latency = 1ms (well within the < 200ms threshold), Quality synthesis score = 1.0 (exceeds the >= 0.85 threshold).
 - **Status**: Healthy. Python-Rust bridge integration operating with zero bottlenecks; embedding retrieval logic and cache redundancy pruning remain fully optimized.
+
+## Blocked: Scrim local rendering provider
+
+- **Date**: 2026-11-21
+- **Issue**: #718 proposes Scrim as an optional local JavaScript-rendering provider.
+- **Blocker**: The upstream `ureq` client uses direct HTTP/HTTPS agents, follows
+  redirects manually, and reuses the same path for subresources with no
+  documented fail-closed proxy or request-policy hook. The resolver's existing
+  SSRF checks cannot observe page-initiated subrequests in a separate process.
+- **Decision**: No subprocess adapter is added until upstream proxy enforcement
+  exists and is proven for redirects and subresources, then wrapped in an
+  isolated egress boundary.
+- **Status**: Open and blocked on upstream capability. See
+  [ADR-019](../docs/adr/ADR-019-scrim-deferred.md).
 
 ## Known Gap: session cookie is not authorization
 
