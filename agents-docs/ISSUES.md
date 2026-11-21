@@ -7,6 +7,11 @@
   [RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141)
   has no patched bincode release. Both `chaotic_semantic_memory` and `libsql` depend
   on bincode 1.3.3; even cache library 0.3.8 still requires it.
+- **Chrono unmaintained**: [RUSTSEC-2026-0543](https://rustsec.org/advisories/RUSTSEC-2026-0543)
+  flags `chrono 0.4.45` as unmaintained. The CLI uses it only for timestamp
+  formatting on routing-memory entries; no maintained in-range replacement
+  exists. The advisory is ignored in `deny.toml` and the dependency should be
+  revisited with a migration to `time`.
 - **HTTP/2**: [RUSTSEC-2026-0258](https://rustsec.org/advisories/RUSTSEC-2026-0258)
   is fixed only in h2 >=0.4.16. The existing exception covers h2 0.3.27 through
   `libsql` / `tonic` 0.11 / `hyper` 0.14. It cannot be patched within that API line.

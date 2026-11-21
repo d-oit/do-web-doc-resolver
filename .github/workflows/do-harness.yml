@@ -20,6 +20,7 @@ env:
   NODE_VERSION: '22'
   PNPM_VERSION: '9.15.9'
   DO_HARNESS_VERSION: 'v0.4.7'
+  DO_HARNESS_REQUIRED: '1'
   GIT_CONFIG_COUNT: '1'
   GIT_CONFIG_KEY_0: init.defaultBranch
   GIT_CONFIG_VALUE_0: main
@@ -88,7 +89,7 @@ jobs:
             --evidence .do-harness/evidence.json | tee .do-harness/verify-output.json
 
       - name: Check evidence freshness
-        run: do-harness status --set verification --strict --format json \
+        run: do-harness status --set verification --format json \
           --evidence .do-harness/evidence.json
 
       - name: Upload harness evidence

@@ -67,9 +67,10 @@ def evaluate(fixture: dict[str, Any]) -> dict[str, Any]:
         learned_ok = any(row[0] == "success" for row in case["attempts"].get(learned[0], []))
         static_successes += int(static_ok)
         learned_successes += int(learned_ok)
-        assert (
-            learned[0] == case["expected_learned_first"]
-        ), f"{case['name']}: learned {learned[0]} != {case['expected_learned_first']}"
+        if learned[0] != case["expected_learned_first"]:
+            raise RuntimeError(
+                f"{case['name']}: learned {learned[0]} != {case['expected_learned_first']}"
+            )
         rows.append(
             {
                 "case": case["name"],

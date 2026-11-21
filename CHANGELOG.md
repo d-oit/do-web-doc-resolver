@@ -14,6 +14,8 @@
   capability required before an adapter can be enabled (#718).
 - **Ops**: `scripts/verify_state.py` checks every routing-memory and cache
   entry, including sqlite-vec linkage.
+- **Security**: override OpenCode's transitive `effect` to the patched
+  `4.0.0-beta.103` and record the reviewed chrono unmaintained advisory.
 
 ### Changed
 

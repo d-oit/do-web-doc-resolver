@@ -1,9 +1,9 @@
 """Dogfood the native do-harness contract (issue #715).
 
 The configuration parser test always runs. Real-CLI tests run when a
-`do-harness` binary is available via `DO_HARNESS_BIN` or `PATH`; on CI the
-pinned v0.4.7 binary is installed before pytest, so a missing binary is a
-failure there rather than a silent skip.
+`do-harness` binary is available via `DO_HARNESS_BIN` or `PATH`. The dedicated
+harness job sets `DO_HARNESS_REQUIRED=1`, so a missing binary fails there;
+ordinary unit-test jobs skip these tests instead of installing the CLI.
 """
 
 from __future__ import annotations
@@ -35,6 +35,30 @@ def _harness_binary() -> str | None:
     if explicit:
         return explicit if Path(explicit).is_file() else None
     return shutil.which("do-harness")
+
+
+def _require_binary() -> str:
+    binary = _harness_binary()
+    if binary is not None:
+        return binary
+    if os.environ.get("DO_HARNESS_REQUIRED") == "1":
+        pytest.fail("do-harness binary missing in the dedicated harness job")
+    pytest.skip("do-harness binary not installed")
+
+
+def _run(binary: str, args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    """Run an argv list without a shell; the binary is the test target."""
+    # The binary and arguments are controlled by this test. No shell is used,
+    # and there is no user input: Codacy/Semgrep taint reports are false
+    # positives for this dedicated CLI regression.
+    # nosemgrep
+    return subprocess.run(
+        [binary, *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 def test_config_uses_native_schema():
@@ -79,19 +103,9 @@ def test_signal_sets_reference_existing_sensors_and_cover_verification():
 
 
 def test_do_harness_explain_selects_expected_sensors():
-    binary = _harness_binary()
-    if binary is None:
-        if os.environ.get("CI"):
-            pytest.fail("do-harness binary missing in CI; install pinned v0.4.7")
-        pytest.skip("do-harness binary not installed")
+    binary = _require_binary()
 
-    result = subprocess.run(
-        [binary, "explain", "--set", "verification", "--format", "json"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run(binary, ["explain", "--set", "verification", "--format", "json"], REPO_ROOT)
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     selected = {entry["name"] for entry in payload["selected"]}
@@ -121,17 +135,13 @@ def _write_fixture(root: Path, *, include_failure: bool) -> Path:
 
 
 def test_broken_fixture_fails_and_evidence_records_execution(tmp_path):
-    binary = _harness_binary()
-    if binary is None:
-        if os.environ.get("CI"):
-            pytest.fail("do-harness binary missing in CI; install pinned v0.4.7")
-        pytest.skip("do-harness binary not installed")
+    binary = _require_binary()
 
     _write_fixture(tmp_path, include_failure=True)
     evidence = tmp_path / "evidence.json"
-    result = subprocess.run(
+    result = _run(
+        binary,
         [
-            binary,
             "verify",
             "--set",
             "verification",
@@ -141,10 +151,7 @@ def test_broken_fixture_fails_and_evidence_records_execution(tmp_path):
             "--evidence",
             str(evidence),
         ],
-        cwd=tmp_path,
-        capture_output=True,
-        text=True,
-        check=False,
+        tmp_path,
     )
     assert result.returncode != 0, "a broken sensor must fail the strict gate"
     payload = json.loads(evidence.read_text(encoding="utf-8"))
@@ -155,17 +162,13 @@ def test_broken_fixture_fails_and_evidence_records_execution(tmp_path):
 
 
 def test_passing_fixture_is_green_only_when_sensor_actually_ran(tmp_path):
-    binary = _harness_binary()
-    if binary is None:
-        if os.environ.get("CI"):
-            pytest.fail("do-harness binary missing in CI; install pinned v0.4.7")
-        pytest.skip("do-harness binary not installed")
+    binary = _require_binary()
 
     _write_fixture(tmp_path, include_failure=False)
     evidence = tmp_path / "evidence.json"
-    result = subprocess.run(
+    result = _run(
+        binary,
         [
-            binary,
             "verify",
             "--set",
             "verification",
@@ -175,10 +178,7 @@ def test_passing_fixture_is_green_only_when_sensor_actually_ran(tmp_path):
             "--evidence",
             str(evidence),
         ],
-        cwd=tmp_path,
-        capture_output=True,
-        text=True,
-        check=False,
+        tmp_path,
     )
     assert result.returncode == 0, result.stderr
     payload = json.loads(evidence.read_text(encoding="utf-8"))
@@ -188,19 +188,9 @@ def test_passing_fixture_is_green_only_when_sensor_actually_ran(tmp_path):
 
 
 def test_unknown_signal_set_is_a_configuration_error(tmp_path):
-    binary = _harness_binary()
-    if binary is None:
-        if os.environ.get("CI"):
-            pytest.fail("do-harness binary missing in CI; install pinned v0.4.7")
-        pytest.skip("do-harness binary not installed")
+    binary = _require_binary()
 
     _write_fixture(tmp_path, include_failure=False)
-    result = subprocess.run(
-        [binary, "verify", "--set", "does-not-exist", "--format", "json"],
-        cwd=tmp_path,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run(binary, ["verify", "--set", "does-not-exist", "--format", "json"], tmp_path)
     assert result.returncode == 2, "unknown signal set must not pass vacuously"
     assert "unknown signal set" in (result.stderr + result.stdout).lower()

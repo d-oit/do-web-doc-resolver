@@ -111,7 +111,8 @@ failure, not a skip.
 2. A deliberately broken temporary fixture must exit non-zero.
 3. A missing signal set must exit non-zero rather than pass vacuously.
 
-CI installs v0.4.7 before running the tests.
+CI installs v0.4.7 in the dedicated harness job and sets
+`DO_HARNESS_REQUIRED=1`; ordinary unit-test jobs skip the real-CLI checks.
 
 ## Fallback
 
