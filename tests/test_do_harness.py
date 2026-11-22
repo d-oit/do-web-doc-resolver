@@ -37,28 +37,15 @@ def _harness_binary() -> str | None:
     return shutil.which("do-harness")
 
 
-def _require_binary() -> str:
+def _ensure_binary() -> None:
+    """Make the resolved CLI available on PATH; call sites use its literal name."""
     binary = _harness_binary()
     if binary is not None:
-        return binary
+        os.environ["PATH"] = f"{Path(binary).parent}{os.pathsep}{os.environ.get('PATH', '')}"
+        return
     if os.environ.get("DO_HARNESS_REQUIRED") == "1":
         pytest.fail("do-harness binary missing in the dedicated harness job")
     pytest.skip("do-harness binary not installed")
-
-
-def _run(binary: str, args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
-    """Run an argv list without a shell; the binary is the test target."""
-    # The binary and arguments are controlled by this test. No shell is used,
-    # and there is no user input: Codacy/Semgrep taint reports are false
-    # positives for this dedicated CLI regression.
-    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
-    return subprocess.run(
-        [binary, *args],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
 
 
 def test_config_uses_native_schema():
@@ -103,9 +90,15 @@ def test_signal_sets_reference_existing_sensors_and_cover_verification():
 
 
 def test_do_harness_explain_selects_expected_sensors():
-    binary = _require_binary()
+    _ensure_binary()
 
-    result = _run(binary, ["explain", "--set", "verification", "--format", "json"], REPO_ROOT)
+    result = subprocess.run(
+        ["do-harness", "explain", "--set", "verification", "--format", "json"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     selected = {entry["name"] for entry in payload["selected"]}
@@ -135,13 +128,13 @@ def _write_fixture(root: Path, *, include_failure: bool) -> Path:
 
 
 def test_broken_fixture_fails_and_evidence_records_execution(tmp_path):
-    binary = _require_binary()
+    _ensure_binary()
 
     _write_fixture(tmp_path, include_failure=True)
     evidence = tmp_path / "evidence.json"
-    result = _run(
-        binary,
+    result = subprocess.run(
         [
+            "do-harness",
             "verify",
             "--set",
             "verification",
@@ -149,9 +142,12 @@ def test_broken_fixture_fails_and_evidence_records_execution(tmp_path):
             "--format",
             "json",
             "--evidence",
-            str(evidence),
+            "evidence.json",
         ],
-        tmp_path,
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert result.returncode != 0, "a broken sensor must fail the strict gate"
     payload = json.loads(evidence.read_text(encoding="utf-8"))
@@ -162,13 +158,13 @@ def test_broken_fixture_fails_and_evidence_records_execution(tmp_path):
 
 
 def test_passing_fixture_is_green_only_when_sensor_actually_ran(tmp_path):
-    binary = _require_binary()
+    _ensure_binary()
 
     _write_fixture(tmp_path, include_failure=False)
     evidence = tmp_path / "evidence.json"
-    result = _run(
-        binary,
+    result = subprocess.run(
         [
+            "do-harness",
             "verify",
             "--set",
             "verification",
@@ -176,9 +172,12 @@ def test_passing_fixture_is_green_only_when_sensor_actually_ran(tmp_path):
             "--format",
             "json",
             "--evidence",
-            str(evidence),
+            "evidence.json",
         ],
-        tmp_path,
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
     payload = json.loads(evidence.read_text(encoding="utf-8"))
@@ -188,9 +187,15 @@ def test_passing_fixture_is_green_only_when_sensor_actually_ran(tmp_path):
 
 
 def test_unknown_signal_set_is_a_configuration_error(tmp_path):
-    binary = _require_binary()
+    _ensure_binary()
 
     _write_fixture(tmp_path, include_failure=False)
-    result = _run(binary, ["verify", "--set", "does-not-exist", "--format", "json"], tmp_path)
+    result = subprocess.run(
+        ["do-harness", "verify", "--set", "does-not-exist", "--format", "json"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     assert result.returncode == 2, "unknown signal set must not pass vacuously"
     assert "unknown signal set" in (result.stderr + result.stdout).lower()
