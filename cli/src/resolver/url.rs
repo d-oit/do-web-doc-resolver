@@ -15,7 +15,7 @@ use crate::providers::{DirectFetchProvider, DoclingProvider, MistralBrowserProvi
 use crate::providers::{FirecrawlProvider, JinaProvider, LlmsTxtProvider, UrlProvider};
 use crate::quality::score_content;
 use crate::routing::plan_provider_order;
-use crate::routing_memory::RoutingMemory;
+use crate::routing_memory::{Outcome, RoutingMemory};
 use crate::semantic_cache::SemanticCache;
 use crate::types::{ProviderType, ResolvedResult, RoutingDecision};
 use std::collections::HashMap;
@@ -181,6 +181,7 @@ impl UrlCascade {
         let mut budget = build_budget(config, &profile_defaults);
         let mut routing_decisions = Vec::new();
         let mut best_free_result: Option<ResolvedResult> = None;
+        let routing_key = extract_domain_or_default(url);
 
         let planned = {
             let routing_memory = routing_memory.read().await;
@@ -357,12 +358,13 @@ impl UrlCascade {
                         }
                         if !config.disable_routing_memory {
                             let mut rm = routing_memory.write().await;
-                            rm.record(
-                                &extract_domain_or_default(url),
+                            rm.record_outcome(
+                                &routing_key,
                                 &provider.name,
-                                true,
+                                Outcome::Success,
                                 latency,
                                 quality.score,
+                                true,
                             );
                         }
                         if let Some(cache) = cache {
@@ -408,12 +410,13 @@ impl UrlCascade {
                         }
                         if !config.disable_routing_memory {
                             let mut rm = routing_memory.write().await;
-                            rm.record(
-                                &extract_domain_or_default(url),
+                            rm.record_outcome(
+                                &routing_key,
                                 &provider.name,
-                                false,
+                                Outcome::LowQuality,
                                 latency,
                                 quality.score,
+                                false,
                             );
                         }
                     }
@@ -443,6 +446,18 @@ impl UrlCascade {
                         circuit_open: false,
                         paid_provider: provider.is_paid,
                     });
+
+                    if !config.disable_routing_memory {
+                        let mut rm = routing_memory.write().await;
+                        rm.record_outcome(
+                            &routing_key,
+                            &provider.name,
+                            Outcome::from_reason(&reason),
+                            latency,
+                            0.0,
+                            false,
+                        );
+                    }
 
                     if matches!(reason.as_str(), "timeout" | "provider_5xx" | "rate_limited") {
                         let mut cb = circuit_breakers.write().await;

@@ -18,6 +18,7 @@ from scripts.models import (
     ResolveMetrics,
 )
 from scripts.routing import ResolutionBudget
+from scripts.routing_context import error_outcome
 from scripts.routing_memory import RoutingMemory
 from scripts.utils import _detect_error_type, _get_cache
 
@@ -108,6 +109,14 @@ def cascade_stream(
                         ):
                             circuit_breakers.record_failure(p_name_done)
                         metrics.record_provider(pt_done, latency, False)
+                        routing_memory.record(
+                            routing_key,
+                            p_name_done,
+                            False,
+                            latency,
+                            0.0,
+                            outcome=error_outcome(e),
+                        )
                         continue
                     if res:
                         content = res.content if isinstance(res, ResolvedResult) else str(res)
@@ -116,7 +125,13 @@ def cascade_stream(
                             circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)
                             routing_memory.record(
-                                routing_key, p_name_done, True, latency, q_score.score
+                                routing_key,
+                                p_name_done,
+                                True,
+                                latency,
+                                q_score.score,
+                                outcome="success",
+                                contributed=True,
                             )
 
                             if result_builder:
@@ -153,11 +168,24 @@ def cascade_stream(
                                 cache, target, p_name_done, "thin_content"
                             )
                             routing_memory.record(
-                                routing_key, p_name_done, False, latency, q_score.score
+                                routing_key,
+                                p_name_done,
+                                False,
+                                latency,
+                                q_score.score,
+                                outcome="low_quality",
                             )
                     else:
                         circuit_breakers.record_failure(p_name_done)
                         metrics.record_provider(pt_done, latency, False)
+                        routing_memory.record(
+                            routing_key,
+                            p_name_done,
+                            False,
+                            latency,
+                            0.0,
+                            outcome="no_result",
+                        )
 
                 if found_final:
                     return None

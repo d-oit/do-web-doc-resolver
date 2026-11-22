@@ -1,6 +1,7 @@
 use url::Url;
 
-use crate::routing_memory::RoutingMemory;
+use crate::routing_context::routing_key_for;
+use crate::routing_memory::{RoutingMemory, RoutingMode};
 
 #[derive(Debug, Clone)]
 pub struct PreflightResult {
@@ -234,12 +235,14 @@ pub fn plan_provider_order(
     };
 
     if let Some(memory) = routing_memory {
-        let domain = if is_url {
-            crate::resolver::cascade::extract_domain_or_default(target)
+        let domain = routing_key_for(target, is_url);
+        let mode = if is_url {
+            // Domain routing keeps its historical active behavior.
+            RoutingMode::Active
         } else {
-            "query".to_string()
+            RoutingMode::from_env()
         };
-        base = memory.rank_providers(&domain, &base);
+        base = memory.rank_providers_mode(&domain, &base, mode);
     }
 
     base.into_iter()

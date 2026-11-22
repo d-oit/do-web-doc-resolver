@@ -7,6 +7,7 @@ CLI_PATH = "./cli/target/release/do-wdr"
 
 pytestmark = [
     pytest.mark.integration,
+    pytest.mark.live,
     pytest.mark.skipif(
         not os.path.exists(CLI_PATH),
         reason=f"CLI binary not found at {CLI_PATH}. Run 'cd cli && cargo build --release' first.",

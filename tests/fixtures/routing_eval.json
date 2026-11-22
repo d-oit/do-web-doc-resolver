@@ -1,0 +1,344 @@
+{
+  "schema_version": 2,
+  "providers": [
+    "exa_mcp",
+    "exa",
+    "tavily",
+    "mistral_websearch",
+    "duckduckgo",
+    "serper"
+  ],
+  "cases": [
+    {
+      "name": "rust-api-reference",
+      "query": "Rust API reference for tokio::spawn",
+      "routing_key": "q:v2:api_reference:rust:rust:none",
+      "expected_learned_first": "tavily",
+      "attempts": {
+        "exa_mcp": [
+          [
+            "blocked",
+            0.0,
+            90
+          ],
+          [
+            "blocked",
+            0.0,
+            80
+          ],
+          [
+            "blocked",
+            0.0,
+            85
+          ]
+        ],
+        "exa": [
+          [
+            "success",
+            0.85,
+            150
+          ],
+          [
+            "success",
+            0.85,
+            160
+          ],
+          [
+            "success",
+            0.85,
+            140
+          ]
+        ],
+        "tavily": [
+          [
+            "success",
+            0.9,
+            100
+          ],
+          [
+            "success",
+            0.9,
+            110
+          ],
+          [
+            "success",
+            0.9,
+            105
+          ]
+        ]
+      }
+    },
+    {
+      "name": "python-docs",
+      "query": "Python dataclasses tutorial",
+      "routing_key": "q:v2:documentation:python:python:none",
+      "expected_learned_first": "exa_mcp",
+      "attempts": {
+        "exa_mcp": [
+          [
+            "success",
+            0.9,
+            120
+          ],
+          [
+            "success",
+            0.9,
+            125
+          ],
+          [
+            "success",
+            0.9,
+            118
+          ]
+        ],
+        "exa": [
+          [
+            "low_quality",
+            0.2,
+            80
+          ],
+          [
+            "low_quality",
+            0.2,
+            82
+          ],
+          [
+            "low_quality",
+            0.2,
+            79
+          ]
+        ],
+        "tavily": [
+          [
+            "blocked",
+            0.0,
+            60
+          ],
+          [
+            "blocked",
+            0.0,
+            65
+          ],
+          [
+            "blocked",
+            0.0,
+            62
+          ]
+        ],
+        "mistral_websearch": [
+          [
+            "success",
+            0.75,
+            300
+          ],
+          [
+            "success",
+            0.75,
+            310
+          ],
+          [
+            "success",
+            0.75,
+            290
+          ]
+        ]
+      }
+    },
+    {
+      "name": "kubernetes-troubleshooting",
+      "query": "Fix Kubernetes CrashLoopBackOff error",
+      "routing_key": "q:v2:troubleshooting:kubernetes:na:none",
+      "expected_learned_first": "tavily",
+      "attempts": {
+        "exa_mcp": [
+          [
+            "timeout",
+            0.0,
+            5000
+          ],
+          [
+            "timeout",
+            0.0,
+            5000
+          ],
+          [
+            "timeout",
+            0.0,
+            5000
+          ]
+        ],
+        "exa": [
+          [
+            "success",
+            0.8,
+            200
+          ],
+          [
+            "success",
+            0.8,
+            210
+          ],
+          [
+            "success",
+            0.8,
+            205
+          ]
+        ],
+        "tavily": [
+          [
+            "success",
+            0.85,
+            120
+          ],
+          [
+            "success",
+            0.85,
+            125
+          ],
+          [
+            "success",
+            0.85,
+            118
+          ]
+        ],
+        "serper": [
+          [
+            "success",
+            0.9,
+            400
+          ],
+          [
+            "success",
+            0.9,
+            410
+          ],
+          [
+            "success",
+            0.9,
+            405
+          ]
+        ]
+      }
+    },
+    {
+      "name": "nextjs-release",
+      "query": "Next.js 15 migration guide",
+      "routing_key": "q:v2:release:nextjs:typescript:none",
+      "expected_learned_first": "tavily",
+      "attempts": {
+        "exa_mcp": [
+          [
+            "success",
+            0.9,
+            100
+          ]
+        ],
+        "exa": [
+          [
+            "low_quality",
+            0.3,
+            90
+          ],
+          [
+            "low_quality",
+            0.3,
+            95
+          ],
+          [
+            "low_quality",
+            0.3,
+            92
+          ]
+        ],
+        "tavily": [
+          [
+            "success",
+            0.7,
+            300
+          ],
+          [
+            "success",
+            0.7,
+            310
+          ],
+          [
+            "success",
+            0.7,
+            305
+          ]
+        ]
+      }
+    },
+    {
+      "name": "react-vs-vue",
+      "query": "compare React vs Vue performance",
+      "routing_key": "q:v2:comparison:react:typescript:none",
+      "expected_learned_first": "exa",
+      "attempts": {
+        "exa_mcp": [
+          [
+            "blocked",
+            0.0,
+            50
+          ],
+          [
+            "blocked",
+            0.0,
+            55
+          ],
+          [
+            "blocked",
+            0.0,
+            52
+          ]
+        ],
+        "exa": [
+          [
+            "success",
+            0.8,
+            180
+          ],
+          [
+            "success",
+            0.8,
+            190
+          ],
+          [
+            "success",
+            0.8,
+            185
+          ]
+        ],
+        "tavily": [
+          [
+            "success",
+            0.9,
+            150
+          ],
+          [
+            "success",
+            0.9,
+            155
+          ]
+        ],
+        "mistral_websearch": [
+          [
+            "low_quality",
+            0.25,
+            400
+          ],
+          [
+            "low_quality",
+            0.25,
+            405
+          ],
+          [
+            "low_quality",
+            0.25,
+            402
+          ]
+        ]
+      }
+    }
+  ]
+}

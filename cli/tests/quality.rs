@@ -30,9 +30,14 @@ fn test_noisy_content() {
 /// Body lines that are unique (so they do not trip duplicate detection) and
 /// long enough overall to clear the minimum-length threshold.
 fn padded_body() -> String {
-    (0..20)
-        .map(|i| format!("Unique body line {i} used only for length padding.\n"))
-        .collect()
+    use std::fmt::Write as _;
+
+    let mut body = String::new();
+    for i in 0..20 {
+        writeln!(body, "Unique body line {i} used only for length padding.")
+            .expect("writing to a String cannot fail");
+    }
+    body
 }
 
 #[test]

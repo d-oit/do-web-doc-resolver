@@ -288,36 +288,44 @@ To verify the semantic cache performance and quality synthesis:
 
 ### Quality Harness & Quality Gate
 
-The multi-runtime quality workflow uses `do-harness.toml` to map changed files to targeted quality loop sensors:
+The native `do-harness` CLI (pinned to v0.4.7) is the authoritative
+multi-runtime verification workflow. `do-harness.toml` uses the strict native
+schema: `language`, `hooks`, `signal-sets`, and `[[sensors]]` with literal
+`argv` arrays and `when-changed` globs.
 
 ```bash
-# Inspect triggered sensors for changed files
-python scripts/harness.py --check
+# Install the tested release (never floating main)
+curl -fsSL https://raw.githubusercontent.com/d-o-hub/do-harness/v0.4.7/scripts/install.sh \
+  | sh -s -- --version v0.4.7
 
-# Run active sensors for changed files
-python scripts/harness.py
+# Diagnose binary resolution, hooks, and state database
+do-harness doctor
 
-# Run a specific sensor by ID
-python scripts/harness.py --sensor python-lint
+# Fast local feedback for the working-tree change
+do-harness verify --set feedback --changed
+
+# Full pre-merge gate with strict evidence
+do-harness verify --set verification --changed --strict \
+  --format json --evidence .do-harness/evidence.json
+
+# Report evidence freshness without re-running sensors
+do-harness status --set verification
+
+# Inspect selection without executing
+do-harness explain --set verification --changed
 ```
 
-Sensor `commands` are arrays of argument arrays, not shell command strings:
+Signal sets are decision names (`feedback`, `verification`, `release`) that
+reference sensor names; they never embed commands. An empty or unknown set is a
+configuration error. Sensor `argv` arrays avoid shell interpretation, but they
+still execute an intentionally configured program: review custom sensors before
+running them. The dogfood regression in `tests/test_do_harness.py` proves a
+deliberately broken fixture fails and that missing sets do not pass vacuously.
 
-```toml
-commands = [["python", "-m", "pytest", "-m", "not live"]]
-```
+If a required runner tool is absent, installation or environment repair is the
+fix; a missing sensor is not a skip.
 
-Each executable is resolved to an absolute path; `python` uses the harness's
-interpreter. Commands run in order and stop at the first failure. Shell operators,
-expansion, and redirection are not interpreted. Treat this repository configuration
-as executable code: argument arrays prevent shell injection, not execution of
-an intentionally configured program. Review custom checks before running them.
-The [dynamic-exec audit rule](https://github.com/semgrep/semgrep-rules/blob/develop/python/lang/security/audit/dangerous-asyncio-create-exec-audit.yaml)
-requires manual review of non-static arguments. This runner's inputs are limited to
-reviewed repository configuration and fixed Git arguments, never external query or
-URL data. The literal-argument regression exercises shell metacharacters and spaces.
-
-If `do-harness` or a specific runner tool is absent, run the authoritative quality gate shell script:
+If the native CLI is unavailable, run the legacy quality gate shell script:
 
 ```bash
 # Run all checks unconditionally

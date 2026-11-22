@@ -47,6 +47,7 @@ impl PersistedState {
         match serde_json::from_str::<Self>(&raw) {
             Ok(mut state) => {
                 state.negative_cache.prune_expired();
+                state.routing_memory.migrate();
                 state
             }
             Err(err) => {
@@ -67,6 +68,12 @@ impl PersistedState {
 
     /// Persist state to an explicit path, creating parent directories.
     pub fn save_to(&self, path: &Path) -> std::io::Result<()> {
+        if !self.routing_memory.can_persist() {
+            tracing::warn!(
+                "Skipping routing-state save: on-disk schema is newer than this binary supports"
+            );
+            return Ok(());
+        }
         // No `if let ... &&` here: let-chains are not stable on the CI
         // toolchain (Rust 1.85).
         if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {

@@ -54,6 +54,8 @@ Detailed reference material in `agents-docs/`:
 | Overview | `agents-docs/OVERVIEW.md` | Project overview |
 | Reference Index | `agents-docs/README.md` | Index for this directory |
 | Releases | `agents-docs/RELEASES.md` | Release process |
+| Routing | `agents-docs/ROUTING.md` | Context-aware routing, outcomes, migration, evaluation |
+| Discovery | `agents-docs/DISCOVERY.md` | Alternative-source strategies, provenance, verification, benchmark |
 | Semantic Health | `agents-docs/SEMANTIC_HEALTH.md` | Current semantic health summary |
 | Semantic Health — June 2026 | `agents-docs/SEMANTIC_HEALTH_2026_06.md` | June 2026 archive |
 | Semantic Health — July 2026 | `agents-docs/SEMANTIC_HEALTH_JULY_2026.md` | July 2026 archive |
@@ -70,7 +72,7 @@ Detailed reference material in `agents-docs/`:
 | `anti-ai-slop` | `.agents/skills/anti-ai-slop/` | Audit and fix UI, UX, and copy that reads as generic "AI slop" |
 | `codacy` | `.agents/skills/codacy/` | Query Codacy analysis, triage issues, suppress false positives |
 | `do-github-pr-sentinel` | `.agents/skills/do-github-pr-sentinel/` | Monitor a PR until merged, green, or blocked; diagnose and retry CI |
-| `do-harness` | `.agents/skills/do-harness/` | Quality loop sensors for Python, Rust, Web/UI, and cross-cutting checks |
+| `do-harness` | `.agents/skills/do-harness/` | Native do-harness verification contract for Python, Rust, Web/UI, and cross-cutting checks |
 | `do-wdr-assets` | `.agents/skills/do-wdr-assets/` | Capture screenshots and visual assets for documentation |
 | `do-wdr-cli` | `.agents/skills/do-wdr-cli/` | Use the compiled `do-wdr` CLI to resolve URLs and queries |
 | `do-wdr-issue-impl` | `.agents/skills/do-wdr-issue-impl/` | Implement a single GitHub issue through to a merged PR |
@@ -100,8 +102,11 @@ Detailed reference material in `agents-docs/`:
 
 ### Quality Harness
 
-- **Harness**: `python scripts/harness.py` (uses `do-harness.toml` path filters)
-- **Fallback**: `./scripts/quality_gate.sh`
+- **Harness**: `do-harness verify --set verification --changed --strict`
+  (native CLI v0.4.7; config in `do-harness.toml`)
+- **Install**: `curl -fsSL https://raw.githubusercontent.com/d-o-hub/do-harness/v0.4.7/scripts/install.sh | sh -s -- --version v0.4.7`
+- **Diagnostics**: `do-harness doctor`; evidence status: `do-harness status --set verification`
+- **Fallback**: `./scripts/quality_gate.sh` (legacy; not a second authority)
 
 ### Test Commands
 
