@@ -51,7 +51,7 @@ def _run(binary: str, args: list[str], cwd: Path) -> subprocess.CompletedProcess
     # The binary and arguments are controlled by this test. No shell is used,
     # and there is no user input: Codacy/Semgrep taint reports are false
     # positives for this dedicated CLI regression.
-    # nosemgrep
+    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
     return subprocess.run(
         [binary, *args],
         cwd=cwd,

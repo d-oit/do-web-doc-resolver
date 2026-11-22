@@ -89,8 +89,8 @@ jobs:
             --evidence .do-harness/evidence.json | tee .do-harness/verify-output.json
 
       - name: Check evidence freshness
-        run: do-harness status --set verification --format json \
-          --evidence .do-harness/evidence.json
+        run: |
+          do-harness status --set verification --format json --evidence .do-harness/evidence.json
 
       - name: Upload harness evidence
         if: always()
