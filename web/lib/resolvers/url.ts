@@ -249,7 +249,7 @@ export async function extractViaFirecrawl(url: string, apiKey: string, log: Logg
     }
 
     const res = await fetchWithTimeout(
-      "https://api.firecrawl.dev/v1/scrape",
+      "https://api.firecrawl.dev/v2/scrape",
       {
         method: "POST",
         headers: {
