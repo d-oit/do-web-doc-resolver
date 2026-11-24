@@ -69,7 +69,7 @@ impl crate::providers::UrlProvider for FirecrawlProvider {
 
         let client = get_client();
         let response = client
-            .post("https://api.firecrawl.dev/v1/scrape")
+            .post("https://api.firecrawl.dev/v2/scrape")
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .json(&FirecrawlRequest {
