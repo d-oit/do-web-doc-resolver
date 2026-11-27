@@ -38,7 +38,7 @@
   - [Python Test Suite](#python-test-suite)
   - [Rust Test Suite](#rust-test-suite)
   - [Web UI Playwright Tests](#web-ui-playwright-tests)
-  - [Quality Gate Script](#quality-gate-script)
+  - [Quality Gate](#quality-gate)
 
 ---
 
