@@ -129,7 +129,7 @@ cd cli && cargo test
 cd web && npx playwright test --project=desktop
 
 # Quality gate (all checks)
-./scripts/quality_gate.sh
+./scripts/verify.sh --full
 ```
 
 ## Code Style
@@ -325,12 +325,54 @@ deliberately broken fixture fails and that missing sets do not pass vacuously.
 If a required runner tool is absent, installation or environment repair is the
 fix; a missing sensor is not a skip.
 
-If the native CLI is unavailable, run the legacy quality gate shell script:
+### One Entry Point: `scripts/verify.sh`
+
+`./scripts/verify.sh` is the single canonical local command (issue #730). It
+bootstraps the pinned `do-harness` release on a clean checkout, then delegates
+to the CLI — it owns no validation logic of its own:
 
 ```bash
-# Run all checks unconditionally
-./scripts/quality_gate.sh
+# Changed-only when detection is confident, full otherwise (default)
+./scripts/verify.sh
+
+# Always the full strict verification set (release/CI parity)
+./scripts/verify.sh --full
+
+# Force changed-only selection (expert override)
+./scripts/verify.sh --changed
 ```
+
+Changed-file detection lives in `scripts/harness_select.py` and is deliberately
+conservative. It is rename/delete-aware (both sides of a rename are classified,
+deleted paths still select their component) and falls back to the full
+`verification` set whenever detection is uncertain: git metadata unavailable,
+a merge/rebase in progress, an empty changeset, a change to the harness
+contract (`do-harness.toml`) or workflows (`.github/**`), a path that matches
+no runtime component, or a change no configured sensor covers. Selection and
+commands are available machine-readably via
+`python scripts/harness_select.py --format json`; failed runs print each
+sensor's configured fix command from the evidence file.
+
+`./scripts/quality_gate.sh` remains as a thin compatibility alias of
+`./scripts/verify.sh --full` for existing callers (the cleanup workflow and
+older docs). It is not a second authority and contains no checks of its own.
+
+### Local Harness versus CI
+
+The local full gate and the `Do Harness` workflow run the same
+`do-harness verify --set verification --strict` command over the same
+`do-harness.toml`, so they cannot disagree about required checks. CI
+intentionally runs additional scans outside the harness:
+
+| Scan | Workflow | Why it is not a harness sensor |
+|---|---|---|
+| Gitleaks secret history scan | `gitleaks.yml` | Scans full git history, not the working tree |
+| ShellCheck security, Trivy fs, dependency audit | `security-scan.yml` | Dedicated security tooling with SARIF upload |
+| markdownlint-cli2, yamllint, actionlint | `markdown-lint.yml`, `yaml-lint.yml` | Pinned third-party linters with PR annotations |
+| Playwright E2E (desktop/mobile/tablet) | `ci-ui.yml` | Targets the deployed production URL (`BASE_URL`), so it is not reproducible from a local checkout |
+| Coverage instrumentation and Python version matrix | `ci.yml` | Superset of the local single-version test run |
+| Semantic-cache build/test/clippy/bench | `ci.yml` | Feature-flag matrix; the harness `rust-semantic-cache` sensor covers the test portion |
+| Nightly bridge integration tests | `nightly-bridge.yml` | Scheduled full-integration run requiring built CLI and network |
 
 ## Nightly Bridge
 

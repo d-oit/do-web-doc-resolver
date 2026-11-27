@@ -170,8 +170,12 @@ cd cli && cargo test
 cd web && npx playwright test --project=desktop
 ```
 
-### Quality Gate Script
+### Quality Gate
 
 ```bash
-./scripts/quality_gate.sh
+# Canonical entry point: changed-only when safe, full when uncertain
+./scripts/verify.sh
+
+# Full strict gate (same verification set CI requires)
+./scripts/verify.sh --full
 ```

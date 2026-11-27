@@ -36,8 +36,12 @@ npx playwright test --project=desktop
 Run the full suite before submitting:
 
 ```bash
-./scripts/quality_gate.sh
+./scripts/verify.sh --full
 ```
+
+For faster iteration on a working tree, `./scripts/verify.sh` runs only the
+checks affected by your changes (falling back to the full suite whenever the
+affected set is uncertain).
 
 ## Standards
 
@@ -59,5 +63,5 @@ Run the full suite before submitting:
 1. Update documentation for user-facing changes.
 2. Add tests for new features or bug fixes.
 3. Verify no secrets or credentials are introduced.
-4. Ensure the quality gate passes: `./scripts/quality_gate.sh`.
+4. Ensure the quality gate passes: `./scripts/verify.sh --full`.
 5. Update `AGENTS.md` if repository structure or skills change.
