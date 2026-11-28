@@ -8,12 +8,12 @@ const nextConfig = {
   turbopack: { root: webRoot },
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-    ],
+    // No remote hosts are allowlisted for the Next Image optimizer: the app
+    // renders user-content images as plain <img> URLs client-side, so the
+    // server-side optimizer never proxies arbitrary hosts. Add an explicit
+    // protocol + hostname (never a wildcard) only when a product-required
+    // asset host appears, with a rationale in web/README.md.
+    remotePatterns: [],
   },
   reactStrictMode: true,
   poweredByHeader: false,
