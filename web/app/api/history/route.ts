@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BodyTooLargeError, readJsonWithLimit } from "@/lib/body-limit";
+import { applySessionCookie, resolveSession } from "@/lib/session";
 
 // In-memory store for local development (will be replaced with Vercel KV in production)
+// Partitioned by the verified session id from lib/session: the map key is
+// never a client-chosen identifier.
 const memoryHistory = new Map<string, HistoryEntry[]>();
 
 interface HistoryEntry {
@@ -25,20 +28,14 @@ interface HistoryEntry {
 const MAX_HISTORY = 100;
 const TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
-function getSessionId(request: NextRequest): string {
-  const existing = request.cookies.get("ui-session")?.value;
-  if (existing) return existing;
-  return crypto.randomUUID();
-}
-
 // GET /api/history - List history entries
 export async function GET(request: NextRequest) {
-  const sessionId = getSessionId(request);
+  const session = resolveSession(request);
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get("limit") || "50");
   const query = searchParams.get("q");
 
-  let entries = memoryHistory.get(sessionId) || [];
+  let entries = memoryHistory.get(session.sessionId) || [];
 
   // Filter out expired entries
   const now = Date.now();
@@ -58,17 +55,7 @@ export async function GET(request: NextRequest) {
     entries: entries.slice(0, limit),
   });
 
-  // Set cookie if not already set
-  if (!request.cookies.get("ui-session")?.value) {
-    response.cookies.set("ui-session", sessionId, {
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-    });
-  }
-
-  return response;
+  return applySessionCookie(response, session);
 }
 
 function normalizeHashes(input: unknown): string[] {
@@ -88,7 +75,7 @@ function hasOverlap(a: string[] = [], b: string[] = []): boolean {
 
 // POST /api/history - Save new history entry
 export async function POST(request: NextRequest) {
-  const sessionId = getSessionId(request);
+  const session = resolveSession(request);
 
   let body: unknown;
   try {
@@ -135,8 +122,8 @@ export async function POST(request: NextRequest) {
       normalizedUrlHashes,
     };
 
-    // Get or create history list
-    let entries = memoryHistory.get(sessionId) || [];
+    // Get or create the caller's history list
+    let entries = memoryHistory.get(session.sessionId) || [];
 
     // Remove duplicates that target the same set of URLs
     if (normalizedUrlHashes.length > 0) {
@@ -151,21 +138,11 @@ export async function POST(request: NextRequest) {
       entries = entries.slice(0, MAX_HISTORY);
     }
 
-    memoryHistory.set(sessionId, entries);
+    memoryHistory.set(session.sessionId, entries);
 
     const response = NextResponse.json({ ok: true, id });
 
-    // Set cookie if not already set
-    if (!request.cookies.get("ui-session")?.value) {
-      response.cookies.set("ui-session", sessionId, {
-        httpOnly: true,
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 365,
-        path: "/",
-      });
-    }
-
-    return response;
+    return applySessionCookie(response, session);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -173,7 +150,7 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/history?id=xxx - Delete specific entry
 export async function DELETE(request: NextRequest) {
-  const sessionId = getSessionId(request);
+  const session = resolveSession(request);
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
@@ -181,9 +158,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const entries = memoryHistory.get(sessionId) || [];
+  const entries = memoryHistory.get(session.sessionId) || [];
   const filtered = entries.filter((e) => e.id !== id);
-  memoryHistory.set(sessionId, filtered);
+  memoryHistory.set(session.sessionId, filtered);
 
-  return NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true });
+
+  return applySessionCookie(response, session);
 }
