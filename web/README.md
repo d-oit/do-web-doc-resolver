@@ -148,6 +148,19 @@ Resolve a URL or query to markdown.
 - **Playwright** — E2E testing
 - **Vercel Speed Insights** — performance monitoring
 
+## Image Optimization Policy
+
+The Next.js Image optimizer has **no remote hosts allowlisted** (`images.remotePatterns` is
+empty in `next.config.mjs`). User-content images (e.g. images inside resolved pages) render
+as plain `<img>` URLs in the browser and are never fetched through the server-side optimizer,
+which keeps arbitrary — potentially private — hosts out of the server's outbound request
+surface.
+
+If a product-required asset host ever appears, add an explicit `protocol` + `hostname`
+pattern (never a wildcard) to `images.remotePatterns` with a one-line rationale in
+`next.config.mjs`, and update `tests/next-config.test.ts` to cover the new host. The test
+suite rejects wildcard hostnames, non-HTTPS schemes, and loopback/metadata hosts.
+
 ## Deployment
 
 Deployed via [Vercel](https://vercel.com) Git integration — push to `main` and Vercel auto-builds and deploys.
