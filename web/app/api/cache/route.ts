@@ -1,28 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stats, clear } from "@/lib/cache";
+import { SESSION_COOKIE, applySessionCookie, resolveSession, verifySessionToken } from "@/lib/session";
 
 /**
  * The cache is process-local shared state, so clearing it affects every user
- * served by this instance.
- *
- * The session-cookie check below stops an anonymous `curl -X DELETE`, which is
- * the realistic abuse. It is not authorization: the cookie is client-supplied
- * and unverified, so anyone can obtain one by calling any endpoint. The same
- * caveat and the follow-up (sign the value server-side) are documented on
- * `hasSessionCookie` in app/api/records/route.ts.
+ * served by this instance. DELETE therefore requires a verified, server-signed
+ * session (see lib/session) — not mere cookie presence.
  */
 export async function GET() {
   return NextResponse.json(stats());
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!request.cookies.get("ui-session")?.value) {
+  const verified = verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!verified) {
     return NextResponse.json(
-      { error: "Session required to clear cache" },
+      { error: "Verified session required to clear cache" },
       { status: 401 }
     );
   }
 
+  const session = resolveSession(request);
   clear();
-  return NextResponse.json({ ok: true });
+  return applySessionCookie(NextResponse.json({ ok: true }), session);
 }

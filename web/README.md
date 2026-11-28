@@ -123,6 +123,30 @@ Resolve a URL or query to markdown.
 }
 ```
 
+## Session & Data Privacy
+
+The web UI has **no identity provider**: there are no accounts, and a session identifies a **browser, not a person**. All user-scoped state (saved records, history, analytics) is partitioned by an anonymous session.
+
+### How sessions work
+
+- The first API response sets an `ui-session` cookie containing a random session id plus an **HMAC-SHA256 signature computed server-side**. Clients cannot mint or alter valid session ids.
+- Cookie attributes: `HttpOnly`, `SameSite=Lax`, `Secure` in production, `Path=/`, and a **7-day lifetime** that slides on every verified request (expired tokens are re-signed with the same id; forged or malformed cookies get a fresh empty session, never another principal's data).
+- No API trusts a raw client-supplied session identifier, and no security decision relies on mere cookie presence.
+
+### What each session can see
+
+- `GET/POST/DELETE /api/records`, `GET/DELETE /api/records/{id}` and `GET/POST/DELETE /api/history` operate **only** on the verified caller's partition. List, search, insert, delete and clear never cross sessions.
+- `GET /api/analytics` aggregates only the caller's records.
+
+### Retention & deletion
+
+- Records: in-memory, capped at `RECORDS_MAX_SIZE` (default 100) per session, expiring after `RECORDS_TTL_DAYS` (default 30). `DELETE /api/records` clears the caller's partition; `DELETE /api/records/{id}` deletes a single owned record.
+- History: in-memory, capped at 100 entries per session, expiring after 90 days. `DELETE /api/history?id=…` deletes a single owned entry.
+
+### Deployment limitation
+
+Stores are **process-local and in-memory**. For multi-instance serverless deployments set `SESSION_SECRET` (32+ bytes) so every instance verifies tokens identically; until user-scoped state moves to a durable shared store, sessions and their data do not survive instance restarts or span instances.
+
 ## Available Scripts
 
 | Script | Description |

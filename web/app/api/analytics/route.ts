@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnalytics, list } from "@/lib/records";
+import { applySessionCookie, resolveSession } from "@/lib/session";
 
 /**
  * GET /api/analytics
  * Return analytics stats about records and usage patterns
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const analytics = getAnalytics();
-    const recentRecords = list(100); // Last 100 records for trend analysis
+    const session = resolveSession(request);
+    const analytics = getAnalytics(session.sessionId);
+    const recentRecords = list(session.sessionId, 100); // Last 100 records for trend analysis
 
     // Calculate query frequency (queries per day over the last 7 days)
     const now = Date.now();
@@ -23,7 +25,7 @@ export async function GET(_request: NextRequest) {
     // Provider usage distribution
     const totalRecords = recentRecords.length;
     const providerDistribution: { [key: string]: { count: number; percentage: number } } = {};
-    
+
     Object.entries(analytics.providerUsage).forEach(([provider, count]) => {
       const countNum = count as number;
       providerDistribution[provider] = {
@@ -43,7 +45,7 @@ export async function GET(_request: NextRequest) {
       (analytics.totalRecords / analytics.maxRecords) * 1000
     ) / 10;
 
-    return NextResponse.json({
+    return applySessionCookie(NextResponse.json({
       summary: {
         totalRecords: analytics.totalRecords,
         maxRecords: analytics.maxRecords,
@@ -61,7 +63,7 @@ export async function GET(_request: NextRequest) {
           ? Math.round((analytics.newestRecord - analytics.oldestRecord) / oneDay)
           : 0,
       },
-    });
+    }), session);
   } catch (error) {
     console.error("Analytics error:", error);
     return NextResponse.json(
