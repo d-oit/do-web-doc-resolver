@@ -52,6 +52,20 @@ dev = [
 do-wdr = "scripts.cli:main"
 do-web-doc-resolver = "scripts.cli:main"
 
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "respx>=0.22.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "flake8>=7.3.0",
+    "mypy>=1.5.0",
+    "types-requests>=2.31.0",
+    "pip-audit>=2.7.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/d-oit/do-web-doc-resolver"
 Documentation = "https://github.com/d-oit/do-web-doc-resolver#readme"
