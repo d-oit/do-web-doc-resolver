@@ -1,72 +1,9 @@
 import { Logger } from "@/lib/log";
+import { ssrfFetch } from "@/lib/ssrf-fetch";
 import { validateUrlForFetchAsync } from "@/lib/validation";
 
 export const MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
 export const MIN_CHARS = parseInt(process.env.WEB_RESOLVER_MIN_CHARS || "50");
-
-async function safeFetch(
-  url: string,
-  options: RequestInit,
-  timeoutMs = 15000,
-  maxRedirects = 5
-): Promise<Response> {
-  const initialValidation = await validateUrlForFetchAsync(url);
-  if (!initialValidation.valid) {
-    throw new Error(`SSRF blocked: ${initialValidation.error || "Invalid URL"}`);
-  }
-
-  let currentUrl = url;
-  let redirectCount = 0;
-
-  while (redirectCount <= maxRedirects) {
-    const validation = await validateUrlForFetchAsync(currentUrl);
-    if (!validation.valid) {
-      throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const response = await fetch(currentUrl, {
-        ...options,
-        signal: controller.signal,
-        redirect: "manual",
-      });
-
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get("Location");
-        if (!location) {
-          return response;
-        }
-
-        currentUrl = new URL(location, currentUrl).toString();
-        redirectCount++;
-        continue;
-      }
-
-      return response;
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  throw new Error("Too many redirects");
-}
-
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeoutMs = 15000
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export async function extractViaLlmsTxt(url: string, log: Logger, maxChars: number = MAX_CHARS): Promise<string | null> {
   const start = Date.now();
@@ -74,9 +11,10 @@ export async function extractViaLlmsTxt(url: string, log: Logger, maxChars: numb
   try {
     const parsed = new URL(url);
     const llmsUrl = `${parsed.origin}/llms.txt`;
-    const res = await safeFetch(llmsUrl, {
+    const res = await ssrfFetch(llmsUrl, {
       headers: { Accept: "text/plain" },
-    }, 8000);
+      timeoutMs: 8000,
+    });
     if (!res.ok) {
       log.info("no llms.txt found", "llms_txt", { status: res.status, latencyMs: Date.now() - start });
       return null;
@@ -103,7 +41,7 @@ export async function extractViaJina(url: string, log: Logger, maxChars: number 
       throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
     }
 
-    const res = await safeFetch(`https://r.jina.ai/${url}`, {
+    const res = await ssrfFetch(`https://r.jina.ai/${url}`, {
       headers: { Accept: "text/plain", "X-Return-Format": "text" },
     });
     if (!res.ok) {
@@ -214,7 +152,7 @@ export async function extractViaDirectFetch(url: string, log: Logger, maxChars: 
   const start = Date.now();
   log.info("attempt", "direct_fetch", { url });
   try {
-    const res = await safeFetch(url, {
+    const res = await ssrfFetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; WebDocResolver/2.0)",
         Accept: "text/html",
@@ -248,7 +186,7 @@ export async function extractViaFirecrawl(url: string, apiKey: string, log: Logg
       throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
     }
 
-    const res = await fetchWithTimeout(
+    const res = await ssrfFetch(
       "https://api.firecrawl.dev/v2/scrape",
       {
         method: "POST",
@@ -257,8 +195,8 @@ export async function extractViaFirecrawl(url: string, apiKey: string, log: Logg
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ url, formats: ["markdown"] }),
-      },
-      30000
+        timeoutMs: 30000,
+      }
     );
     if (!res.ok) {
       log.info("failure", "firecrawl", { status: res.status, latencyMs: Date.now() - start });
@@ -287,7 +225,7 @@ export async function extractViaMistralBrowser(url: string, apiKey: string, log:
       throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
     }
 
-    const res = await fetchWithTimeout(
+    const res = await ssrfFetch(
       "https://api.mistral.ai/v1/chat/completions",
       {
         method: "POST",
@@ -300,8 +238,8 @@ export async function extractViaMistralBrowser(url: string, apiKey: string, log:
           messages: [{ role: "user", content: `Extract the main content from this URL as clean markdown: ${url}. Return only the content, no commentary.` }],
           max_tokens: 4000,
         }),
-      },
-      25000
+        timeoutMs: 25000,
+      }
     );
     if (!res.ok) {
       log.info("failure", "mistral_browser", { status: res.status, latencyMs: Date.now() - start });
