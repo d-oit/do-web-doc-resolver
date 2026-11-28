@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stats, clear } from "@/lib/cache";
-import { applySessionCookie, resolveSession } from "@/lib/session";
+import { SESSION_COOKIE, applySessionCookie, resolveSession, verifySessionToken } from "@/lib/session";
 
 /**
  * The cache is process-local shared state, so clearing it affects every user
@@ -12,8 +12,15 @@ export async function GET() {
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = resolveSession(request);
+  const verified = verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!verified) {
+    return NextResponse.json(
+      { error: "Verified session required to clear cache" },
+      { status: 401 }
+    );
+  }
 
+  const session = resolveSession(request);
   clear();
   return applySessionCookie(NextResponse.json({ ok: true }), session);
 }

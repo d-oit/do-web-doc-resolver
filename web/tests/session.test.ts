@@ -76,11 +76,14 @@ describe("resolveSession", () => {
     expect(verifySessionToken(session.token)?.sessionId).toBe(session.sessionId);
   });
 
-  it("keeps the session id for a valid cookie without rotating", () => {
+  it("keeps the session id for a valid cookie and slides its expiry", () => {
     const { token, sessionId } = createSessionToken();
     const session = resolveSession(requestWithCookie(`${SESSION_COOKIE}=${token}`));
 
-    expect(session).toEqual({ sessionId, token, rotated: false });
+    expect(session.sessionId).toBe(sessionId);
+    expect(session.rotated).toBe(true);
+    expect(session.token).not.toBe(token);
+    expect(verifySessionToken(session.token)).toEqual({ sessionId, expired: false });
   });
 
   it("rotates the token but keeps the id for an expired cookie", () => {
@@ -156,12 +159,13 @@ describe("applySessionCookie", () => {
     expect(setCookie?.httpOnly).toBe(true);
   });
 
-  it("leaves the response untouched for an unrotated session", () => {
+  it("refreshes the cookie for an already-verified session", () => {
     const { token, sessionId } = createSessionToken();
     const session = resolveSession(requestWithCookie(`${SESSION_COOKIE}=${token}`));
     const response = applySessionCookie(NextResponse.json({}), session);
 
-    expect(response.cookies.get(SESSION_COOKIE)).toBeUndefined();
-    expect(session.sessionId).toBe(sessionId);
+    const setCookie = response.cookies.get(SESSION_COOKIE);
+    expect(setCookie?.value).toBe(session.token);
+    expect(verifySessionToken(setCookie?.value)?.sessionId).toBe(sessionId);
   });
 });

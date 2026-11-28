@@ -104,7 +104,7 @@ export interface SessionResolution {
   sessionId: string;
   /** Signed token to hand back to the client. */
   token: string;
-  /** True when the response must set (or refresh) the session cookie. */
+  /** True on every verified response: the refreshed cookie must be sent back. */
   rotated: boolean;
 }
 
@@ -113,23 +113,15 @@ export interface SessionResolution {
  *
  * - Missing, forged or malformed cookies resolve to a brand-new session: the
  *   caller can only ever reach an empty partition, never another principal's.
- * - Expired but correctly signed tokens slide: same session id, fresh expiry.
- *   Data survives; replays cannot extend a token they cannot sign.
+ * - Correctly signed tokens slide on every request: same session id, fresh
+ *   expiry. Data survives; replays cannot extend a token they cannot sign.
  *
  * Never fails, and never returns a client-chosen identifier.
  */
 export function resolveSession(request: NextRequest): SessionResolution {
   const verified = verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
 
-  if (verified && !verified.expired) {
-    return {
-      sessionId: verified.sessionId,
-      token: request.cookies.get(SESSION_COOKIE)!.value,
-      rotated: false,
-    };
-  }
-
-  if (verified && verified.expired) {
+  if (verified) {
     const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
     return {
       sessionId: verified.sessionId,
@@ -158,7 +150,7 @@ export function sessionCookieOptions(): {
   };
 }
 
-/** Attach the session cookie to a response when the session was rotated. */
+/** Attach the (refreshed) session cookie to a verified response. */
 export function applySessionCookie(
   response: NextResponse,
   session: SessionResolution

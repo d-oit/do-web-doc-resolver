@@ -44,6 +44,14 @@ function getStore(sessionId: string): SessionStore {
 }
 
 /**
+ * Read-only lookup: never creates a store, so anonymous read, search and
+ * clear calls cannot grow the process-global `stores` map.
+ */
+function peekStore(sessionId: string): SessionStore {
+  return stores.get(sessionId) ?? { records: new Map(), order: [] };
+}
+
+/**
  * Check if a record has expired based on TTL
  */
 function isExpired(record: StoredRecord): boolean {
@@ -107,7 +115,7 @@ export function save(
 }
 
 export function get(sessionId: string, id: string): StoredRecord | undefined {
-  const session = getStore(sessionId);
+  const session = peekStore(sessionId);
   const record = session.records.get(id);
   if (record && isExpired(record)) {
     // Remove expired record on access
@@ -120,7 +128,7 @@ export function get(sessionId: string, id: string): StoredRecord | undefined {
 }
 
 export function list(sessionId: string, limit = 50): StoredRecord[] {
-  const session = getStore(sessionId);
+  const session = peekStore(sessionId);
   cleanupExpired(session);
   return Array.from(session.records.values())
     .filter((r) => !isExpired(r))
@@ -129,7 +137,7 @@ export function list(sessionId: string, limit = 50): StoredRecord[] {
 }
 
 export function remove(sessionId: string, id: string): boolean {
-  const session = getStore(sessionId);
+  const session = peekStore(sessionId);
   const existed = session.records.delete(id);
   if (existed) {
     const idx = session.order.indexOf(id);
@@ -139,10 +147,11 @@ export function remove(sessionId: string, id: string): boolean {
 }
 
 export function clear(sessionId: string): number {
-  const session = getStore(sessionId);
+  const session = peekStore(sessionId);
   const count = session.records.size;
   session.records.clear();
   session.order.length = 0;
+  stores.delete(sessionId);
   return count;
 }
 
@@ -157,7 +166,7 @@ export function search(sessionId: string, query: string, limit = 50): StoredReco
 }
 
 export function size(sessionId: string): number {
-  const session = getStore(sessionId);
+  const session = peekStore(sessionId);
   cleanupExpired(session);
   return session.records.size;
 }
@@ -178,7 +187,7 @@ export function getAnalytics(sessionId: string): {
   newestRecord: number | null;
   ttlDays: number;
 } {
-  const session = getStore(sessionId);
+  const session = peekStore(sessionId);
   cleanupExpired(session);
   const records = Array.from(session.records.values());
 
