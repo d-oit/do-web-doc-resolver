@@ -225,6 +225,7 @@ The skill is implemented across the project root. Key files:
 
 - `do-wdr-cli`: Rust compiled CLI for faster performance
 - `agent-browser`: Browser automation for complex web interactions
+
 ## Security & Change Validation Matrix
 
 Run the executable check for every change class before opening a PR:
