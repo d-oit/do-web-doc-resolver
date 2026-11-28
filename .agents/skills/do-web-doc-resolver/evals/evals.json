@@ -43,6 +43,37 @@
         "Output includes source provider name",
         "Provider used is a free provider (exa_mcp, jina, duckduckgo, llms_txt, or direct_fetch)"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Add a new outbound provider that fetches user-supplied URLs directly with global fetch for speed",
+      "expected_output": "The change is rejected or reworked: outbound fetches must go through web/lib/ssrf-fetch.ts with pinned DNS validation, and the SSRF test suites must pass.",
+      "assertions": [
+        "Output references the SSRF boundary web/lib/ssrf-fetch.ts",
+        "Output requires the SSRF test suites (tests/ssrf-fetch.test.ts, tests/ssrf.test.ts, tests/ssrf_async.test.ts) to pass",
+        "Output does not introduce a direct fetch() call site for user-controlled URLs",
+        "Output mentions validating redirect destinations"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Add a new persistent API endpoint that stores user records",
+      "expected_output": "The change includes per-session data isolation and authorization checks, with cross-session isolation tests.",
+      "assertions": [
+        "Output requires session-isolation and authorization tests (tests/records.test.ts, tests/api/)",
+        "Output partitions stored records per verified session",
+        "Output returns 404 for records the caller does not own"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Change the paid provider routing order and add a new paid provider",
+      "expected_output": "The change includes deterministic budget, fallback, and circuit-breaker test updates.",
+      "assertions": [
+        "Output requires deterministic budget/fallback/circuit-breaker tests",
+        "Output references response-size limits for provider responses",
+        "Output keeps provider calls behind the rate-limit scopes"
+      ]
     }
   ]
 }

@@ -57,6 +57,36 @@ Create or modify files according to the issue spec:
 - Update skills snapshot if changing `scripts/` files
 - Keep functions focused and under 500 lines
 
+### 3.5 Security & change-validation matrix
+
+Before running tests, map the change to its required security checks:
+
+| Change | Required checks |
+|---|---|
+| URL ingress / provider / redirect / browser path | SSRF suites: `cd web && npx vitest run tests/ssrf-fetch.test.ts tests/ssrf.test.ts tests/ssrf_async.test.ts`; fetches stay behind `web/lib/ssrf-fetch.ts` |
+| API / session / storage changes | Authorization and cross-session isolation: `cd web && npx vitest run tests/records.test.ts tests/api/` |
+| Provider routing / cost changes | Budget/fallback/circuit-breaker tests: `pytest tests/test_routing_context.py tests/test_cascade_async.py -q` |
+| Mirrored skill runtime changes | `python scripts/sync_skill.py --check` |
+| Documentation / config changes | `python scripts/validate_docs.py` |
+| All changes (release/CI) | `do-harness verify --set verification --strict` |
+
+A PR that skips the row matching its change class must not merge.
+
+### 3.5 Security & change-validation matrix
+
+Before running tests, map the change to its required security checks:
+
+| Change | Required checks |
+|---|---|
+| URL ingress / provider / redirect / browser path | SSRF suites: `cd web && npx vitest run tests/ssrf-fetch.test.ts tests/ssrf.test.ts tests/ssrf_async.test.ts`; fetches stay behind `web/lib/ssrf-fetch.ts` |
+| API / session / storage changes | Authorization and cross-session isolation: `cd web && npx vitest run tests/records.test.ts tests/api/` |
+| Provider routing / cost changes | Budget/fallback/circuit-breaker tests: `pytest tests/test_routing_context.py tests/test_cascade_async.py -q` |
+| Mirrored skill runtime changes | `python scripts/sync_skill.py --check` |
+| Documentation / config changes | `python scripts/validate_docs.py` |
+| All changes (release/CI) | `do-harness verify --set verification --strict` |
+
+A PR that skips the row matching its change class must not merge.
+
 ### 4. Run tests
 
 ```bash
