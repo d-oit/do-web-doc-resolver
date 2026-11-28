@@ -11,6 +11,7 @@ vi.mock("../../lib/records", () => ({
 import { DELETE, GET, POST } from "../../app/api/records/route";
 import { MAX_BODY_BYTES } from "../../lib/body-limit";
 import * as records from "../../lib/records";
+import { createSessionToken, SESSION_COOKIE, verifySessionToken } from "../../lib/session";
 
 /** Build a POST request with a JSON body. */
 function postRequest(body: unknown, headers: Record<string, string> = {}): NextRequest {
@@ -21,26 +22,61 @@ function postRequest(body: unknown, headers: Record<string, string> = {}): NextR
   });
 }
 
+/** Build a request carrying a valid signed session cookie. */
+function withSession(method = "DELETE"): { request: NextRequest; sessionId: string } {
+  const { token, sessionId } = createSessionToken();
+  const request = new NextRequest("http://localhost/api/records", {
+    method,
+    headers: { cookie: `${SESSION_COOKIE}=${token}` },
+  });
+  return { request, sessionId };
+}
+
 describe("/api/records route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(records.clear).mockReturnValue(3);
   });
 
-  it("rejects DELETE without a session cookie", async () => {
-    const response = await DELETE(
-      new NextRequest("http://localhost/api/records", { method: "DELETE" })
-    );
-
-    expect(response.status).toBe(401);
-    expect(records.clear).not.toHaveBeenCalled();
-  });
-
-  it("allows DELETE with a session cookie", async () => {
-    const response = await DELETE(withCookie());
+  it("partitions GET by the verified session and issues a cookie when absent", async () => {
+    const response = await GET(new NextRequest("http://localhost/api/records"));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ deleted: 3 });
+    expect(records.list).toHaveBeenCalledTimes(1);
+    const call = vi.mocked(records.list).mock.calls[0];
+    expect(call).toBeDefined();
+    const sessionId = call?.[0];
+
+    const setCookie = response.cookies.get(SESSION_COOKIE);
+    expect(setCookie).toBeDefined();
+    expect(setCookie?.httpOnly).toBe(true);
+    expect(verifySessionToken(setCookie?.value)?.sessionId).toBe(sessionId);
+  });
+
+  it("searches inside the caller's session only", async () => {
+    const { request, sessionId } = withSession("GET");
+
+    await GET(new NextRequest(new URL("http://localhost/api/records?q=secret").toString(), {
+      headers: { cookie: request.headers.get("cookie") || "" },
+    }));
+
+    expect(records.search).toHaveBeenCalledWith(sessionId, "secret", 50);
+    expect(records.list).not.toHaveBeenCalled();
+  });
+
+  it("gives a forged cookie a fresh empty session, not the original partition", async () => {
+    const { sessionId: legitId } = createSessionToken();
+    const response = await GET(
+      new NextRequest("http://localhost/api/records", {
+        headers: { cookie: `${SESSION_COOKIE}=${legitId}.tampered` },
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const call = vi.mocked(records.list).mock.calls[0];
+    expect(call).toBeDefined();
+    expect(call?.[0]).not.toBe(legitId);
+    expect(response.cookies.get(SESSION_COOKIE)).toBeDefined();
   });
 
   it("rejects a payload with no query or url", async () => {
@@ -69,13 +105,18 @@ describe("/api/records route", () => {
     expect(records.save).not.toHaveBeenCalled();
   });
 
-  it("accepts a valid record", async () => {
+  it("accepts a valid record into the caller's session", async () => {
+    const { request, sessionId } = withSession("POST");
     const response = await POST(
-      postRequest({ query: "example", content: "ok", score: 0.8 })
+      new NextRequest("http://localhost/api/records", {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie: request.headers.get("cookie") || "" },
+        body: JSON.stringify({ query: "example", content: "ok", score: 0.8 }),
+      })
     );
 
     expect(response.status).toBe(201);
-    expect(records.save).toHaveBeenCalledWith({
+    expect(records.save).toHaveBeenCalledWith(sessionId, {
       query: "example",
       url: null,
       content: "ok",
@@ -87,7 +128,17 @@ describe("/api/records route", () => {
   it("clamps the GET limit parameter", async () => {
     await GET(new NextRequest("http://localhost/api/records?limit=99999"));
 
-    expect(records.list).toHaveBeenCalledWith(200);
+    expect(records.list).toHaveBeenCalledWith(expect.any(String), 200);
+  });
+
+  it("clears only the caller's session partition", async () => {
+    const { request, sessionId } = withSession();
+
+    const response = await DELETE(request);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ deleted: 3 });
+    expect(records.clear).toHaveBeenCalledWith(sessionId);
   });
 
   it("rejects an oversized body via Content-Length before reading it", async () => {
@@ -119,11 +170,3 @@ describe("/api/records route", () => {
     expect(response.status).toBe(201);
   });
 });
-
-/** Build a DELETE request carrying a session cookie. */
-function withCookie(): NextRequest {
-  return new NextRequest("http://localhost/api/records", {
-    method: "DELETE",
-    headers: { cookie: "ui-session=sess-1" },
-  });
-}

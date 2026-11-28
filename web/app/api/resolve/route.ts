@@ -10,6 +10,7 @@ import { searchViaExaMcpWithMistral } from "@/lib/resolvers/query";
 import { isUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
 import { validateResolveRequest, validateUrlForFetchAsync } from "@/lib/validation";
 import { BodyTooLargeError, readJsonWithLimit } from "@/lib/body-limit";
+import { applySessionCookie, resolveSession } from "@/lib/session";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -210,6 +211,7 @@ export async function POST(request: NextRequest) {
   // and can set Retry-After. Checking here as well consumed the same in-memory
   // counter twice, halving the effective limit to 15 req/min.
   const log = new Logger();
+  const session = resolveSession(request);
   try {
     let body: unknown;
     try {
@@ -310,8 +312,8 @@ export async function POST(request: NextRequest) {
     // Store successful result in cache
     await cache.set(rawInput, source, { markdown, provider, quality, budget: budgetState });
 
-    // Auto-save as a record
-    saveRecord({
+    // Auto-save as a record in the caller's session partition
+    saveRecord(session.sessionId, {
       query: rawInput,
       url: urlMode ? rawInput : null,
       content: markdown,
@@ -319,7 +321,7 @@ export async function POST(request: NextRequest) {
       score: quality.score,
     });
 
-    return NextResponse.json(response);
+    return applySessionCookie(NextResponse.json(response), session);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal error";
     log.error("resolve failed", undefined, { error: message });

@@ -1,26 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { get, remove } from "@/lib/records";
+import { applySessionCookie, resolveSession } from "@/lib/session";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = resolveSession(request);
   const { id } = await params;
-  const record = get(id);
+  const record = get(session.sessionId, id);
   if (!record) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json(record);
+  return applySessionCookie(NextResponse.json(record), session);
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = resolveSession(request);
   const { id } = await params;
-  const existed = remove(id);
+  const existed = remove(session.sessionId, id);
   if (!existed) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json({ deleted: true });
+  return applySessionCookie(NextResponse.json({ deleted: true }), session);
 }
