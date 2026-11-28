@@ -130,4 +130,7 @@ PROVIDER_TIERS: dict[str, FetchTier] = {
     "visual_clip": FetchTier.PAID_LITE,
     "stealth": FetchTier.STEALTH,
     "mistral_browser": FetchTier.PAID_BROWSER,
+    # Opt-in local JS renderer; tier placement is provisional until the
+    # committed benchmark decides its position (agents-docs/SCRIM_EVALUATION.md)
+    "scrim": FetchTier.PAID_BROWSER,
 }

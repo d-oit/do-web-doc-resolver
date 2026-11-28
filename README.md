@@ -65,6 +65,11 @@ The resolver queries providers in priority tiers and halts upon receiving a resp
 3. **Free Direct & Lite Tier**: Direct HTTP fetch, Jina Reader, Firecrawl.
 4. **Browser Tier**: Mistral Browser.
 
+An additional **local JS-rendering provider** (`scrim`, opt-in via
+`DO_WDR_SCRIM_ENABLED=1` with the [scrim](https://github.com/strelov1/scrim)
+binary installed) is registered but excluded from the default cascade pending a
+committed benchmark; see `agents-docs/SCRIM_EVALUATION.md`.
+
 ---
 
 ## How to Install

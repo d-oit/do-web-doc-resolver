@@ -86,6 +86,9 @@ class ProviderType(Enum):
     OCR = "ocr"
     VISUAL_CLIP = "visual_clip"
 
+    # Optional local JS-rendering provider (opt-in via DO_WDR_SCRIM_ENABLED=1)
+    SCRIM = "scrim"
+
     def is_paid(self) -> bool:
         return self in (
             ProviderType.EXA,

@@ -11,6 +11,7 @@ from scripts.providers.exa import resolve_with_exa, resolve_with_exa_mcp
 from scripts.providers.firecrawl import resolve_with_firecrawl
 from scripts.providers.jina import resolve_with_jina
 from scripts.providers.mistral import resolve_with_mistral_browser, resolve_with_mistral_websearch
+from scripts.providers.scrim import resolve_with_scrim, resolve_with_scrim_async
 from scripts.providers.serper import resolve_with_serper
 from scripts.providers.stealth import resolve_with_stealth
 from scripts.providers.tavily import resolve_with_tavily
@@ -61,6 +62,8 @@ __all__ = [
     "resolve_with_ocr",
     "resolve_with_visual_clip",
     "resolve_with_stealth",
+    "resolve_with_scrim",
+    "resolve_with_scrim_async",
     "resolve_with_visual_clip_async",
     "_is_rate_limited",
     "_set_rate_limit",
