@@ -11,6 +11,8 @@ from scripts.doc_validator import (
     check_cross_docs,
     check_file_references,
     check_npm_scripts,
+    check_provider_inventory,
+    check_runtime_versions,
     check_shell_commands,
 )
 
@@ -282,3 +284,145 @@ class TestCheckCrossDocs(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- Runtime Versions ---
+
+
+class TestCheckRuntimeVersions(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.repo_root = Path(self.temp_dir.name)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def _patch(self):
+        return patch("scripts.doc_validator.REPO_ROOT", new=self.repo_root)
+
+    def test_matching_versions_pass(self):
+        (self.repo_root / "README.md").write_text(
+            "Requires Python 3.11 or higher.\n"
+            "Requires Rust 1.85 or higher.\n"
+            "Requires Node.js 22 or higher.\n"
+            "[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)\n"
+        )
+        (self.repo_root / "web").mkdir()
+        (self.repo_root / "web" / "package.json").write_text(
+            json.dumps({"dependencies": {"next": "^16.4.6"}})
+        )
+        (self.repo_root / "cli").mkdir()
+        (self.repo_root / "cli" / "Cargo.toml").write_text('[package]\nrust-version = "1.85"\n')
+        gh = self.repo_root / ".github" / "workflows"
+        gh.mkdir(parents=True)
+        (gh / "ci.yml").write_text(
+            "env:\n  PYTHON_VERSION: '3.12'\n  RUST_TOOLCHAIN: '1.85'\n  NODE_VERSION: '22'\n"
+        )
+        (self.repo_root / "pyproject.toml").write_text('[project]\nrequires-python = ">=3.11"\n')
+
+        report = Report()
+        with self._patch():
+            check_runtime_versions(report)
+
+        self.assertEqual(len(report.issues), 0)
+
+    def test_stale_readme_claims_error(self):
+        (self.repo_root / "README.md").write_text(
+            "Requires Python 3.11 or higher.\n"
+            "Requires Rust 1.80 or higher.\n"
+            "Requires Node.js 18 or higher.\n"
+            "[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)\n"
+        )
+        (self.repo_root / "web").mkdir()
+        (self.repo_root / "web" / "package.json").write_text(
+            json.dumps({"dependencies": {"next": "^16.4.6"}})
+        )
+        (self.repo_root / "cli").mkdir()
+        (self.repo_root / "cli" / "Cargo.toml").write_text('[package]\nrust-version = "1.85"\n')
+        gh = self.repo_root / ".github" / "workflows"
+        gh.mkdir(parents=True)
+        (gh / "ci.yml").write_text(
+            "env:\n  PYTHON_VERSION: '3.12'\n  RUST_TOOLCHAIN: '1.85'\n  NODE_VERSION: '22'\n"
+        )
+        (self.repo_root / "pyproject.toml").write_text('[project]\nrequires-python = ">=3.11"\n')
+
+        report = Report()
+        with self._patch():
+            check_runtime_versions(report)
+
+        details = [issue.detail for issue in report.issues]
+        self.assertEqual(report.counts["error"], 3)
+        self.assertTrue(any("Node.js" in d for d in details))
+        self.assertTrue(any("Rust" in d for d in details))
+        self.assertTrue(any("Next.js" in d for d in details))
+
+    def test_missing_readme_is_an_error(self):
+        (self.repo_root / "web").mkdir()
+        (self.repo_root / "web" / "package.json").write_text("{}")
+        (self.repo_root / "cli").mkdir()
+        (self.repo_root / "cli" / "Cargo.toml").write_text("")
+        gh = self.repo_root / ".github" / "workflows"
+        gh.mkdir(parents=True)
+        (gh / "ci.yml").write_text("env: {}\n")
+        (self.repo_root / "pyproject.toml").write_text("")
+
+        report = Report()
+        with self._patch():
+            check_runtime_versions(report)
+
+        self.assertEqual(report.counts["error"], 1)
+
+
+# --- Provider Inventory ---
+
+
+class TestCheckProviderInventory(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.repo_root = Path(self.temp_dir.name)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def _patch(self):
+        return patch("scripts.doc_validator.REPO_ROOT", new=self.repo_root)
+
+    def test_documented_providers_pass(self):
+        (self.repo_root / "scripts").mkdir()
+        (self.repo_root / "scripts" / "_query_resolve.py").write_text(
+            'cascade_map: dict[str, tuple] = {\n  "exa_mcp": (ExaMcp, resolver),\n}\n'
+        )
+        (self.repo_root / "scripts" / "_url_resolve.py").write_text(
+            'cascade_map: dict[str, tuple] = {\n  "jina": (Jina, resolver),\n}\n'
+        )
+        (self.repo_root / "README.md").write_text("Exa MCP and Jina are providers.\n")
+
+        report = Report()
+        with self._patch():
+            check_provider_inventory(report)
+
+        self.assertEqual(len(report.issues), 0)
+
+    def test_undocumented_provider_errors(self):
+        (self.repo_root / "scripts").mkdir()
+        (self.repo_root / "scripts" / "_query_resolve.py").write_text(
+            'cascade_map: dict[str, tuple] = {\n  "exa_mcp": (ExaMcp, resolver),\n}\n'
+        )
+        (self.repo_root / "scripts" / "_url_resolve.py").write_text("")
+        (self.repo_root / "README.md").write_text("Only mentions DuckDuckGo.\n")
+
+        report = Report()
+        with self._patch():
+            check_provider_inventory(report)
+
+        self.assertEqual(report.counts["error"], 1)
+        self.assertIn("exa_mcp", report.issues[0].detail)
+
+    def test_missing_cascade_file_errors(self):
+        (self.repo_root / "README.md").write_text("anything")
+
+        report = Report()
+        with self._patch():
+            check_provider_inventory(report)
+
+        self.assertEqual(report.counts["error"], 2)
