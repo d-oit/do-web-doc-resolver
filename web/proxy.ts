@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
-
-const RATE_LIMIT_CONFIG = { windowMs: 60 * 1000, maxRequests: 30 };
+import { enforceRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 
 function nowMs(): number {
   return globalThis.performance.timeOrigin + performance.now();
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (request.method !== "POST") {
     return NextResponse.next();
   }
@@ -18,11 +16,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Cheap pre-gate at the edge; the authoritative budget is enforced in the
+  // route handler with its own counter, so neither is a single point of
+  // failure for cost protection.
   const identifier = getClientIdentifier(request);
-  const { allowed, remaining, resetAt } = checkRateLimit(identifier, RATE_LIMIT_CONFIG);
+  const { allowed, remaining, resetAt } = await enforceRateLimit(identifier, "resolve");
 
   if (!allowed) {
-    const retryAfter = Math.ceil((resetAt - nowMs()) / 1000);
+    const retryAfter = Math.max(1, Math.ceil((resetAt - nowMs()) / 1000));
     return NextResponse.json(
       { error: "Rate limit exceeded. Try again later." },
       { status: 429, headers: { "Retry-After": String(retryAfter) } }
