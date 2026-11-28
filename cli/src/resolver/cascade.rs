@@ -40,14 +40,10 @@ pub fn is_safe_url(url_str: &str) -> bool {
     match host {
         url::Host::Domain(domain) => {
             let lowered = domain.to_lowercase();
-            if lowered == "localhost"
+            !(lowered == "localhost"
                 || lowered == "localhost.localdomain"
                 || lowered.ends_with(".local")
-                || lowered.ends_with(".internal")
-            {
-                return false;
-            }
-            true
+                || lowered.ends_with(".internal"))
         }
         url::Host::Ipv4(ip) => !is_private_ipv4(ip),
         url::Host::Ipv6(ip) => !is_private_ipv6(ip),

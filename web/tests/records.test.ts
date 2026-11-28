@@ -1,16 +1,18 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { save, get, list, remove, clear, search, size, maxSize, configure, getAnalytics } from "../lib/records";
 
+const SID = "session-a";
+
 describe("records", () => {
   beforeEach(() => {
-    clear();
+    clear(SID);
     // Reset to default config
     configure({ maxEntries: 100, ttlMs: 30 * 24 * 60 * 60 * 1000 });
   });
 
   describe("save/get", () => {
     it("saves and retrieves records", () => {
-      const record = save({
+      const record = save(SID, {
         query: "test query",
         url: null,
         content: "test content",
@@ -22,58 +24,58 @@ describe("records", () => {
       expect(record.timestamp).toBeDefined();
       expect(record.query).toBe("test query");
 
-      const retrieved = get(record.id);
+      const retrieved = get(SID, record.id);
       expect(retrieved).toEqual(record);
     });
 
     it("returns undefined for missing records", () => {
-      const result = get("non-existent");
+      const result = get(SID, "non-existent");
       expect(result).toBeUndefined();
     });
   });
 
   describe("list", () => {
     it("lists records sorted by timestamp", async () => {
-      save({ query: "first", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "first", url: null, content: "", source: "test", score: 0 });
       await new Promise<void>((resolve) => setTimeout(resolve, 10));
-      save({ query: "second", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "second", url: null, content: "", source: "test", score: 0 });
 
-      const records = list();
+      const records = list(SID);
       expect(records.length).toBe(2);
       expect(records[0]?.query).toBe("second"); // Most recent first
     });
 
     it("respects limit parameter", () => {
       for (let i = 0; i < 10; i++) {
-        save({ query: `query-${i}`, url: null, content: "", source: "test", score: 0 });
+        save(SID, { query: `query-${i}`, url: null, content: "", source: "test", score: 0 });
       }
 
-      const records = list(5);
+      const records = list(SID, 5);
       expect(records.length).toBe(5);
     });
   });
 
   describe("search", () => {
     it("searches by query", () => {
-      save({ query: "react hooks", url: null, content: "", source: "test", score: 0 });
-      save({ query: "vue components", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "react hooks", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "vue components", url: null, content: "", source: "test", score: 0 });
 
-      const results = search("react");
+      const results = search(SID, "react");
       expect(results.length).toBe(1);
       expect(results[0]?.query).toBe("react hooks");
     });
 
     it("searches by content", () => {
-      save({ query: "test", url: null, content: "react documentation", source: "test", score: 0 });
+      save(SID, { query: "test", url: null, content: "react documentation", source: "test", score: 0 });
 
-      const results = search("react");
+      const results = search(SID, "react");
       expect(results.length).toBe(1);
     });
 
     it("is case-insensitive", () => {
-      save({ query: "React Hooks", url: null, content: "", source: "test", score: 0 });
-      
-      const results = search("react");
+      save(SID, { query: "React Hooks", url: null, content: "", source: "test", score: 0 });
+
+      const results = search(SID, "react");
       expect(results.length).toBe(1);
     });
   });
@@ -82,13 +84,13 @@ describe("records", () => {
     it("evicts oldest entries when max size reached", () => {
       configure({ maxEntries: 3 });
 
-      const first = save({ query: "first", url: null, content: "", source: "test", score: 0 });
-      save({ query: "second", url: null, content: "", source: "test", score: 0 });
-      save({ query: "third", url: null, content: "", source: "test", score: 0 });
-      save({ query: "fourth", url: null, content: "", source: "test", score: 0 });
+      const first = save(SID, { query: "first", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "second", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "third", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "fourth", url: null, content: "", source: "test", score: 0 });
 
-      expect(size()).toBe(3);
-      expect(get(first.id)).toBeUndefined(); // Evicted
+      expect(size(SID)).toBe(3);
+      expect(get(SID, first.id)).toBeUndefined(); // Evicted
     });
   });
 
@@ -105,47 +107,47 @@ describe("records", () => {
     it("expires records after TTL", () => {
       configure({ ttlMs: 50 });
 
-      const record = save({ query: "expires", url: null, content: "", source: "test", score: 0 });
-      
+      const record = save(SID, { query: "expires", url: null, content: "", source: "test", score: 0 });
+
       // Record should exist initially
-      expect(get(record.id)).toBeDefined();
-      
+      expect(get(SID, record.id)).toBeDefined();
+
       vi.advanceTimersByTime(51);
-      
+
       // Record should be expired
-      expect(get(record.id)).toBeUndefined();
+      expect(get(SID, record.id)).toBeUndefined();
     });
 
     it("cleans up expired records on save", () => {
       configure({ ttlMs: 50 });
 
-      save({ query: "expires1", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "expires1", url: null, content: "", source: "test", score: 0 });
       vi.advanceTimersByTime(51);
-      
+
       // This save should trigger cleanup
-      save({ query: "new", url: null, content: "", source: "test", score: 0 });
-      
-      expect(size()).toBe(1);
+      save(SID, { query: "new", url: null, content: "", source: "test", score: 0 });
+
+      expect(size(SID)).toBe(1);
     });
 
     it("filters expired records from list", () => {
       configure({ ttlMs: 50 });
 
-      save({ query: "expires", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "expires", url: null, content: "", source: "test", score: 0 });
       vi.advanceTimersByTime(51);
-      
-      const records = list();
+
+      const records = list(SID);
       expect(records.length).toBe(0);
     });
   });
 
   describe("analytics", () => {
     it("returns analytics stats", () => {
-      save({ query: "test1", url: null, content: "", source: "provider1", score: 0.9 });
-      save({ query: "test2", url: null, content: "", source: "provider1", score: 0.8 });
-      save({ query: "test3", url: null, content: "", source: "provider2", score: 0.7 });
+      save(SID, { query: "test1", url: null, content: "", source: "provider1", score: 0.9 });
+      save(SID, { query: "test2", url: null, content: "", source: "provider1", score: 0.8 });
+      save(SID, { query: "test3", url: null, content: "", source: "provider2", score: 0.7 });
 
-      const analytics = getAnalytics();
+      const analytics = getAnalytics(SID);
 
       expect(analytics.totalRecords).toBe(3);
       expect(analytics.providerUsage["provider1"]).toBe(2);
@@ -156,7 +158,7 @@ describe("records", () => {
     });
 
     it("handles empty store analytics", () => {
-      const analytics = getAnalytics();
+      const analytics = getAnalytics(SID);
 
       expect(analytics.totalRecords).toBe(0);
       expect(analytics.averageScore).toBe(0);
@@ -167,27 +169,27 @@ describe("records", () => {
 
   describe("remove", () => {
     it("removes records by id", () => {
-      const record = save({ query: "test", url: null, content: "", source: "test", score: 0 });
+      const record = save(SID, { query: "test", url: null, content: "", source: "test", score: 0 });
 
-      const removed = remove(record.id);
+      const removed = remove(SID, record.id);
       expect(removed).toBe(true);
-      expect(get(record.id)).toBeUndefined();
+      expect(get(SID, record.id)).toBeUndefined();
     });
 
     it("returns false for non-existent records", () => {
-      const removed = remove("non-existent");
+      const removed = remove(SID, "non-existent");
       expect(removed).toBe(false);
     });
   });
 
   describe("clear", () => {
     it("clears all records", () => {
-      save({ query: "test1", url: null, content: "", source: "test", score: 0 });
-      save({ query: "test2", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "test1", url: null, content: "", source: "test", score: 0 });
+      save(SID, { query: "test2", url: null, content: "", source: "test", score: 0 });
 
-      const count = clear();
+      const count = clear(SID, );
       expect(count).toBe(2);
-      expect(size()).toBe(0);
+      expect(size(SID)).toBe(0);
     });
   });
 
@@ -195,6 +197,30 @@ describe("records", () => {
     it("returns configured max size", () => {
       configure({ maxEntries: 50 });
       expect(maxSize()).toBe(50);
+    });
+  });
+
+  describe("session isolation", () => {
+    it("never returns another session's records", () => {
+      save(SID, { query: "mine", url: null, content: "secret", source: "test", score: 0 });
+
+      expect(list("session-b")).toEqual([]);
+      expect(search("session-b", "secret")).toEqual([]);
+      expect(get("session-b", "nope")).toBeUndefined();
+      expect(list(SID).length).toBe(1);
+    });
+
+    it("deletes and clears stay inside the caller's partition", () => {
+      const record = save(SID, { query: "mine", url: null, content: "", source: "test", score: 0 });
+
+      expect(remove("session-b", record.id)).toBe(false);
+      expect(get(SID, record.id)).toBeDefined();
+
+      expect(clear("session-b")).toBe(0);
+      expect(size(SID)).toBe(1);
+
+      expect(clear(SID)).toBe(1);
+      expect(size(SID)).toBe(0);
     });
   });
 });
