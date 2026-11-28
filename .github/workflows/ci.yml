@@ -101,6 +101,23 @@ jobs:
         run: |
           python scripts/validate_docs.py
 
+  packaging:
+    name: Packaging Install Smoke Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Build sdist/wheel and smoke-test the wheel install
+        run: |
+          python scripts/check_packaging.py
+
   lint:
     name: Lint
     runs-on: ubuntu-24.04

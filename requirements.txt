@@ -1,3 +1,9 @@
-# Install all dependencies from pyproject.toml
-# Usage: pip install -r requirements.txt
+# Compatibility/development requirements file.
+#
+# Runtime users should install the published wheel:  pip install do-web-doc-resolver
+# Development installs:                              pip install -e ".[dev]"
+#   or, with pip >= 25.1 (PEP 735 dependency groups): pip install --group dev -e .
+#
+# This file only delegates to the dev extra so historical automation
+# (`pip install -r requirements.txt`) keeps working unchanged.
 -e .[dev]
