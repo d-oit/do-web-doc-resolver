@@ -9,7 +9,7 @@
 [![CI](https://github.com/d-oit/do-web-doc-resolver/actions/workflows/ci.yml/badge.svg)](https://github.com/d-oit/do-web-doc-resolver/actions)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![Rust](https://img.shields.io/badge/rust-stable-f74c00?logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-06b6d4.svg)](LICENSE)
 
 [**Live Demo**](https://web-eight-ivory-29.vercel.app) · [**Documentation**](docs/) · [**Report Bug**](https://github.com/d-oit/do-web-doc-resolver/issues)
@@ -56,14 +56,19 @@ The resolver queries providers in priority tiers and halts upon receiving a resp
 
 1. **Semantic Cache**: Local SQLite vector cache (`sqlite-vec`).
 2. **Free Search Tier**: Exa MCP, Exa SDK, Tavily, DuckDuckGo.
-3. **Paid Search Tier**: Serper, Mistral.
+3. **Paid Search Tier**: Serper, Mistral WebSearch.
 
 ### URL Cascade Order
 
 1. **Semantic Cache**: Local vector lookup.
-2. **Free Static Tier**: `llms.txt` discovery.
-3. **Free Direct & Lite Tier**: Direct HTTP fetch, Jina Reader, Firecrawl.
-4. **Browser Tier**: Mistral Browser.
+2. **Free Static & Lite Tier**: `llms.txt` discovery, Jina Reader, Firecrawl, direct HTTP fetch.
+3. **Browser Tier**: Mistral Browser.
+4. **Visual Tier**: CLIP-based visual resolution for scanned PDFs and JS-heavy pages.
+
+A routing budget (profiles `free`, `fast`, `balanced`, `quality`) controls how many
+attempts are made, whether paid providers may run, and the total latency ceiling;
+a quality score decides whether the cascade stops early or falls through to the
+next provider. Paid tiers only activate when the matching API key is present.
 
 ---
 
@@ -71,17 +76,22 @@ The resolver queries providers in priority tiers and halts upon receiving a resp
 
 ### Python
 
-Requires Python 3.11 or higher.
+Requires Python 3.11 or higher (CI runs 3.11-3.13).
 
 ```bash
 git clone https://github.com/d-oit/do-web-doc-resolver.git
 cd do-web-doc-resolver
-pip install -r requirements.txt
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 ```
+
+This installs the package with its console entry points (`do-wdr`,
+`do-web-doc-resolver`) and the development/test tooling. The published wheel
+(`pip install do-web-doc-resolver`) ships only runtime dependencies.
 
 ### Rust CLI (`do-wdr`)
 
-Requires Rust 1.80 or higher.
+Requires Rust 1.85 or higher (the version pinned in CI).
 
 ```bash
 cd cli
@@ -90,11 +100,11 @@ cargo build --release
 
 ### Web UI
 
-Requires Node.js 18 or higher.
+Requires Node.js 22 or higher (the version pinned in CI).
 
 ```bash
 cd web
-npm install --legacy-peer-deps
+npm ci --legacy-peer-deps
 ```
 
 ---
@@ -175,3 +185,7 @@ cd web && npx playwright test --project=desktop
 ```bash
 ./scripts/quality_gate.sh
 ```
+
+The native verification entry point is the `do-harness` CLI
+(`do-harness verify --set verification --strict`, config in `do-harness.toml`);
+`quality_gate.sh` is the legacy fallback with equivalent local coverage.

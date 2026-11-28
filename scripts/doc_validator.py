@@ -231,6 +231,174 @@ def check_npm_scripts(report: Report):
             )
 
 
+def check_runtime_versions(report: Report):
+    """Verify README runtime/version claims match manifests and CI toolchains.
+
+    Required documentation is never silently skipped: a missing README or a
+    missing manifest is an error, not a skip.
+    """
+    readme_path = REPO_ROOT / "README.md"
+    if not readme_path.exists():
+        report.add("error", "runtime-versions", "README.md", "README.md is missing")
+        return
+    readme = readme_path.read_text()
+
+    ci_path = REPO_ROOT / ".github/workflows/ci.yml"
+    ci_env: dict[str, str] = {}
+    if ci_path.exists():
+        ci_text = ci_path.read_text()
+        for var in ("PYTHON_VERSION", "RUST_TOOLCHAIN", "NODE_VERSION"):
+            match = re.search(rf"{var}:\s*['\"]?([0-9.]+)", ci_text)
+            if match:
+                ci_env[var] = match.group(1)
+    else:
+        report.add(
+            "error", "runtime-versions", ".github/workflows/ci.yml", "CI workflow is missing"
+        )
+
+    pkg_path = REPO_ROOT / "web/package.json"
+    if pkg_path.exists():
+        with open(pkg_path) as f:
+            pkg = json.load(f)
+        next_major = (
+            re.sub(
+                r"[^0-9]", "", str(pkg.get("dependencies", {}).get("next", ""))[:4].split(".")[0]
+            )
+            or "0"
+        )
+        next_version = str(pkg.get("dependencies", {}).get("next", ""))
+        match = re.search(r"^[~^]?([0-9]+)", next_version)
+        next_major = match.group(1) if match else "0"
+        if f"Next.js-{next_major}" not in readme:
+            report.add(
+                "error",
+                "runtime-versions",
+                "README.md",
+                f"README Next.js badge does not match web/package.json (next {next_version})",
+            )
+    else:
+        report.add("error", "runtime-versions", "web/package.json", "package.json is missing")
+
+    cargo_path = REPO_ROOT / "cli/Cargo.toml"
+    if cargo_path.exists():
+        cargo_text = cargo_path.read_text()
+        match = re.search(r'rust-version\s*=\s*"(1\.[0-9]+)"', cargo_text)
+        if match:
+            rust_version = match.group(1)
+            if f"Rust {rust_version}" not in readme:
+                report.add(
+                    "error",
+                    "runtime-versions",
+                    "README.md",
+                    f"README Rust version claim does not match cli/Cargo.toml rust-version {rust_version}",
+                )
+            ci_rust = ci_env.get("RUST_TOOLCHAIN")
+            if ci_rust and rust_version != ci_rust:
+                report.add(
+                    "error",
+                    "runtime-versions",
+                    "cli/Cargo.toml",
+                    f"rust-version {rust_version} differs from CI RUST_TOOLCHAIN {ci_rust}",
+                )
+    else:
+        report.add("error", "runtime-versions", "cli/Cargo.toml", "Cargo.toml is missing")
+
+    ci_node = ci_env.get("NODE_VERSION")
+    if ci_node and f"Node.js {ci_node}" not in readme:
+        report.add(
+            "error",
+            "runtime-versions",
+            "README.md",
+            f"README Node.js version claim does not match CI NODE_VERSION {ci_node}",
+        )
+
+    pyproject_path = REPO_ROOT / "pyproject.toml"
+    if pyproject_path.exists():
+        py_text = pyproject_path.read_text()
+        match = re.search(r'requires-python\s*=\s*">=([0-9.]+)"', py_text)
+        if match:
+            py_min = match.group(1)
+            if f"Python {py_min}" not in readme:
+                report.add(
+                    "error",
+                    "runtime-versions",
+                    "README.md",
+                    f"README Python version claim does not match pyproject requires-python >= {py_min}",
+                )
+            ci_python = ci_env.get("PYTHON_VERSION")
+            if ci_python and version_tuple(ci_python) < version_tuple(py_min):
+                report.add(
+                    "error",
+                    "runtime-versions",
+                    ".github/workflows/ci.yml",
+                    f"CI PYTHON_VERSION {ci_python} is below pyproject requires-python {py_min}",
+                )
+    else:
+        report.add("error", "runtime-versions", "pyproject.toml", "pyproject.toml is missing")
+
+
+def version_tuple(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in re.findall(r"[0-9]+", version))
+
+
+# Cascade keys that are placeholders (no working provider behind them yet)
+# and therefore carry no documentation requirement.
+INTERNAL_ONLY_PROVIDERS = {"stealth"}
+
+PROVIDER_CASCADE_FILES = [
+    "scripts/_query_resolve.py",
+    "scripts/_url_resolve.py",
+]
+
+# How each implementation cascade key may appear in README prose.
+PROVIDER_README_ALIASES = {
+    "exa_mcp": r"Exa MCP",
+    "exa": r"Exa SDK|\bExa\b",
+    "tavily": r"Tavily",
+    "serper": r"Serper",
+    "duckduckgo": r"DuckDuckGo",
+    "mistral_websearch": r"Mistral WebSearch",
+    "llms_txt": r"llms\.txt",
+    "jina": r"Jina",
+    "firecrawl": r"Firecrawl",
+    "direct_fetch": r"direct HTTP fetch|direct_fetch",
+    "mistral_browser": r"Mistral Browser",
+    "visual_clip": r"CLIP|visual_clip",
+}
+
+
+def check_provider_inventory(report: Report):
+    """Verify every shipped cascade provider is still described in README.
+
+    The provider set is derived from the real cascade maps; a missing
+    cascade definition file or an undocumented provider is an error.
+    """
+    known: set[str] = set()
+    for rel in PROVIDER_CASCADE_FILES:
+        path = REPO_ROOT / rel
+        if not path.exists():
+            report.add("error", "provider-inventory", rel, "cascade definition file is missing")
+            continue
+        for match in re.finditer(r'"([a-z_0-9]+)":\s*\(', path.read_text()):
+            known.add(match.group(1))
+
+    readme_path = REPO_ROOT / "README.md"
+    if not readme_path.exists():
+        report.add("error", "provider-inventory", "README.md", "README.md is missing")
+        return
+    readme = readme_path.read_text()
+
+    for provider_key in sorted(known - INTERNAL_ONLY_PROVIDERS):
+        alias = PROVIDER_README_ALIASES.get(provider_key, provider_key.replace("_", " "))
+        if not re.search(alias, readme, re.IGNORECASE):
+            report.add(
+                "error",
+                "provider-inventory",
+                "README.md",
+                f"Provider '{provider_key}' from the cascade is not documented in README",
+            )
+
+
 def check_cross_docs(report: Report):
     """Verify consistency across different documentation files."""
     readme_path = REPO_ROOT / "README.md"

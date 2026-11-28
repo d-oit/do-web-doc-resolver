@@ -17,8 +17,10 @@ from scripts.doc_validator import (
     check_cross_docs,
     check_file_references,
     check_npm_scripts,
+    check_provider_inventory,
     check_python_cli,
     check_repo_tree,
+    check_runtime_versions,
     check_rust_architecture,
     check_rust_cli_flags,
     check_shell_commands,
@@ -63,6 +65,8 @@ def run_all_checks() -> Report:
     check_rust_architecture(report)
     check_npm_scripts(report)
     check_cross_docs(report)
+    check_runtime_versions(report)
+    check_provider_inventory(report)
 
     return report
 
