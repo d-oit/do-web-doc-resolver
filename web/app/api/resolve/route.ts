@@ -9,12 +9,17 @@ import { Logger } from "@/lib/log";
 import { searchViaExaMcpWithMistral } from "@/lib/resolvers/query";
 import { isUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
 import { validateResolveRequest, validateUrlForFetchAsync } from "@/lib/validation";
+import { enforceRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 import { BodyTooLargeError, readJsonWithLimit } from "@/lib/body-limit";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
 
 const DEFAULT_MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
+
+function retryAfterSeconds(resetAt: number): string {
+  return String(Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)));
+}
 
 // Singleton circuit breaker registry (survives across warm invocations)
 const circuitBreakers = new CircuitBreakerRegistry();
@@ -206,9 +211,6 @@ function normalizeQueryProviders(providerIds: string[], keys: ProviderKeys): str
 }
 
 export async function POST(request: NextRequest) {
-  // Rate limiting is enforced in web/proxy.ts, which runs before this handler
-  // and can set Retry-After. Checking here as well consumed the same in-memory
-  // counter twice, halving the effective limit to 15 req/min.
   const log = new Logger();
   try {
     let body: unknown;
@@ -230,6 +232,37 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validation.data;
+
+    // Authoritative cost enforcement at the public route handler: the edge
+    // proxy gate is a cheap pre-filter, not the security boundary. This uses
+    // its own counter (resolve_route) plus a stricter budget for deep
+    // research and a shared global provider ceiling.
+    const identifier = getClientIdentifier(request);
+    try {
+      const clientLimit = await enforceRateLimit(
+        identifier,
+        data.deepResearch ? "resolve_deep" : "resolve_route"
+      );
+      if (!clientLimit.allowed) {
+        return NextResponse.json(
+          { error: "Rate limit exceeded. Try again later." },
+          { status: 429, headers: { "Retry-After": retryAfterSeconds(clientLimit.resetAt) } }
+        );
+      }
+      const globalLimit = await enforceRateLimit(identifier, "global_provider");
+      if (!globalLimit.allowed) {
+        return NextResponse.json(
+          { error: "Provider capacity reached. Try again later." },
+          { status: 429, headers: { "Retry-After": retryAfterSeconds(globalLimit.resetAt) } }
+        );
+      }
+    } catch {
+      return NextResponse.json(
+        { error: "Rate limit backend unavailable" },
+        { status: 503, headers: { "Retry-After": "30" } }
+      );
+    }
+
     const rawInput = (data.query || data.url || "").trim();
     if (!rawInput) {
       return NextResponse.json({ error: "No query or URL provided" }, { status: 400 });

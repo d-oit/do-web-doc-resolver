@@ -85,8 +85,26 @@ After a successful resolution:
 | `MISTRAL_API_KEY` | No | Mistral AI-powered fallback | — |
 | `WEB_RESOLVER_MAX_CHARS` | No | Max characters in response | `8000` |
 | `NEXT_PUBLIC_APP_URL` | No | Public URL of this app | — |
+| `UPSTASH_REDIS_REST_URL` | No | Distributed rate-limit store (atomic shared counters across instances) | — |
+| `UPSTASH_REDIS_REST_TOKEN` | No | Auth token for the store above | — |
+| `RATE_LIMIT_TRUST_PROXY` | No | Trust `x-real-ip`/`x-forwarded-for` from a reverse proxy you control (`1`). On Vercel the platform headers are trusted automatically | off |
+| `RATE_LIMIT_FAILURE_MODE` | No | Store-failure policy: `fail-closed` (blocks when the counter backend is down) or `fail-open` | `fail-closed` |
+| `RATE_LIMIT_GLOBAL_MAX` | No | Shared global provider requests per minute (all clients) | `600` |
 
 **Note**: All API keys are optional. The resolver works with free providers (Jina Reader, DuckDuckGo, direct fetch).
+
+### Rate limiting
+
+The paid-provider resolve path is rate limited in two layers: a cheap edge
+pre-gate (`web/proxy.ts`) and the authoritative budget in the route handler,
+which also applies a stricter per-client limit for deep-research runs and a
+shared global provider ceiling. Counters live in a shared atomic store
+(Upstash Redis REST) when configured; without it, a bounded in-memory adapter
+runs per process — development/testing only, never a production abuse
+boundary. Client identity comes from platform-set headers only
+(`x-real-ip`, then `x-forwarded-for`), trusted exclusively on Vercel or when
+`RATE_LIMIT_TRUST_PROXY=1`; user-supplied forwarding headers are never
+authoritative, and identifiers are hashed before use.
 
 ## API Endpoint
 
