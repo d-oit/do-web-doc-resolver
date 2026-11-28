@@ -25,6 +25,7 @@ from scripts.providers_impl import (
     resolve_with_jina,
     resolve_with_mistral_browser,
     resolve_with_ocr,
+    resolve_with_scrim,
     resolve_with_stealth,
     resolve_with_visual_clip,
 )
@@ -177,6 +178,10 @@ def resolve_url_stream(
         "visual_clip": (
             ProviderType.VISUAL_CLIP,
             lambda: resolve_with_visual_clip(url, max_chars, query=query),
+        ),
+        "scrim": (
+            ProviderType.SCRIM,
+            lambda: resolve_with_scrim(url, max_chars),
         ),
         "duckduckgo": (ProviderType.DUCKDUCKGO, lambda: resolve_with_duckduckgo(url, max_chars)),
         "stealth": (

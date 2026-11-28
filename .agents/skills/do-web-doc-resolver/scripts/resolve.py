@@ -35,6 +35,7 @@ from scripts.providers_impl import (
     resolve_with_mistral_browser,
     resolve_with_mistral_websearch,
     resolve_with_ocr,
+    resolve_with_scrim,
     resolve_with_serper,
     resolve_with_tavily,
     resolve_with_visual_clip,
@@ -168,6 +169,7 @@ def resolve_direct(
         ProviderType.DUCKDUCKGO: resolve_with_duckduckgo,
         ProviderType.FIRECRAWL: resolve_with_firecrawl,
         ProviderType.MISTRAL_BROWSER: resolve_with_mistral_browser,
+        ProviderType.SCRIM: resolve_with_scrim,
         ProviderType.MISTRAL_WEBSEARCH: resolve_with_mistral_websearch,
         ProviderType.DIRECT_FETCH: fetch_url_content,
         ProviderType.LLMS_TXT: lambda url, mc: (
