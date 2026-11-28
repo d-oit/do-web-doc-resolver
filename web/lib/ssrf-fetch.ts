@@ -169,22 +169,48 @@ export async function ssrfFetch(url: string, options: SsrfFetchOptions = {}): Pr
       return response;
     }
 
-    const next = resolveRedirectTarget(target, location);
-    // 303 always degrades to GET (and 301/302 follow historic browser
-    // behavior); 307/308 keep the original method and body.
-    if (response.status === 301 || response.status === 302 || response.status === 303) {
-      if (currentMethod !== "GET" && currentMethod !== "HEAD") {
-        currentMethod = "GET";
-        currentBody = undefined;
-      }
-    }
-    if (next.origin !== target.origin) {
-      currentHeaders = stripSensitiveHeaders(currentHeaders);
-    }
-    currentUrl = next.toString();
+    const redirected = applyRedirectPolicy(response, target, location, {
+      headers: currentHeaders,
+      method: currentMethod,
+      body: currentBody,
+    });
+    currentUrl = redirected.url;
+    currentHeaders = redirected.headers;
+    currentMethod = redirected.method;
+    currentBody = redirected.body;
   }
 
   throw new SsrfBlockedError(`Too many redirects (max ${maxRedirects})`);
+}
+
+/**
+ * 303 always degrades to GET (and 301/302 follow historic browser behavior);
+ * 307/308 keep the original method and body. Sensitive headers are stripped
+ * when the redirect leaves the original origin.
+ */
+function applyRedirectPolicy(
+  response: Response,
+  target: URL,
+  location: string,
+  request: {
+    headers: Record<string, string>;
+    method: string;
+    body: BodyInit | undefined;
+  }
+): { url: string; headers: Record<string, string>; method: string; body: BodyInit | undefined } {
+  const next = resolveRedirectTarget(target, location);
+  let { headers, method, body } = request;
+
+  if (response.status === 301 || response.status === 302 || response.status === 303) {
+    if (method !== "GET" && method !== "HEAD") {
+      method = "GET";
+      body = undefined;
+    }
+  }
+  if (next.origin !== target.origin) {
+    headers = stripSensitiveHeaders(headers);
+  }
+  return { url: next.toString(), headers, method, body };
 }
 
 async function resolveAndValidateTargetWithPolicy(
@@ -225,32 +251,17 @@ async function pinnedFetch(
   signal?: AbortSignal
 ): Promise<Response> {
   return new Promise<Response>((resolve, reject) => {
-    const transport = target.protocol === "https:" ? https : http;
-    const req = transport.request(
+    const req = issuePinnedRequest(
       target,
-      {
-        method,
-        headers,
-        lookup: (_hostname, _options, callback) => {
-          callback(null, pinnedAddress, addressFamily(pinnedAddress));
-        },
-        timeout: timeoutMs,
-      },
-      (res) => {
-        void consumeResponse(res, maxBytes)
-          .then((body) => {
-            resolve(
-              new Response(new Uint8Array(body), {
-                status: res.statusCode ?? 0,
-                statusText: res.statusMessage ?? "",
-                headers: normalizeResponseHeaders(res.headers),
-              })
-            );
-          })
-          .catch(reject);
-      }
+      pinnedAddress,
+      headers,
+      method,
+      body,
+      timeoutMs,
+      maxBytes,
+      resolve,
+      reject
     );
-
     if (signal) {
       signal.addEventListener(
         "abort",
@@ -258,14 +269,60 @@ async function pinnedFetch(
         { once: true }
       );
     }
-
-    if (typeof body === "string") {
-      req.write(body);
-    } else if (body && body instanceof Uint8Array) {
-      req.write(Buffer.from(body));
-    }
+    writeRequestBody(req, body);
     req.end();
   });
+}
+
+/**
+ * Issue the HTTP(S) request with the socket's `lookup` overridden to always
+ * return the pinned address, so the connection can only ever reach the
+ * address that was validated.
+ */
+function issuePinnedRequest(
+  target: URL,
+  pinnedAddress: string,
+  headers: Record<string, string>,
+  method: string,
+  body: BodyInit | undefined,
+  timeoutMs: number,
+  maxBytes: number,
+  resolve: (value: Response) => void,
+  reject: (reason?: unknown) => void
+): http.ClientRequest {
+  const transport = target.protocol === "https:" ? https : http;
+  return transport.request(
+    target,
+    {
+      method,
+      headers,
+      lookup: (_hostname, _options, callback) => {
+        callback(null, pinnedAddress, addressFamily(pinnedAddress));
+      },
+      timeout: timeoutMs,
+    },
+    (res) => {
+      void consumeResponse(res, maxBytes)
+        .then((body) => {
+          resolve(
+            new Response(new Uint8Array(body), {
+              status: res.statusCode ?? 0,
+              statusText: res.statusMessage ?? "",
+              headers: normalizeResponseHeaders(res.headers),
+            })
+          );
+        })
+        .catch(reject);
+    }
+  );
+}
+
+function writeRequestBody(req: http.ClientRequest, body: BodyInit | undefined): void {
+  if (typeof body === "string") {
+    req.write(body);
+  } else if (body && body instanceof Uint8Array) {
+    req.write(Buffer.from(body));
+  }
 }
 
 async function consumeResponse(res: http.IncomingMessage, maxBytes: number): Promise<Buffer> {
