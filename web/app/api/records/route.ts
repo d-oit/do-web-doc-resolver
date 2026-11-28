@@ -2,32 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { save, list, clear, search } from "@/lib/records";
 import { BodyTooLargeError, readJsonWithLimit } from "@/lib/body-limit";
-
-/**
- * Whether the caller presented a session cookie.
- *
- * This is a speed bump against anonymous `curl`, not authorization: the cookie
- * value is client-supplied and unverified, so anyone can mint one by calling any
- * endpoint. Making it a real access check means signing the value server-side —
- * see agents-docs/ISSUES.md.
- *
- * Note the asymmetry it leaves behind: the store in `lib/records.ts` is a single
- * process-global map with no per-session partitioning, so `GET` still returns
- * every user's records and `GET ?q=` searches across them. Partitioning the
- * store is a schema change and is deliberately out of scope here.
- */
-function hasSessionCookie(request: NextRequest): boolean {
-  return Boolean(request.cookies.get("ui-session")?.value);
-}
+import { applySessionCookie, resolveSession } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
+  const session = resolveSession(request);
   const { searchParams } = new URL(request.url);
   const rawLimit = parseInt(searchParams.get("limit") || "50", 10);
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50;
   const q = searchParams.get("q");
 
-  const records = q ? search(q, limit) : list(limit);
-  return NextResponse.json({ records });
+  const records = q ? search(session.sessionId, q, limit) : list(session.sessionId, limit);
+  return applySessionCookie(NextResponse.json({ records }), session);
 }
 
 const RecordSchema = z.object({
@@ -39,6 +24,8 @@ const RecordSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const session = resolveSession(request);
+
   let body: unknown;
 
   try {
@@ -71,24 +58,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const record = save({
-    query: parsed.data.query || parsed.data.url || "",
-    url: parsed.data.url ?? null,
-    content: parsed.data.content || "",
-    source: parsed.data.source || "manual",
-    score: parsed.data.score ?? 0,
-  });
-  return NextResponse.json(record, { status: 201 });
+  const record = save(
+    session.sessionId,
+    {
+      query: parsed.data.query || parsed.data.url || "",
+      url: parsed.data.url ?? null,
+      content: parsed.data.content || "",
+      source: parsed.data.source || "manual",
+      score: parsed.data.score ?? 0,
+    }
+  );
+  return applySessionCookie(NextResponse.json(record, { status: 201 }), session);
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!hasSessionCookie(request)) {
-    return NextResponse.json(
-      { error: "Session required to clear records" },
-      { status: 401 }
-    );
-  }
+  const session = resolveSession(request);
 
-  const count = clear();
-  return NextResponse.json({ deleted: count });
+  const count = clear(session.sessionId);
+  return applySessionCookie(NextResponse.json({ deleted: count }), session);
 }

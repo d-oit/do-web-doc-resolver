@@ -120,7 +120,7 @@ export default [
     }
   },
   {
-    files: ["app/api/**/*.ts", "lib/resolvers/*.ts", "lib/circuit-breaker.ts", "lib/rate-limit.ts", "lib/ui-state.ts", "lib/cache.ts", "lib/records.ts"],
+    files: ["app/api/**/*.ts", "lib/resolvers/*.ts", "lib/circuit-breaker.ts", "lib/rate-limit.ts", "lib/session.ts", "lib/ui-state.ts", "lib/cache.ts", "lib/records.ts"],
     rules: {
       "no-restricted-syntax": "off",
     }

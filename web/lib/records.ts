@@ -8,28 +8,39 @@ export interface StoredRecord {
   timestamp: number;
 }
 
-// Re-export as Record for backward compatibility
-export type Record = StoredRecord;
-
-// Environment-based configuration with defaults
-const DEFAULT_MAX_ENTRIES = parseInt(process.env.RECORDS_MAX_SIZE || "100", 10);
-const DEFAULT_TTL_DAYS = parseInt(process.env.RECORDS_TTL_DAYS || "30", 10);
-const DEFAULT_TTL_MS = DEFAULT_TTL_DAYS * 24 * 60 * 60 * 1000;
-
 interface RecordsConfig {
   maxEntries: number;
   ttlMs: number;
 }
 
-const store = new Map<string, StoredRecord>();
-const order: string[] = []; // Track insertion order for FIFO eviction
+/**
+ * Per-session partition: every store operation is scoped to the verified
+ * session id from lib/session, so one principal can never read, search or
+ * delete another principal's records.
+ */
+interface SessionStore {
+  records: Map<string, StoredRecord>;
+  order: string[]; // Track insertion order for FIFO eviction
+}
+
+const stores = new Map<string, SessionStore>();
+
+const DEFAULT_MAX_ENTRIES = parseInt(process.env.RECORDS_MAX_SIZE || "100", 10);
+const DEFAULT_TTL_DAYS = parseInt(process.env.RECORDS_TTL_DAYS || "30", 10);
+const DEFAULT_TTL_MS = DEFAULT_TTL_DAYS * 24 * 60 * 60 * 1000;
+
 let config: RecordsConfig = {
   maxEntries: DEFAULT_MAX_ENTRIES,
   ttlMs: DEFAULT_TTL_MS,
 };
 
-export function configure(newConfig: Partial<RecordsConfig>): void {
-  config = { ...config, ...newConfig };
+function getStore(sessionId: string): SessionStore {
+  let store = stores.get(sessionId);
+  if (!store) {
+    store = { records: new Map(), order: [] };
+    stores.set(sessionId, store);
+  }
+  return store;
 }
 
 /**
@@ -41,91 +52,103 @@ function isExpired(record: StoredRecord): boolean {
 }
 
 /**
- * Clean up expired records from the store
+ * Clean up expired records from a session's store
  */
-function cleanupExpired(): void {
+function cleanupExpired(session: SessionStore): void {
   const now = Date.now();
   const expiredIds: string[] = [];
 
-  for (const [id, record] of store.entries()) {
+  for (const [id, record] of session.records.entries()) {
     if (now - record.timestamp > config.ttlMs) {
       expiredIds.push(id);
     }
   }
 
   for (const id of expiredIds) {
-    store.delete(id);
-    const idx = order.indexOf(id);
-    if (idx > -1) order.splice(idx, 1);
+    session.records.delete(id);
+    const idx = session.order.indexOf(id);
+    if (idx > -1) session.order.splice(idx, 1);
   }
 }
 
-function evictOldest(count: number): void {
-  const toRemove = order.slice(0, count);
+function evictOldest(session: SessionStore, count: number): void {
+  const toRemove = session.order.slice(0, count);
   for (const id of toRemove) {
-    store.delete(id);
+    session.records.delete(id);
   }
-  order.splice(0, count);
+  session.order.splice(0, count);
 }
 
-export function save(record: Omit<StoredRecord, "id" | "timestamp">): StoredRecord {
+export function configure(newConfig: Partial<RecordsConfig>): void {
+  config = { ...config, ...newConfig };
+}
+
+export function save(
+  sessionId: string,
+  record: Omit<StoredRecord, "id" | "timestamp">
+): StoredRecord {
+  const session = getStore(sessionId);
+
   // Clean up expired records periodically
-  cleanupExpired();
+  cleanupExpired(session);
 
   // Check if we need to evict
-  if (store.size >= config.maxEntries) {
+  if (session.records.size >= config.maxEntries) {
     // Evict 10% of entries
     const evictCount = Math.max(1, Math.floor(config.maxEntries * 0.1));
-    evictOldest(evictCount);
+    evictOldest(session, evictCount);
   }
 
   const id = crypto.randomUUID();
   const full: StoredRecord = { ...record, id, timestamp: Date.now() };
-  store.set(id, full);
-  order.push(id);
+  session.records.set(id, full);
+  session.order.push(id);
   return full;
 }
 
-export function get(id: string): StoredRecord | undefined {
-  const record = store.get(id);
+export function get(sessionId: string, id: string): StoredRecord | undefined {
+  const session = getStore(sessionId);
+  const record = session.records.get(id);
   if (record && isExpired(record)) {
     // Remove expired record on access
-    store.delete(id);
-    const idx = order.indexOf(id);
-    if (idx > -1) order.splice(idx, 1);
+    session.records.delete(id);
+    const idx = session.order.indexOf(id);
+    if (idx > -1) session.order.splice(idx, 1);
     return undefined;
   }
   return record;
 }
 
-export function list(limit = 50): StoredRecord[] {
-  cleanupExpired();
-  return Array.from(store.values())
+export function list(sessionId: string, limit = 50): StoredRecord[] {
+  const session = getStore(sessionId);
+  cleanupExpired(session);
+  return Array.from(session.records.values())
     .filter((r) => !isExpired(r))
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, limit);
 }
 
-export function remove(id: string): boolean {
-  const existed = store.delete(id);
+export function remove(sessionId: string, id: string): boolean {
+  const session = getStore(sessionId);
+  const existed = session.records.delete(id);
   if (existed) {
-    const idx = order.indexOf(id);
-    if (idx > -1) order.splice(idx, 1);
+    const idx = session.order.indexOf(id);
+    if (idx > -1) session.order.splice(idx, 1);
   }
   return existed;
 }
 
-export function clear(): number {
-  const count = store.size;
-  store.clear();
-  order.length = 0;
+export function clear(sessionId: string): number {
+  const session = getStore(sessionId);
+  const count = session.records.size;
+  session.records.clear();
+  session.order.length = 0;
   return count;
 }
 
-export function search(query: string, limit = 50): StoredRecord[] {
+export function search(sessionId: string, query: string, limit = 50): StoredRecord[] {
   const q = query.toLowerCase();
-  cleanupExpired();
-  return list(limit).filter(
+  return list(sessionId, limit).filter(
     (r) =>
       r.query.toLowerCase().includes(q) ||
       r.content.toLowerCase().includes(q) ||
@@ -133,13 +156,57 @@ export function search(query: string, limit = 50): StoredRecord[] {
   );
 }
 
-export function size(): number {
-  cleanupExpired();
-  return store.size;
+export function size(sessionId: string): number {
+  const session = getStore(sessionId);
+  cleanupExpired(session);
+  return session.records.size;
 }
 
 export function maxSize(): number {
   return config.maxEntries;
+}
+
+/**
+ * Get analytics statistics about a session's records
+ */
+export function getAnalytics(sessionId: string): {
+  totalRecords: number;
+  maxRecords: number;
+  providerUsage: { [key: string]: number };
+  averageScore: number;
+  oldestRecord: number | null;
+  newestRecord: number | null;
+  ttlDays: number;
+} {
+  const session = getStore(sessionId);
+  cleanupExpired(session);
+  const records = Array.from(session.records.values());
+
+  // Provider usage stats
+  const providerUsage: { [key: string]: number } = {};
+  records.forEach((r) => {
+    providerUsage[r.source] = (providerUsage[r.source] || 0) + 1;
+  });
+
+  // Average score
+  const avgScore = records.length > 0
+    ? records.reduce((sum, r) => sum + r.score, 0) / records.length
+    : 0;
+
+  // Oldest and newest timestamps
+  const timestamps = records.map((r) => r.timestamp);
+  const oldestRecord = timestamps.length > 0 ? Math.min(...timestamps) : null;
+  const newestRecord = timestamps.length > 0 ? Math.max(...timestamps) : null;
+
+  return {
+    totalRecords: records.length,
+    maxRecords: config.maxEntries,
+    providerUsage,
+    averageScore: Math.round(avgScore * 100) / 100,
+    oldestRecord,
+    newestRecord,
+    ttlDays: config.ttlMs / (24 * 60 * 60 * 1000),
+  };
 }
 
 /**
@@ -179,46 +246,4 @@ export async function getTopDomains(n: number): Promise<string[]> {
   } catch {
     return [];
   }
-}
-
-/**
- * Get analytics statistics about the records store
- */
-export function getAnalytics(): {
-  totalRecords: number;
-  maxRecords: number;
-  providerUsage: { [key: string]: number };
-  averageScore: number;
-  oldestRecord: number | null;
-  newestRecord: number | null;
-  ttlDays: number;
-} {
-  cleanupExpired();
-  const records = Array.from(store.values());
-  
-  // Provider usage stats
-  const providerUsage: { [key: string]: number } = {};
-  records.forEach((r) => {
-    providerUsage[r.source] = (providerUsage[r.source] || 0) + 1;
-  });
-
-  // Average score
-  const avgScore = records.length > 0
-    ? records.reduce((sum, r) => sum + r.score, 0) / records.length
-    : 0;
-
-  // Oldest and newest timestamps
-  const timestamps = records.map((r) => r.timestamp);
-  const oldestRecord = timestamps.length > 0 ? Math.min(...timestamps) : null;
-  const newestRecord = timestamps.length > 0 ? Math.max(...timestamps) : null;
-
-  return {
-    totalRecords: records.length,
-    maxRecords: config.maxEntries,
-    providerUsage,
-    averageScore: Math.round(avgScore * 100) / 100,
-    oldestRecord,
-    newestRecord,
-    ttlDays: config.ttlMs / (24 * 60 * 60 * 1000),
-  };
 }

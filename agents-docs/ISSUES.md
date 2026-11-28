@@ -119,7 +119,7 @@
 - **Why it is still worth having**: the realistic abuse is an unauthenticated script, and the cookie check is the cheapest thing that raises the bar. It is not an access control boundary and should not be described as one.
 - **Follow-up**: sign the session value server-side (HMAC over a random secret, or a platform-issued session) so the check becomes real authorization. `hasSessionCookie` in `app/api/records/route.ts` carries the same caveat in code.
 - **Related**: the records store in `lib/records.ts` is a single process-global map with no per-session partitioning, so `GET /api/records` returns every user's records and `GET /api/records?q=` searches across them. Partitioning is a schema change and is out of scope for the current work.
-- **Status**: Open.
+- **Status**: Resolved (2026-11-26). `web/lib/session.ts` issues HMAC-signed, HttpOnly, SameSite=Lax, Secure-in-production session tokens with a sliding 7-day lifetime, and `resolveSession` is the only source of the session id used by the routes. Records (`lib/records.ts`), history (`app/api/history/route.ts`) and analytics (`app/api/analytics/route.ts`) are partitioned per verified session; forged or malformed cookies resolve to a fresh empty session. Residual limitation: stores remain in-memory and process-local, so multi-instance deployments must set `SESSION_SECRET` and move to durable storage (see web/README.md, "Session & Data Privacy").
 
 ## Known Gap: request-body limits are per-handler
 
