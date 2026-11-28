@@ -45,6 +45,7 @@ MAINTENANCE_ONLY = {
     "doc_validator.py",
     "bench_discovery.py",
     "evaluate_routing.py",
+    "harness_select.py",
     "verify_state.py",
     "generate_changelog.py",
     "monitor_providers.py",

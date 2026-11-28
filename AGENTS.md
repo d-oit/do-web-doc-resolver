@@ -95,18 +95,23 @@ Detailed reference material in `agents-docs/`:
 
 ### PR Checklist
 
-- Quality gate command passes: `./scripts/quality_gate.sh`
+- Quality gate command passes: `./scripts/verify.sh --full`
 - Lint clean (`ruff`, `black`, `cargo fmt`, `cargo clippy`, `npm run lint`)
 - No new secrets added
 - `AGENTS.md` updated if repository structure or skills change
 
 ### Quality Harness
 
-- **Harness**: `do-harness verify --set verification --changed --strict`
-  (native CLI v0.4.7; config in `do-harness.toml`)
+- **Canonical entry point**: `./scripts/verify.sh` — one command on a clean
+  checkout; it bootstraps the pinned CLI if missing, then delegates to
+  `do-harness verify --set verification --changed --strict --format json`
+- **Changed-only**: rename/delete-aware; harness contract (`do-harness.toml`),
+  workflow (`.github/**`), unclassifiable, or sensor-less changes fall back to
+  full verification (selector: `scripts/harness_select.py`)
+- **Full gate (release/CI)**: `./scripts/verify.sh --full` — same `verification`
+  set the `Do Harness` CI job runs; `./scripts/quality_gate.sh` is a thin alias
 - **Install**: `curl -fsSL https://raw.githubusercontent.com/d-o-hub/do-harness/v0.4.7/scripts/install.sh | sh -s -- --version v0.4.7`
 - **Diagnostics**: `do-harness doctor`; evidence status: `do-harness status --set verification`
-- **Fallback**: `./scripts/quality_gate.sh` (legacy; not a second authority)
 
 ### Test Commands
 

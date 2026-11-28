@@ -59,6 +59,7 @@ verification = [
   "rust-clippy",
   "rust-test",
   "rust-build",
+  "rust-semantic-cache",
   "web-lint",
   "web-typecheck",
   "web-test",
@@ -179,6 +180,19 @@ when-changed = ["cli/src/**", "cli/Cargo.toml", "cli/Cargo.lock"]
 inputs = ["cli/src/**", "cli/Cargo.toml", "cli/Cargo.lock"]
 timeout = 1800
 fix = "Run `cargo check --manifest-path cli/Cargo.toml` and fix the compiler error."
+
+[[sensors]]
+name = "rust-semantic-cache"
+argv = ["cargo", "test", "--manifest-path", "cli/Cargo.toml", "--features", "semantic-cache"]
+when-changed = [
+  "cli/src/**",
+  "cli/tests/**",
+  "cli/Cargo.toml",
+  "cli/Cargo.lock",
+]
+inputs = ["cli/src/**", "cli/tests/**", "cli/Cargo.toml", "cli/Cargo.lock"]
+timeout = 1800
+fix = "Run `cargo test --manifest-path cli/Cargo.toml --features semantic-cache` to reproduce the failure."
 
 # ---------------------------------------------------------------------------
 # Web and CLI UI

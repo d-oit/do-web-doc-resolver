@@ -55,6 +55,24 @@ Without `--changed`, every sensor in the set runs. CI runs the full
 `verification` set so no required sensor can be silently skipped. An unknown or
 empty signal set is a configuration error, not a pass.
 
+## One Entry Point
+
+`./scripts/verify.sh` is the single canonical local command (issue #730). It
+installs the pinned CLI on a clean checkout, asks `scripts/harness_select.py`
+for the mode, then delegates to the commands above — it implements no checks
+itself. The selector is rename/delete-aware (both sides of a rename count, and
+deleted paths still select their component) and downgrades to full
+verification whenever detection is uncertain: git metadata unavailable,
+merge/rebase in progress, empty changeset, changes to `do-harness.toml` or
+`.github/**`, paths matching no runtime component, or changes no sensor
+covers. `python scripts/harness_select.py --format json` emits the mode,
+components, selected sensors, and the exact command; on failure, pass the
+evidence file to the `fix-hints` subcommand to print each failed sensor's
+configured fix command.
+
+`./scripts/quality_gate.sh` is a thin compatibility alias of
+`./scripts/verify.sh --full`, not a second authority.
+
 ## Configuration Contract
 
 ```toml
@@ -95,8 +113,12 @@ Rules:
 | Set | Sensors |
 |---|---|
 | `feedback` | Python lint/format, Rust fmt, web lint/typecheck, version, skill mirror, symlinks, docs |
-| `verification` | All Python, Rust, web, CLI UI, version, skill mirror, symlink, and docs sensors |
+| `verification` | All Python, Rust (incl. `rust-semantic-cache`), web, CLI UI, version, skill mirror, symlink, and docs sensors |
 | `release` | Python/Rust/web tests, Rust release build, web build, version/mirror checks |
+
+Web Playwright E2E is intentionally not a sensor: `web/playwright.config.ts`
+targets the deployed production URL, so it runs in `ci-ui.yml` instead of the
+local harness.
 
 Heavy sensors (`python-test`, `rust-build`, `web-build`) are required in
 `verification`. Keep them runnable from a clean checkout; a missing tool is a
@@ -116,9 +138,9 @@ CI installs v0.4.7 in the dedicated harness job and sets
 
 ## Fallback
 
-`./scripts/quality_gate.sh` remains the legacy fallback until the native
-sensor set has demonstrated equivalent coverage. It is not a second authority;
-report divergence rather than silently accepting a weaker gate.
+`./scripts/quality_gate.sh` remains as a thin alias of `./scripts/verify.sh
+--full` for existing callers. It is not a second authority; report divergence
+rather than silently accepting a weaker gate.
 
 ## Troubleshooting
 
