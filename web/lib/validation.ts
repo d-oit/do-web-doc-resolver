@@ -78,7 +78,7 @@ const BLOCKED_HOSTNAMES = new Set([
 /**
  * Check if an IP address is private or reserved
  */
-function isPrivateIpAddress(ip: string): boolean {
+export function isPrivateIpAddress(ip: string): boolean {
   try {
     const normalizedIp = normalizeHost(ip);
     const addr = ipaddr.parse(normalizedIp);
