@@ -225,3 +225,19 @@ The skill is implemented across the project root. Key files:
 
 - `do-wdr-cli`: Rust compiled CLI for faster performance
 - `agent-browser`: Browser automation for complex web interactions
+## Security & Change Validation Matrix
+
+Run the executable check for every change class before opening a PR:
+
+| Change | Required checks |
+|---|---|
+| URL ingress / provider / redirect / browser path | SSRF suites: `cd web && npx vitest run tests/ssrf-fetch.test.ts tests/ssrf.test.ts tests/ssrf_async.test.ts`; all outbound fetches stay behind `web/lib/ssrf-fetch.ts` (pinned DNS, public addresses only) |
+| API / session / storage changes | Authorization and cross-session isolation: `cd web && npx vitest run tests/records.test.ts tests/api/` |
+| Provider routing / cost changes | Deterministic budgets, fallback and circuit breakers: `pytest tests/test_routing_context.py tests/test_cascade_async.py tests/test_monitor_providers.py -q` |
+| Mirrored skill runtime changes | `python scripts/sync_skill.py --check` |
+| Documentation / config changes | `python scripts/validate_docs.py` and the command smoke tests it references |
+| All changes (release/CI) | Full strict harness: `do-harness verify --set verification --strict` |
+
+Rules: no new outbound-fetch call sites outside `web/lib/ssrf-fetch.ts`; new
+persistent endpoints must prove session isolation; new paid-provider calls
+must add deterministic budget/fallback tests and response-size limits.

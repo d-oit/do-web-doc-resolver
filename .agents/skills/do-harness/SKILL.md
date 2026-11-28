@@ -102,6 +102,38 @@ Heavy sensors (`python-test`, `rust-build`, `web-build`) are required in
 `verification`. Keep them runnable from a clean checkout; a missing tool is a
 failure, not a skip.
 
+## Security & Change Validation Matrix
+
+Select required sensors by change class — never rely on a weaker set silently:
+
+| Change | Required verification |
+|---|---|
+| URL ingress / provider / redirect / browser path | Web SSRF suites (`tests/ssrf-fetch.test.ts`, `tests/ssrf.test.ts`, `tests/ssrf_async.test.ts`) plus `python-test` |
+| API / session / storage changes | Web authorization and session-isolation suites (`tests/records.test.ts`, `tests/api/`) |
+| Provider routing / cost changes | Deterministic budget/fallback/circuit-breaker Python tests (`test_routing_context.py`, `test_cascade_async.py`) |
+| Mirrored skill runtime changes | `python scripts/sync_skill.py --check` (sensor `skill-mirror`) |
+| Documentation / config changes | Docs validator sensor; command smoke tests |
+| All changes (release/CI) | Full `do-harness verify --set verification --strict` with evidence |
+
+`--changed` is for local feedback only; CI runs the full `verification` set so
+no required sensor can be skipped by glob mismatch.
+
+## Security & Change Validation Matrix
+
+Select required sensors by change class — never rely on a weaker set silently:
+
+| Change | Required verification |
+|---|---|
+| URL ingress / provider / redirect / browser path | Web SSRF suites (`tests/ssrf-fetch.test.ts`, `tests/ssrf.test.ts`, `tests/ssrf_async.test.ts`) plus `python-test` |
+| API / session / storage changes | Web authorization and session-isolation suites (`tests/records.test.ts`, `tests/api/`) |
+| Provider routing / cost changes | Deterministic budget/fallback/circuit-breaker Python tests (`test_routing_context.py`, `test_cascade_async.py`) |
+| Mirrored skill runtime changes | `python scripts/sync_skill.py --check` (sensor `skill-mirror`) |
+| Documentation / config changes | Docs validator sensor plus command smoke tests |
+| All changes (release/CI) | Full `do-harness verify --set verification --strict` with evidence |
+
+`--changed` is for local feedback only; CI runs the full `verification` set so
+no required sensor can be skipped by glob mismatch.
+
 ## Dogfood Regression
 
 `tests/test_do_harness.py` parses the real configuration and, when
